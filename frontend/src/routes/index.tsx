@@ -4,6 +4,15 @@ import { ProtectedRoute } from './ProtectedRoute';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
+import { DepartmentsPage } from '@/pages/masters/DepartmentsPage';
+import { DesignationsPage } from '@/pages/masters/DesignationsPage';
+import { LocationsPage } from '@/pages/masters/LocationsPage';
+import { SkillsPage } from '@/pages/masters/SkillsPage';
+import { EmploymentTypesPage } from '@/pages/masters/EmploymentTypesPage';
+import { ExperienceLevelsPage } from '@/pages/masters/ExperienceLevelsPage';
+import { InterviewTypesPage } from '@/pages/masters/InterviewTypesPage';
+import { EducationPage } from '@/pages/masters/EducationPage';
+import { RecruitmentSourcesPage } from '@/pages/masters/RecruitmentSourcesPage';
 
 export const router = createBrowserRouter([
   // Public routes
@@ -20,7 +29,18 @@ export const router = createBrowserRouter([
           { path: '/', element: <Navigate to="/dashboard" replace /> },
           { path: '/dashboard', element: <DashboardPage /> },
 
-          // Placeholder routes — pages built in subsequent phases
+          // Master data
+          { path: '/masters/departments', element: <DepartmentsPage /> },
+          { path: '/masters/designations', element: <DesignationsPage /> },
+          { path: '/masters/locations', element: <LocationsPage /> },
+          { path: '/masters/skills', element: <SkillsPage /> },
+          { path: '/masters/employment-types', element: <EmploymentTypesPage /> },
+          { path: '/masters/experience-levels', element: <ExperienceLevelsPage /> },
+          { path: '/masters/interview-types', element: <InterviewTypesPage /> },
+          { path: '/masters/education', element: <EducationPage /> },
+          { path: '/masters/recruitment-sources', element: <RecruitmentSourcesPage /> },
+
+          // Placeholder routes — built in subsequent phases
           { path: '/jobs', element: <ComingSoon title="Jobs" /> },
           { path: '/candidates', element: <ComingSoon title="Candidates" /> },
           { path: '/applications', element: <ComingSoon title="Applications" /> },
@@ -30,7 +50,6 @@ export const router = createBrowserRouter([
           { path: '/reports', element: <ComingSoon title="Reports" /> },
           { path: '/users', element: <ComingSoon title="User Management" /> },
           { path: '/roles', element: <ComingSoon title="Roles & Permissions" /> },
-          { path: '/masters/*', element: <ComingSoon title="Master Data" /> },
           { path: '/profile', element: <ComingSoon title="My Profile" /> },
           { path: '/settings', element: <ComingSoon title="Settings" /> },
         ],
