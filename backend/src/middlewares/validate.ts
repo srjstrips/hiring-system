@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import { ZodSchema, ZodError } from 'zod';
+import type { Request, Response, NextFunction } from 'express';
+import type { ZodSchema } from 'zod';
 
 export function validateBody(schema: ZodSchema) {
   return (req: Request, _res: Response, next: NextFunction): void => {
@@ -12,10 +12,14 @@ export function validateBody(schema: ZodSchema) {
   };
 }
 
+// Express 5 makes req.query read-only (getter-only property).
+// We work around this by using Object.defineProperty to force-overwrite it.
 export function validateQuery(schema: ZodSchema) {
   return (req: Request, _res: Response, next: NextFunction): void => {
     try {
-      req.query = schema.parse(req.query) as typeof req.query;
+      const parsed = schema.parse(req.query);
+      // Force-replace the getter with a value property
+      Object.defineProperty(req, 'query', { value: parsed, writable: true, configurable: true });
       next();
     } catch (error) {
       next(error);
@@ -26,7 +30,8 @@ export function validateQuery(schema: ZodSchema) {
 export function validateParams(schema: ZodSchema) {
   return (req: Request, _res: Response, next: NextFunction): void => {
     try {
-      req.params = schema.parse(req.params) as typeof req.params;
+      const parsed = schema.parse(req.params);
+      Object.defineProperty(req, 'params', { value: parsed, writable: true, configurable: true });
       next();
     } catch (error) {
       next(error);

@@ -48,6 +48,7 @@ const NAV_ITEMS: NavItem[] = [
     children: [
       { label: 'Users', to: '/users', permission: 'users:read' },
       { label: 'Roles', to: '/roles', permission: 'roles:read' },
+      { label: 'Email Templates', to: '/settings/email-templates', permission: 'email-templates:read' },
     ],
   },
 ];

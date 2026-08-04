@@ -51,6 +51,16 @@ const PERMISSIONS = [
   { resource: 'offers', action: 'approve', displayName: 'Approve Offers' },
   // Reports
   { resource: 'reports', action: 'read', displayName: 'View Reports' },
+  // Assessments
+  { resource: 'assessments', action: 'read', displayName: 'View Assessments' },
+  { resource: 'assessments', action: 'create', displayName: 'Create Assessments' },
+  { resource: 'assessments', action: 'update', displayName: 'Update Assessments' },
+  { resource: 'assessments', action: 'delete', displayName: 'Delete Assessments' },
+  // Email Templates
+  { resource: 'email-templates', action: 'read', displayName: 'View Email Templates' },
+  { resource: 'email-templates', action: 'create', displayName: 'Create Email Templates' },
+  { resource: 'email-templates', action: 'update', displayName: 'Update Email Templates' },
+  { resource: 'email-templates', action: 'delete', displayName: 'Delete Email Templates' },
   // Dashboard
   { resource: 'dashboard', action: 'read', displayName: 'View Dashboard' },
 ];
@@ -76,6 +86,8 @@ const ROLES = [
       'applications:read', 'applications:update',
       'interviews:read', 'interviews:create', 'interviews:update',
       'offers:read', 'offers:create', 'offers:update',
+      'assessments:read', 'assessments:create', 'assessments:update', 'assessments:delete',
+      'email-templates:read', 'email-templates:create', 'email-templates:update', 'email-templates:delete',
       'reports:read', 'dashboard:read',
     ],
   },

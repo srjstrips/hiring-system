@@ -461,8 +461,9 @@ model Job {
   createdBy       User            @relation("JobCreatedBy", fields: [createdById], references: [id])
   updatedBy       User?           @relation("JobUpdatedBy", fields: [updatedById], references: [id])
 
-  skills       JobSkill[]
-  applications Application[]
+  skills             JobSkill[]
+  applications       Application[]
+  assessmentTemplate AssessmentTemplate?
 
   @@map("jobs")
 }
@@ -511,12 +512,13 @@ model Candidate {
 
   source       RecruitmentSource? @relation(fields: [sourceId], references: [id])
 
-  skills       CandidateSkill[]
-  educations   CandidateEducation[]
-  experiences  CandidateExperience[]
-  applications Application[]
-  notes        CandidateNote[]
-  tags         CandidateTag[]
+  skills              CandidateSkill[]
+  educations          CandidateEducation[]
+  experiences         CandidateExperience[]
+  applications        Application[]
+  notes               CandidateNote[]
+  tags                CandidateTag[]
+  assessmentAttempts  AssessmentAttempt[]
 
   @@map("candidates")
 }
@@ -613,9 +615,10 @@ model Application {
   job       Job                @relation(fields: [jobId], references: [id])
   source    RecruitmentSource? @relation(fields: [sourceId], references: [id])
 
-  timeline    ApplicationTimeline[]
-  interviews  Interview[]
-  offer       Offer?
+  timeline          ApplicationTimeline[]
+  interviews        Interview[]
+  offer             Offer?
+  assessmentAttempt AssessmentAttempt?
 
   @@unique([candidateId, jobId])
   @@map("applications")
@@ -746,6 +749,103 @@ model JoiningChecklist {
   updatedAt     DateTime  @updatedAt
 
   @@map("joining_checklists")
+}
+
+// ─── ASSESSMENTS ──────────────────────────────────────────────────────────────
+
+enum QuestionType {
+  MCQ
+  TEXT
+  TRUE_FALSE
+}
+
+model AssessmentTemplate {
+  id           String   @id @default(uuid())
+  jobId        String   @unique
+  title        String
+  description  String?
+  durationMins Int      @default(30)
+  passingScore Int      @default(60)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  job       Job                  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  questions AssessmentQuestion[]
+  attempts  AssessmentAttempt[]
+
+  @@map("assessment_templates")
+}
+
+model AssessmentQuestion {
+  id             String       @id @default(uuid())
+  templateId     String
+  questionText   String
+  questionType   QuestionType @default(MCQ)
+  options        Json?
+  correctAnswer  String?
+  marks          Int          @default(1)
+  orderIndex     Int          @default(0)
+  explanation    String?
+  createdAt      DateTime     @default(now())
+
+  template AssessmentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  answers  AssessmentAnswer[]
+
+  @@map("assessment_questions")
+}
+
+model AssessmentAttempt {
+  id           String    @id @default(uuid())
+  templateId   String
+  candidateId  String
+  applicationId String   @unique
+  startedAt    DateTime  @default(now())
+  submittedAt  DateTime?
+  score        Int?
+  totalMarks   Int?
+  isPassed     Boolean?
+  isTimedOut   Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+
+  template    AssessmentTemplate @relation(fields: [templateId], references: [id])
+  candidate   Candidate          @relation(fields: [candidateId], references: [id])
+  application Application        @relation(fields: [applicationId], references: [id])
+  answers     AssessmentAnswer[]
+
+  @@map("assessment_attempts")
+}
+
+model AssessmentAnswer {
+  id          String   @id @default(uuid())
+  attemptId   String
+  questionId  String
+  answerText  String?
+  isCorrect   Boolean?
+  marksGiven  Int?
+  createdAt   DateTime @default(now())
+
+  attempt  AssessmentAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question AssessmentQuestion @relation(fields: [questionId], references: [id])
+
+  @@unique([attemptId, questionId])
+  @@map("assessment_answers")
+}
+
+// ─── EMAIL TEMPLATES ─────────────────────────────────────────────────────────
+
+model EmailTemplate {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  subject     String
+  body        String
+  category    String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("email_templates")
 }
 
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
