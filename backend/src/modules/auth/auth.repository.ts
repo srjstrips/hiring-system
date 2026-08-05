@@ -13,6 +13,8 @@ export class AuthRepository {
             },
           },
         },
+        departmentAssignments: { select: { departmentId: true } },
+        locationAssignments: { select: { locationId: true } },
       },
     });
   }
@@ -28,6 +30,8 @@ export class AuthRepository {
             },
           },
         },
+        departmentAssignments: { select: { departmentId: true } },
+        locationAssignments: { select: { locationId: true } },
       },
     });
   }

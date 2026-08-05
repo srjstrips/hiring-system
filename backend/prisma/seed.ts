@@ -63,6 +63,10 @@ const PERMISSIONS = [
   { resource: 'email-templates', action: 'delete', displayName: 'Delete Email Templates' },
   // Dashboard
   { resource: 'dashboard', action: 'read', displayName: 'View Dashboard' },
+  // Employees
+  { resource: 'employees', action: 'read', displayName: 'View Employees' },
+  { resource: 'employees', action: 'create', displayName: 'Create Employees' },
+  { resource: 'employees', action: 'update', displayName: 'Update Employees' },
 ];
 
 const ROLES = [
@@ -89,6 +93,7 @@ const ROLES = [
       'assessments:read', 'assessments:create', 'assessments:update', 'assessments:delete',
       'email-templates:read', 'email-templates:create', 'email-templates:update', 'email-templates:delete',
       'reports:read', 'dashboard:read',
+      'employees:read', 'employees:create', 'employees:update',
     ],
   },
   {
@@ -111,7 +116,7 @@ const ROLES = [
     permissions: [
       'requisitions:read', 'requisitions:create', 'requisitions:approve',
       'jobs:read', 'candidates:read', 'applications:read',
-      'interviews:read', 'reports:read', 'dashboard:read',
+      'interviews:read', 'reports:read', 'dashboard:read', 'employees:read',
     ],
   },
   {

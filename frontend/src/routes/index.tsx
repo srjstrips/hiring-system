@@ -4,6 +4,14 @@ import { ProtectedRoute } from './ProtectedRoute';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
+import OpenPositionsPage from '@/pages/dashboard/OpenPositionsPage';
+import ApplicationsAnalyticsPage from '@/pages/dashboard/ApplicationsAnalyticsPage';
+import InterviewDashboardPage from '@/pages/dashboard/InterviewDashboardPage';
+import OffersDashboardPage from '@/pages/dashboard/OffersDashboardPage';
+import RequisitionsDashboardPage from '@/pages/dashboard/RequisitionsDashboardPage';
+import TimeToHirePage from '@/pages/dashboard/TimeToHirePage';
+import InsightsPage from '@/pages/insights/InsightsPage';
+import UsersPage from '@/pages/users/UsersPage';
 import { DepartmentsPage } from '@/pages/masters/DepartmentsPage';
 import { DesignationsPage } from '@/pages/masters/DesignationsPage';
 import { LocationsPage } from '@/pages/masters/LocationsPage';
@@ -32,7 +40,6 @@ import ApplyPage from '@/pages/career/ApplyPage';
 import AssessmentPage from '@/pages/career/AssessmentPage';
 
 export const router = createBrowserRouter([
-  // Career portal — public, no auth
   {
     path: '/careers',
     element: <CareerLayout />,
@@ -45,11 +52,9 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // Auth routes
   { path: '/login', element: <LoginPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
 
-  // Protected HR/Admin routes
   {
     element: <ProtectedRoute />,
     children: [
@@ -58,8 +63,15 @@ export const router = createBrowserRouter([
         children: [
           { path: '/', element: <Navigate to="/dashboard" replace /> },
           { path: '/dashboard', element: <DashboardPage /> },
+          { path: '/dashboard/open-positions', element: <OpenPositionsPage /> },
+          { path: '/dashboard/applications', element: <ApplicationsAnalyticsPage /> },
+          { path: '/dashboard/interviews', element: <InterviewDashboardPage /> },
+          { path: '/dashboard/offers', element: <OffersDashboardPage /> },
+          { path: '/dashboard/requisitions', element: <RequisitionsDashboardPage /> },
+          { path: '/dashboard/time-to-hire', element: <TimeToHirePage /> },
 
-          // Master data
+          { path: '/insights', element: <InsightsPage /> },
+
           { path: '/masters/departments', element: <DepartmentsPage /> },
           { path: '/masters/designations', element: <DesignationsPage /> },
           { path: '/masters/locations', element: <LocationsPage /> },
@@ -70,32 +82,25 @@ export const router = createBrowserRouter([
           { path: '/masters/education', element: <EducationPage /> },
           { path: '/masters/recruitment-sources', element: <RecruitmentSourcesPage /> },
 
-          // Jobs
           { path: '/jobs', element: <JobsPage /> },
           { path: '/jobs/create', element: <JobFormPage /> },
           { path: '/jobs/:id', element: <JobDetailPage /> },
           { path: '/jobs/:id/edit', element: <JobFormPage /> },
           { path: '/jobs/:id/assessment', element: <AssessmentBuilderPage /> },
 
-          // Applications
           { path: '/applications', element: <ApplicationsPage /> },
           { path: '/applications/:id', element: <ApplicationDetailPage /> },
 
-          // Candidates
           { path: '/candidates', element: <CandidatesPage /> },
           { path: '/candidates/:id', element: <CandidateDetailPage /> },
 
-          // Offers
           { path: '/offers', element: <OffersPage /> },
-
-          // Requisitions
           { path: '/requisitions', element: <RequisitionsPage /> },
+          { path: '/interviews', element: <InterviewDashboardPage /> },
 
-          // Other modules (coming)
-          { path: '/interviews', element: <ComingSoon title="Interviews" /> },
-          { path: '/reports', element: <ComingSoon title="Reports" /> },
-          { path: '/users', element: <ComingSoon title="User Management" /> },
+          { path: '/users', element: <UsersPage /> },
           { path: '/roles', element: <ComingSoon title="Roles & Permissions" /> },
+          { path: '/reports', element: <Navigate to="/insights" replace /> },
           { path: '/profile', element: <ComingSoon title="My Profile" /> },
           { path: '/settings', element: <ComingSoon title="Settings" /> },
           { path: '/settings/email-templates', element: <EmailTemplatesPage /> },

@@ -25,4 +25,6 @@ export const applicationsApi = {
     api.patch<{ success: boolean; data: Application }>(`/applications/${id}/status`, data),
   getPipelineStats: (jobId?: string) =>
     api.get<{ success: boolean; data: Array<{ status: string; count: number }> }>('/applications/pipeline-stats', { params: { jobId } }),
+  getAnalytics: (params?: Record<string, unknown>) =>
+    api.get('/applications/analytics', { params }).then((r) => r.data),
 };

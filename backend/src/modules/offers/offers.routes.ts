@@ -7,6 +7,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', authorize('offers:read'), offersController.getAll);
+router.get('/summary', authorize('offers:read'), offersController.getSummary);
 router.get('/:id', authorize('offers:read'), offersController.getById);
 router.post('/', authorize('offers:create'), offersController.create);
 router.put('/:id', authorize('offers:update'), offersController.update);

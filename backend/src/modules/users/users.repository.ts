@@ -21,6 +21,18 @@ const userSelect = {
   department: {
     select: { id: true, name: true },
   },
+  departmentAssignments: {
+    select: {
+      departmentId: true,
+      department: { select: { id: true, name: true } },
+    },
+  },
+  locationAssignments: {
+    select: {
+      locationId: true,
+      location: { select: { id: true, name: true } },
+    },
+  },
 } satisfies Prisma.UserSelect;
 
 export class UsersRepository {
@@ -39,7 +51,12 @@ export class UsersRepository {
       }),
       ...(roleId && { roleId }),
       ...(status && { status }),
-      ...(departmentId && { departmentId }),
+      ...(departmentId && {
+        OR: [
+          { departmentId },
+          { departmentAssignments: { some: { departmentId } } },
+        ],
+      }),
     };
 
     const [data, total] = await Promise.all([
@@ -71,18 +88,53 @@ export class UsersRepository {
     phone?: string;
     roleId: string;
     departmentId?: string;
+    departmentIds?: string[];
+    locationIds?: string[];
   }) {
+    const { departmentIds = [], locationIds = [], ...userData } = data;
     return prisma.user.create({
-      data: { ...data, email: data.email.toLowerCase() },
+      data: {
+        ...userData,
+        email: userData.email.toLowerCase(),
+        departmentAssignments: departmentIds.length
+          ? { create: departmentIds.map((departmentId) => ({ departmentId })) }
+          : undefined,
+        locationAssignments: locationIds.length
+          ? { create: locationIds.map((locationId) => ({ locationId })) }
+          : undefined,
+      },
       select: userSelect,
     });
   }
 
-  async update(id: string, data: Prisma.UserUpdateInput) {
-    return prisma.user.update({
-      where: { id },
-      data,
-      select: userSelect,
+  async update(
+    id: string,
+    data: Prisma.UserUpdateInput & { departmentIds?: string[]; locationIds?: string[] }
+  ) {
+    const { departmentIds, locationIds, ...rest } = data as any;
+
+    return prisma.$transaction(async (tx) => {
+      if (departmentIds) {
+        await tx.userDepartment.deleteMany({ where: { userId: id } });
+        if (departmentIds.length) {
+          await tx.userDepartment.createMany({
+            data: departmentIds.map((departmentId: string) => ({ userId: id, departmentId })),
+          });
+        }
+      }
+      if (locationIds) {
+        await tx.userLocation.deleteMany({ where: { userId: id } });
+        if (locationIds.length) {
+          await tx.userLocation.createMany({
+            data: locationIds.map((locationId: string) => ({ userId: id, locationId })),
+          });
+        }
+      }
+      return tx.user.update({
+        where: { id },
+        data: rest,
+        select: userSelect,
+      });
     });
   }
 
@@ -102,6 +154,14 @@ export class UsersRepository {
       },
     });
     return !!user;
+  }
+
+  async listRoles() {
+    return prisma.role.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, displayName: true, description: true },
+      orderBy: { displayName: 'asc' },
+    });
   }
 }
 

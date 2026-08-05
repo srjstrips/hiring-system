@@ -55,4 +55,6 @@ export const jobsApi = {
   publish: (id: string) => api.patch(`/jobs/${id}/publish`),
   unpublish: (id: string) => api.patch(`/jobs/${id}/unpublish`),
   delete: (id: string) => api.delete(`/jobs/${id}`),
+  getOpenPositions: (params?: Record<string, unknown>) =>
+    api.get('/jobs/open-positions', { params }).then((r) => r.data),
 };

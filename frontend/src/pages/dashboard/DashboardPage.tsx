@@ -1,114 +1,190 @@
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Briefcase, Users, Calendar, Gift, UserPlus, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { SummaryCards } from '@/components/common/SummaryCards';
 import { useAuth } from '@/contexts/AuthContext';
+import { dashboardApi } from '@/api/dashboard';
+import { format } from 'date-fns';
 
-const STAT_CARDS = [
-  { label: 'Open Positions', value: '24', icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50', trend: '+3 this month' },
-  { label: 'Total Applications', value: '186', icon: Users, color: 'text-violet-600', bg: 'bg-violet-50', trend: '+12 today' },
-  { label: 'Interviews Scheduled', value: '18', icon: Calendar, color: 'text-orange-600', bg: 'bg-orange-50', trend: '5 this week' },
-  { label: 'Offers Sent', value: '7', icon: Gift, color: 'text-green-600', bg: 'bg-green-50', trend: '2 pending acceptance' },
-  { label: 'Pending Requisitions', value: '5', icon: UserPlus, color: 'text-rose-600', bg: 'bg-rose-50', trend: '3 awaiting approval' },
-  { label: 'Avg. Time to Hire', value: '28d', icon: Clock, color: 'text-teal-600', bg: 'bg-teal-50', trend: '-2d vs last month' },
-];
+const PIPELINE_COLORS: Record<string, string> = {
+  APPLIED: 'bg-slate-500',
+  SCREENING: 'bg-blue-500',
+  SHORTLISTED: 'bg-violet-500',
+  INTERVIEW_ROUND_1: 'bg-orange-500',
+  INTERVIEW_ROUND_2: 'bg-amber-500',
+  HR_ROUND: 'bg-teal-500',
+  SELECTED: 'bg-green-500',
+  OFFER_SENT: 'bg-emerald-500',
+  OFFER_ACCEPTED: 'bg-green-600',
+  JOINED: 'bg-green-700',
+  REJECTED: 'bg-red-400',
+  WITHDRAWN: 'bg-gray-400',
+  ON_HOLD: 'bg-yellow-500',
+};
 
-const PIPELINE = [
-  { stage: 'Applied', count: 186, color: 'bg-slate-500' },
-  { stage: 'Screening', count: 94, color: 'bg-blue-500' },
-  { stage: 'Shortlisted', count: 52, color: 'bg-violet-500' },
-  { stage: 'Interview R1', count: 34, color: 'bg-orange-500' },
-  { stage: 'Interview R2', count: 18, color: 'bg-amber-500' },
-  { stage: 'HR Round', count: 12, color: 'bg-teal-500' },
-  { stage: 'Selected', count: 9, color: 'bg-green-500' },
-  { stage: 'Offer Sent', count: 7, color: 'bg-emerald-500' },
-  { stage: 'Joined', count: 4, color: 'bg-green-700' },
-];
-
-const UPCOMING_INTERVIEWS = [
-  { candidate: 'Rahul Sharma', job: 'Senior Software Engineer', time: 'Today, 2:00 PM', type: 'Technical Round 1' },
-  { candidate: 'Priya Patel', job: 'Product Manager', time: 'Today, 4:30 PM', type: 'HR Round' },
-  { candidate: 'Arjun Singh', job: 'Data Scientist', time: 'Tomorrow, 11:00 AM', type: 'Technical Round 2' },
-  { candidate: 'Ananya Rao', job: 'UX Designer', time: 'Tomorrow, 3:00 PM', type: 'Final Round' },
-];
+function formatStage(status: string) {
+  return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const { data: summaryRes, isLoading: summaryLoading } = useQuery({
+    queryKey: ['dashboard-summary'],
+    queryFn: () => dashboardApi.getSummary(),
+  });
+
+  const { data: pipelineRes } = useQuery({
+    queryKey: ['dashboard-pipeline'],
+    queryFn: () => dashboardApi.getPipeline(),
+  });
+
+  const { data: interviewsRes } = useQuery({
+    queryKey: ['dashboard-upcoming-interviews'],
+    queryFn: () => dashboardApi.getUpcomingInterviews(),
+  });
+
+  const summary = summaryRes?.data ?? {};
+  const pipeline: Array<{ status: string; count: number }> = pipelineRes?.data ?? [];
+  const upcoming = interviewsRes?.data ?? [];
+  const pipelineTotal = pipeline.reduce((s, p) => s + p.count, 0) || 1;
+
+  const cards = [
+    {
+      label: 'Open Positions',
+      value: summaryLoading ? '—' : (summary.openPositions ?? 0),
+      icon: Briefcase,
+      color: 'text-blue-600',
+      bg: 'bg-blue-50',
+      trend: summary.openPositionsTrend ?? 'View details',
+      onClick: () => navigate('/dashboard/open-positions'),
+    },
+    {
+      label: 'Total Applications',
+      value: summaryLoading ? '—' : (summary.totalApplications ?? 0),
+      icon: Users,
+      color: 'text-violet-600',
+      bg: 'bg-violet-50',
+      trend: summary.applicationsTrend ?? 'View analytics',
+      onClick: () => navigate('/dashboard/applications'),
+    },
+    {
+      label: 'Interviews Scheduled',
+      value: summaryLoading ? '—' : (summary.interviewsScheduled ?? 0),
+      icon: Calendar,
+      color: 'text-orange-600',
+      bg: 'bg-orange-50',
+      trend: summary.interviewsTrend ?? 'View interviews',
+      onClick: () => navigate('/dashboard/interviews'),
+    },
+    {
+      label: 'Offers Sent',
+      value: summaryLoading ? '—' : (summary.offersSent ?? 0),
+      icon: Gift,
+      color: 'text-green-600',
+      bg: 'bg-green-50',
+      trend: summary.offersTrend ?? 'View offers',
+      onClick: () => navigate('/dashboard/offers'),
+    },
+    {
+      label: 'Pending Requisitions',
+      value: summaryLoading ? '—' : (summary.pendingRequisitions ?? 0),
+      icon: UserPlus,
+      color: 'text-rose-600',
+      bg: 'bg-rose-50',
+      trend: summary.requisitionsTrend ?? 'View requisitions',
+      onClick: () => navigate('/dashboard/requisitions'),
+    },
+    {
+      label: 'Avg. Time to Hire',
+      value: summaryLoading ? '—' : `${summary.avgTimeToHireDays ?? 0}d`,
+      icon: Clock,
+      color: 'text-teal-600',
+      bg: 'bg-teal-50',
+      trend: summary.timeToHireTrend ?? 'View analytics',
+      onClick: () => navigate('/dashboard/time-to-hire'),
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Welcome */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">
           Good {getTimeGreeting()}, {user?.firstName}!
         </h1>
         <p className="text-muted-foreground mt-1">
-          Here's what's happening with your hiring pipeline today.
+          Click any card to open operational reports for your hiring scope.
         </p>
       </div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {STAT_CARDS.map((card) => (
-          <Card key={card.label} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
-                  <p className="text-3xl font-bold mt-1">{card.value}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{card.trend}</p>
-                </div>
-                <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${card.bg}`}>
-                  <card.icon className={`h-6 w-6 ${card.color}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <SummaryCards items={cards} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Pipeline funnel */}
         <Card className="lg:col-span-2">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base font-semibold">Candidate Pipeline</CardTitle>
+            <Link to="/dashboard/applications" className="text-xs text-blue-600 hover:underline">
+              View analytics
+            </Link>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {PIPELINE.map((stage) => {
-                const pct = Math.round((stage.count / 186) * 100);
-                return (
-                  <div key={stage.stage} className="flex items-center gap-3">
-                    <span className="w-24 text-sm text-muted-foreground shrink-0">{stage.stage}</span>
-                    <div className="flex-1 bg-muted rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full ${stage.color}`}
-                        style={{ width: `${pct}%` }}
-                      />
+            {pipeline.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No application data yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {pipeline.map((stage) => {
+                  const pct = Math.round((stage.count / pipelineTotal) * 100);
+                  return (
+                    <div key={stage.status} className="flex items-center gap-3">
+                      <span className="w-28 text-sm text-muted-foreground shrink-0">
+                        {formatStage(stage.status)}
+                      </span>
+                      <div className="flex-1 bg-muted rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${PIPELINE_COLORS[stage.status] ?? 'bg-slate-400'}`}
+                          style={{ width: `${Math.max(pct, 2)}%` }}
+                        />
+                      </div>
+                      <span className="w-8 text-right text-sm font-medium">{stage.count}</span>
                     </div>
-                    <span className="w-8 text-right text-sm font-medium">{stage.count}</span>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Upcoming interviews */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base font-semibold">Upcoming Interviews</CardTitle>
+            <Link to="/dashboard/interviews" className="text-xs text-blue-600 hover:underline">
+              All
+            </Link>
           </CardHeader>
           <CardContent className="space-y-4">
-            {UPCOMING_INTERVIEWS.map((item, idx) => (
-              <div key={idx} className="flex flex-col gap-1 pb-3 border-b last:border-0 last:pb-0">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium leading-none">{item.candidate}</p>
-                  <Badge variant="secondary" className="text-xs shrink-0">{item.type}</Badge>
+            {upcoming.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No upcoming interviews.</p>
+            ) : (
+              upcoming.map((item: any) => (
+                <div key={item.id} className="flex flex-col gap-1 pb-3 border-b last:border-0 last:pb-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-medium leading-none">
+                      {item.application?.candidate?.firstName} {item.application?.candidate?.lastName}
+                    </p>
+                    <Badge variant="secondary" className="text-xs shrink-0">
+                      {item.interviewType?.name ?? item.title ?? `Round ${item.round}`}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{item.application?.job?.title}</p>
+                  <p className="text-xs text-blue-600 font-medium">
+                    {item.scheduledAt ? format(new Date(item.scheduledAt), 'PPp') : '—'}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">{item.job}</p>
-                <p className="text-xs text-blue-600 font-medium">{item.time}</p>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
       </div>

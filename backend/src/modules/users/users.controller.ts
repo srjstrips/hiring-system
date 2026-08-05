@@ -40,6 +40,11 @@ export class UsersController {
     await usersService.changePassword(req.user!.id, req.body as any);
     return ApiResponse.success(res, null, 'Password changed successfully');
   });
+
+  listRoles = asyncHandler(async (_req: AuthRequest, res: Response) => {
+    const roles = await usersService.listRoles();
+    return ApiResponse.success(res, roles);
+  });
 }
 
 export const usersController = new UsersController();

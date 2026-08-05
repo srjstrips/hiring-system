@@ -7,6 +7,8 @@ export const createUserSchema = z.object({
   phone: z.string().optional(),
   roleId: z.string().uuid(),
   departmentId: z.string().uuid().optional(),
+  departmentIds: z.array(z.string().uuid()).optional(),
+  locationIds: z.array(z.string().uuid()).optional(),
   password: z
     .string()
     .min(8)
@@ -22,6 +24,8 @@ export const updateUserSchema = z.object({
   phone: z.string().optional(),
   roleId: z.string().uuid().optional(),
   departmentId: z.string().uuid().nullable().optional(),
+  departmentIds: z.array(z.string().uuid()).optional(),
+  locationIds: z.array(z.string().uuid()).optional(),
   status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']).optional(),
 });
 

@@ -10,6 +10,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', validateQuery(JobQuerySchema), authorize('jobs:read'), jobsController.getAll);
+router.get('/open-positions', authorize('jobs:read'), jobsController.getOpenPositions);
 router.get('/:id', authorize('jobs:read'), jobsController.getById);
 router.post('/', validateBody(CreateJobSchema), authorize('jobs:create'), jobsController.create);
 router.put('/:id', validateBody(UpdateJobSchema), authorize('jobs:update'), jobsController.update);

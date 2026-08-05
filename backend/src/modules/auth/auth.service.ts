@@ -18,6 +18,19 @@ export class AuthService {
       .map((rp) => `${rp.permission.resource}:${rp.permission.action}`);
   }
 
+  private extractDepartmentIds(user: Awaited<ReturnType<typeof authRepository.findUserByEmail>>): string[] {
+    if (!user) return [];
+    if (user.departmentAssignments?.length) {
+      return user.departmentAssignments.map((d) => d.departmentId);
+    }
+    return user.departmentId ? [user.departmentId] : [];
+  }
+
+  private extractLocationIds(user: Awaited<ReturnType<typeof authRepository.findUserByEmail>>): string[] {
+    if (!user?.locationAssignments) return [];
+    return user.locationAssignments.map((l) => l.locationId);
+  }
+
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
     const user = await authRepository.findUserByEmail(dto.email);
 
@@ -30,6 +43,8 @@ export class AuthService {
     }
 
     const permissions = this.extractPermissions(user);
+    const departmentIds = this.extractDepartmentIds(user);
+    const locationIds = this.extractLocationIds(user);
 
     const accessToken = signAccessToken({
       sub: user.id,
@@ -67,6 +82,9 @@ export class AuthService {
         roleName: user.role.displayName,
         permissions,
         avatar: user.avatar,
+        departmentId: user.departmentId,
+        departmentIds,
+        locationIds,
       },
     };
   }
@@ -175,6 +193,8 @@ export class AuthService {
     }
 
     const permissions = this.extractPermissions(user);
+    const departmentIds = this.extractDepartmentIds(user);
+    const locationIds = this.extractLocationIds(user);
 
     return {
       id: user.id,
@@ -188,6 +208,8 @@ export class AuthService {
       roleName: user.role.displayName,
       permissions,
       departmentId: user.departmentId,
+      departmentIds,
+      locationIds,
       lastLoginAt: user.lastLoginAt,
       createdAt: user.createdAt,
     };

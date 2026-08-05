@@ -1,4 +1,5 @@
 import { prisma } from '@/config/database';
+import { applyJobScope, type UserScope } from '@/utils/scope';
 import type { CreateJobDto, JobQueryDto } from './jobs.validator';
 
 function buildSlug(title: string): string {
@@ -23,18 +24,27 @@ const jobInclude = {
 };
 
 export class JobsRepository {
-  async findAll(query: JobQueryDto) {
-    const { page, limit, search, departmentId, locationId, employmentTypeId, experienceLevelId, isPublished, isActive } = query;
+  async findAll(query: JobQueryDto, scope?: UserScope) {
+    const {
+      page, limit, search, departmentId, designationId, locationId, employmentTypeId,
+      experienceLevelId, positionStatus, hiringManagerId, ownedById, isPublished, isActive,
+    } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = { deletedAt: null };
+    let where: any = { deletedAt: null };
     if (search) where.title = { contains: search, mode: 'insensitive' };
     if (departmentId) where.departmentId = departmentId;
+    if (designationId) where.designationId = designationId;
     if (locationId) where.locationId = locationId;
     if (employmentTypeId) where.employmentTypeId = employmentTypeId;
     if (experienceLevelId) where.experienceLevelId = experienceLevelId;
+    if (positionStatus) where.positionStatus = positionStatus;
+    if (hiringManagerId) where.hiringManagerId = hiringManagerId;
+    if (ownedById) where.ownedById = ownedById;
     if (isPublished !== undefined) where.isPublished = isPublished;
     if (isActive !== undefined) where.isActive = isActive;
+
+    if (scope) where = applyJobScope(where, scope);
 
     const [data, total] = await Promise.all([
       prisma.job.findMany({ where, skip, take: limit, include: jobInclude, orderBy: { createdAt: 'desc' } }),

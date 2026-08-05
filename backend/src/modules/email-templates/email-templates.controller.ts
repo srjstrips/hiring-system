@@ -1,5 +1,6 @@
 import type { Response } from 'express';
 import type { AuthRequest } from '@/types';
+import { prisma } from '@/config/database';
 import emailTemplatesService from './email-templates.service';
 import type { CreateEmailTemplateDto, UpdateEmailTemplateDto, SendEmailDto } from './email-templates.validator';
 
@@ -31,7 +32,11 @@ class EmailTemplatesController {
 
   async sendForApplication(req: AuthRequest, res: Response) {
     const applicationId = req.params['id'] as string;
-    const sentByName = `${req.user!.firstName} ${req.user!.lastName}`;
+    const sender = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: { firstName: true, lastName: true },
+    });
+    const sentByName = sender ? `${sender.firstName} ${sender.lastName}` : req.user!.email;
     const result = await emailTemplatesService.sendForApplication(applicationId, req.body as SendEmailDto, sentByName);
     res.json({ success: true, data: result });
   }

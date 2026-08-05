@@ -17,6 +17,9 @@ export const CreateJobSchema = z.object({
   showSalary: z.boolean().default(false),
   numberOfPositions: z.coerce.number().int().min(1).default(1),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).default('MEDIUM'),
+  positionStatus: z.enum(['OPEN', 'ON_HOLD', 'CLOSED']).default('OPEN'),
+  hiringManagerId: z.string().uuid().optional(),
+  ownedById: z.string().uuid().optional(),
   closingDate: z.string().datetime().optional(),
   skillIds: z.array(z.object({ skillId: z.string().uuid(), isRequired: z.boolean().default(true) })).optional(),
 });
@@ -28,9 +31,13 @@ export const JobQuerySchema = z.object({
   limit: z.string().optional().default('10').transform(Number),
   search: z.string().optional(),
   departmentId: z.string().uuid().optional(),
+  designationId: z.string().uuid().optional(),
   locationId: z.string().uuid().optional(),
   employmentTypeId: z.string().uuid().optional(),
   experienceLevelId: z.string().uuid().optional(),
+  positionStatus: z.enum(['OPEN', 'ON_HOLD', 'CLOSED']).optional(),
+  hiringManagerId: z.string().uuid().optional(),
+  ownedById: z.string().uuid().optional(),
   isPublished: z.string().optional().transform((v) => v === undefined ? undefined : v === 'true'),
   isActive: z.string().optional().transform((v) => v === undefined ? undefined : v === 'true'),
 });

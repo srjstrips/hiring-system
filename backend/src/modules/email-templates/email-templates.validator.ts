@@ -13,7 +13,7 @@ export const UpdateEmailTemplateSchema = CreateEmailTemplateSchema.partial();
 export const SendEmailSchema = z.object({
   templateId: z.string().uuid(),
   toEmail: z.string().email().optional(),
-  extraVariables: z.record(z.string()).optional(),
+  extraVariables: z.record(z.string(), z.string()).optional(),
   previewOnly: z.boolean().default(false),
 });
 

@@ -18,13 +18,13 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
+  { label: 'Insights', icon: BarChart3, to: '/insights', permission: 'reports:read' },
   { label: 'Jobs', icon: Briefcase, to: '/jobs', permission: 'jobs:read' },
   { label: 'Candidates', icon: Users, to: '/candidates', permission: 'candidates:read' },
   { label: 'Applications', icon: FileText, to: '/applications', permission: 'applications:read' },
   { label: 'Interviews', icon: Calendar, to: '/interviews', permission: 'interviews:read' },
   { label: 'Offers', icon: Gift, to: '/offers', permission: 'offers:read' },
   { label: 'Requisitions', icon: UserPlus, to: '/requisitions', permission: 'requisitions:read' },
-  { label: 'Reports', icon: BarChart3, to: '/reports', permission: 'reports:read' },
   {
     label: 'Masters',
     icon: Layers,

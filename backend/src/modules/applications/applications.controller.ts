@@ -26,6 +26,11 @@ class ApplicationsController {
     const stats = await applicationsService.getPipelineStats(jobId);
     res.json({ success: true, data: stats });
   }
+
+  async getAnalytics(req: AuthRequest, res: Response) {
+    const result = await applicationsService.getAnalytics(req.query, req.user!.id, req.user!.roleName);
+    res.json({ success: true, ...result });
+  }
 }
 
 export default new ApplicationsController();

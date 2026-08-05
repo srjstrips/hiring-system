@@ -7,6 +7,8 @@ export interface AuthUser {
   roleId: string;
   roleName: string;
   permissions: string[];
+  departmentIds: string[];
+  locationIds: string[];
 }
 
 export interface AuthRequest<

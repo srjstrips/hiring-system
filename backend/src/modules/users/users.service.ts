@@ -33,6 +33,8 @@ export class UsersService {
       phone: dto.phone,
       roleId: dto.roleId,
       departmentId: dto.departmentId,
+      departmentIds: dto.departmentIds,
+      locationIds: dto.locationIds,
     });
 
     if (!dto.password) {
@@ -46,7 +48,12 @@ export class UsersService {
     const user = await usersRepository.findById(id);
     if (!user) throw new NotFoundError('User');
 
-    return usersRepository.update(id, dto);
+    const { departmentIds, locationIds, ...rest } = dto;
+    return usersRepository.update(id, {
+      ...rest,
+      departmentIds,
+      locationIds,
+    } as any);
   }
 
   async delete(id: string) {
@@ -59,7 +66,6 @@ export class UsersService {
     const user = await usersRepository.findById(userId);
     if (!user) throw new NotFoundError('User');
 
-    // Need the hash — fetch raw user
     const rawUser = await import('../../config/database').then(({ prisma }) =>
       prisma.user.findUnique({ where: { id: userId } })
     );
@@ -70,6 +76,10 @@ export class UsersService {
 
     const newHash = await hashPassword(dto.newPassword);
     await usersRepository.update(userId, { passwordHash: newHash });
+  }
+
+  async listRoles() {
+    return usersRepository.listRoles();
   }
 }
 

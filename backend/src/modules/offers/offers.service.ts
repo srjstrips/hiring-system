@@ -1,5 +1,6 @@
 import { prisma } from '@/config/database';
 import { AppError } from '@/utils/errors';
+import { getUserScope, applyOfferScope } from '@/utils/scope';
 
 const offerInclude = {
   application: {
@@ -19,11 +20,16 @@ function generateOfferNumber() {
 }
 
 class OffersService {
-  async getAll(query: { page: number; limit: number; status?: string; search?: string }) {
-    const { page, limit, status, search } = query;
+  async getAll(
+    query: { page: number; limit: number; status?: string; departmentId?: string; search?: string },
+    userId?: string,
+    roleName?: string
+  ) {
+    const { page, limit, status, departmentId, search } = query;
     const skip = (page - 1) * limit;
-    const where: any = {};
+    let where: any = {};
     if (status) where.status = status;
+    if (departmentId) where.application = { job: { departmentId } };
     if (search) {
       where.OR = [
         { application: { candidate: { firstName: { contains: search, mode: 'insensitive' } } } },
@@ -31,6 +37,12 @@ class OffersService {
         { offerNumber: { contains: search, mode: 'insensitive' } },
       ];
     }
+
+    if (userId && roleName) {
+      const scope = await getUserScope(userId, roleName);
+      where = applyOfferScope(where, scope);
+    }
+
     const [data, total] = await Promise.all([
       prisma.offer.findMany({ where, skip, take: limit, include: offerInclude, orderBy: { createdAt: 'desc' } }),
       prisma.offer.count({ where }),
@@ -108,7 +120,66 @@ class OffersService {
       where: { id: offer.applicationId },
       data: { status: action === 'accept' ? 'OFFER_ACCEPTED' : 'REJECTED' },
     });
+
+    if (action === 'accept') {
+      const app = await prisma.application.findUnique({
+        where: { id: offer.applicationId },
+        include: { job: true, candidate: true },
+      });
+      if (app) {
+        await prisma.joiningChecklist.upsert({
+          where: { applicationId: app.id },
+          create: {
+            applicationId: app.id,
+            joiningDate: offer.joiningDate ?? undefined,
+            status: 'PENDING',
+          },
+          update: { joiningDate: offer.joiningDate ?? undefined },
+        });
+        await prisma.employee.upsert({
+          where: { applicationId: app.id },
+          create: {
+            applicationId: app.id,
+            candidateId: app.candidateId,
+            departmentId: app.job.departmentId,
+            designationId: app.job.designationId,
+            hrOwnerId: offer.createdById,
+            joinedAt: offer.joiningDate ?? new Date(),
+            status: 'ACTIVE',
+          },
+          update: {},
+        });
+      }
+    }
+
     return updated;
+  }
+
+  async getSummary(query: any = {}, userId?: string, roleName?: string) {
+    let where: any = {};
+    if (query.departmentId) {
+      where.application = { job: { departmentId: query.departmentId } };
+    }
+    if (query.dateFrom || query.dateTo) {
+      where.createdAt = {
+        ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
+        ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
+      };
+    }
+    if (userId && roleName) {
+      const scope = await getUserScope(userId, roleName);
+      where = applyOfferScope(where, scope);
+    }
+    const grouped = await prisma.offer.groupBy({
+      by: ['status'],
+      where,
+      _count: { _all: true },
+    });
+    const summary: Record<string, number> = {};
+    for (const g of grouped) summary[g.status] = g._count._all;
+    summary.pendingResponse = summary.SENT ?? 0;
+    summary.sent = summary.SENT ?? 0;
+    return summary;
   }
 }
 

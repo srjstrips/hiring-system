@@ -10,6 +10,10 @@ import emailTemplateRoutes from '../modules/email-templates/email-templates.rout
 import candidateRoutes from '../modules/candidates/candidates.routes';
 import offerRoutes from '../modules/offers/offers.routes';
 import requisitionRoutes from '../modules/requisitions/requisitions.routes';
+import dashboardRoutes from '../modules/dashboard/dashboard.routes';
+import interviewRoutes from '../modules/interviews/interviews.routes';
+import insightRoutes from '../modules/insights/insights.routes';
+import employeeRoutes from '../modules/employees/employees.routes';
 
 const router = Router();
 
@@ -24,5 +28,9 @@ router.use('/email-templates', emailTemplateRoutes);
 router.use('/candidates', candidateRoutes);
 router.use('/offers', offerRoutes);
 router.use('/requisitions', requisitionRoutes);
+router.use('/dashboard', dashboardRoutes);
+router.use('/interviews', interviewRoutes);
+router.use('/insights', insightRoutes);
+router.use('/employees', employeeRoutes);
 
 export default router;

@@ -31,4 +31,6 @@ export const requisitionsApi = {
   approve: (id: string) => api.post<{ success: boolean; data: Requisition }>(`/requisitions/${id}/approve`),
   reject: (id: string, reason: string) =>
     api.post<{ success: boolean; data: Requisition }>(`/requisitions/${id}/reject`, { reason }),
+  getSummary: (params?: Record<string, unknown>) =>
+    api.get('/requisitions/summary', { params }).then((r) => r.data),
 };

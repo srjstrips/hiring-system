@@ -7,8 +7,13 @@ class OffersController {
     const page = Number(req.query['page'] ?? 1);
     const limit = Number(req.query['limit'] ?? 20);
     const status = req.query['status'] as string | undefined;
+    const departmentId = req.query['departmentId'] as string | undefined;
     const search = req.query['search'] as string | undefined;
-    const result = await offersService.getAll({ page, limit, status, search });
+    const result = await offersService.getAll(
+      { page, limit, status, departmentId, search },
+      req.user!.id,
+      req.user!.roleName
+    );
     res.json({ success: true, ...result });
   }
 
@@ -38,7 +43,13 @@ class OffersController {
   }
 
   async reject(req: AuthRequest, res: Response) {
-    const data = await offersService.updateResponse(req.params['id'] as string, 'reject', req.body?.reason);
+    const reason = (req.body as { reason?: string })?.reason;
+    const data = await offersService.updateResponse(req.params['id'] as string, 'reject', reason);
+    res.json({ success: true, data });
+  }
+
+  async getSummary(req: AuthRequest, res: Response) {
+    const data = await offersService.getSummary(req.query, req.user!.id, req.user!.roleName);
     res.json({ success: true, data });
   }
 }

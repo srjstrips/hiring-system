@@ -5,7 +5,7 @@ import type { CreateJobDto, JobQueryDto } from './jobs.validator';
 
 class JobsController {
   async getAll(req: AuthRequest, res: Response) {
-    const result = await jobsService.getAll(req.query as any as JobQueryDto);
+    const result = await jobsService.getAll(req.query as any as JobQueryDto, req.user!.id, req.user!.roleName);
     res.json({ success: true, ...result });
   }
 
@@ -42,6 +42,11 @@ class JobsController {
     const id = req.params['id'] as string;
     await jobsService.delete(id);
     res.json({ success: true, message: 'Job deleted successfully' });
+  }
+
+  async getOpenPositions(req: AuthRequest, res: Response) {
+    const result = await jobsService.getOpenPositions(req.query, req.user!.id, req.user!.roleName);
+    res.json({ success: true, ...result });
   }
 }
 
