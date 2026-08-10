@@ -14,6 +14,7 @@ import dashboardRoutes from '../modules/dashboard/dashboard.routes';
 import interviewRoutes from '../modules/interviews/interviews.routes';
 import insightRoutes from '../modules/insights/insights.routes';
 import employeeRoutes from '../modules/employees/employees.routes';
+import jobSharingRoutes from '../modules/job-sharing/job-sharing.routes';
 
 const router = Router();
 
@@ -21,6 +22,7 @@ router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/masters', masterRoutes);
 router.use('/jobs', jobRoutes);
+router.use('/job-shares', jobSharingRoutes);
 router.use('/applications', applicationRoutes);
 router.use('/assessments', assessmentRoutes);
 router.use('/career', careerRoutes);

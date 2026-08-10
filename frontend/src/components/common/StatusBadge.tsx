@@ -2,6 +2,11 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/utils/cn';
 
 const STATUS_STYLES: Record<string, string> = {
+  NOT_SHARED: 'bg-slate-100 text-slate-700',
+  PENDING: 'bg-yellow-100 text-yellow-800',
+  POSTED: 'bg-green-100 text-green-800',
+  FAILED: 'bg-red-100 text-red-800',
+  REMOVED: 'bg-gray-100 text-gray-600',
   OPEN: 'bg-green-100 text-green-800',
   ON_HOLD: 'bg-amber-100 text-amber-800',
   CLOSED: 'bg-slate-100 text-slate-700',

@@ -33,6 +33,15 @@ const envSchema = z.object({
 
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
   LOG_DIR: z.string().default('logs'),
+
+  // Job sharing — optional until LinkedIn/Naukri APIs are configured
+  LINKEDIN_API_BASE_URL: z.string().optional().default(''),
+  LINKEDIN_CLIENT_ID: z.string().optional().default(''),
+  LINKEDIN_CLIENT_SECRET: z.string().optional().default(''),
+  LINKEDIN_ACCESS_TOKEN: z.string().optional().default(''),
+  NAUKRI_API_BASE_URL: z.string().optional().default(''),
+  NAUKRI_API_KEY: z.string().optional().default(''),
+  NAUKRI_API_SECRET: z.string().optional().default(''),
 });
 
 const parsed = envSchema.safeParse(process.env);

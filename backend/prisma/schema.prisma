@@ -214,6 +214,7 @@ model User {
   ownedCandidates       Candidate[]          @relation("CandidateOwnedBy")
   ownedApplications     Application[]        @relation("ApplicationOwnedBy")
   employees             Employee[]           @relation("EmployeeHrOwner")
+  jobShares             JobShare[]           @relation("JobShareSharedBy")
 
   @@map("users")
 }
@@ -540,8 +541,66 @@ model Job {
   skills             JobSkill[]
   applications       Application[]
   assessmentTemplate AssessmentTemplate?
+  shares             JobShare[]
 
   @@map("jobs")
+}
+
+// ─── JOB SHARING (LinkedIn / Naukri) ─────────────────────────────────────────
+
+enum JobSharePlatform {
+  LINKEDIN
+  NAUKRI
+}
+
+enum JobShareStatus {
+  NOT_SHARED
+  PENDING
+  POSTED
+  FAILED
+  REMOVED
+}
+
+model JobShare {
+  id             String           @id @default(uuid())
+  jobId          String
+  platform       JobSharePlatform
+  status         JobShareStatus   @default(NOT_SHARED)
+  externalJobId  String?
+  externalJobUrl String?
+  errorMessage   String?
+  sharedAt       DateTime?
+  sharedById     String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  job      Job   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  sharedBy User? @relation("JobShareSharedBy", fields: [sharedById], references: [id])
+  history  JobShareHistory[]
+
+  @@unique([jobId, platform])
+  @@index([jobId])
+  @@map("job_shares")
+}
+
+model JobShareHistory {
+  id             String           @id @default(uuid())
+  jobShareId     String
+  jobId          String
+  platform       JobSharePlatform
+  status         JobShareStatus
+  action         String
+  externalJobId  String?
+  externalJobUrl String?
+  errorMessage   String?
+  actedById      String?
+  createdAt      DateTime         @default(now())
+
+  jobShare JobShare @relation(fields: [jobShareId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([jobShareId])
+  @@map("job_share_history")
 }
 
 model JobSkill {

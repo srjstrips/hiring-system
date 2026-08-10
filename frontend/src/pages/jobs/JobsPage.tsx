@@ -9,9 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/useToast';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  Plus, Search, Eye, Edit, Trash2, Globe, EyeOff,
+  Plus, Search, Eye, Edit, Trash2, Globe, EyeOff, Share2,
   Users, MapPin, Briefcase, Calendar
 } from 'lucide-react';
+import { ShareJobDialog } from '@/components/jobs/ShareJobDialog';
 
 const statusColors: Record<string, string> = {
   LOW: 'secondary',
@@ -28,6 +29,7 @@ export default function JobsPage() {
 
   const [search, setSearch] = useState('');
   const [filterPublished, setFilterPublished] = useState<string>('all');
+  const [shareJobId, setShareJobId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['jobs', search, filterPublished],
@@ -103,7 +105,7 @@ export default function JobsPage() {
         {[
           { label: 'Total Jobs', value: data?.total ?? 0 },
           { label: 'Published', value: jobs.filter((j) => j.isPublished).length },
-          { label: 'Total Applications', value: jobs.reduce((s, j) => s + j._count.applications, 0) },
+          { label: 'Total Applications', value: jobs.reduce((s, j) => s + (j._count?.applications ?? 0), 0) },
         ].map((s) => (
           <Card key={s.label}>
             <CardContent className="pt-6">
@@ -155,7 +157,7 @@ export default function JobsPage() {
                         <span>{job.experienceLevel.name}</span>
                       )}
                       <span className="flex items-center gap-1">
-                        <Users className="h-3.5 w-3.5" /> {job._count.applications} applicants
+                        <Users className="h-3.5 w-3.5" /> {job._count?.applications ?? 0} applicants
                       </span>
                       {job.closingDate && (
                         <span className="flex items-center gap-1">
@@ -164,23 +166,33 @@ export default function JobsPage() {
                       )}
                     </div>
                     <div className="flex gap-1.5 mt-2 flex-wrap">
-                      {job.skills.slice(0, 5).map((s) => (
+                      {(job.skills ?? []).slice(0, 5).map((s) => (
                         <Badge key={s.skillId} variant="outline" className="text-xs">
                           {s.skill.name}{s.isRequired ? ' *' : ''}
                         </Badge>
                       ))}
-                      {job.skills.length > 5 && (
+                      {(job.skills?.length ?? 0) > 5 && (
                         <Badge variant="outline" className="text-xs">+{job.skills.length - 5} more</Badge>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <Button variant="ghost" size="icon" asChild>
+                    <Button variant="ghost" size="icon" title="View" asChild>
                       <Link to={`/jobs/${job.id}`}><Eye className="h-4 w-4" /></Link>
                     </Button>
+                    {(hasPermission('jobs:update') || hasPermission('jobs:publish')) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Share Job"
+                        onClick={() => setShareJobId(job.id)}
+                      >
+                        <Share2 className="h-4 w-4" />
+                      </Button>
+                    )}
                     {hasPermission('jobs:update') && (
                       <>
-                        <Button variant="ghost" size="icon" asChild>
+                        <Button variant="ghost" size="icon" title="Edit" asChild>
                           <Link to={`/jobs/${job.id}/edit`}><Edit className="h-4 w-4" /></Link>
                         </Button>
                         <Button
@@ -197,6 +209,7 @@ export default function JobsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        title="Delete"
                         className="text-destructive hover:text-destructive"
                         onClick={() => { if (confirm('Delete this job?')) deleteMutation.mutate(job.id); }}
                       >
@@ -210,6 +223,12 @@ export default function JobsPage() {
           ))}
         </div>
       )}
+
+      <ShareJobDialog
+        jobId={shareJobId}
+        open={!!shareJobId}
+        onOpenChange={(open) => { if (!open) setShareJobId(null); }}
+      />
     </div>
   );
 }
