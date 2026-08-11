@@ -26,8 +26,29 @@ export interface Candidate {
   createdAt: string;
 }
 
+export interface CandidateQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  experienceMin?: number;
+  experienceMax?: number;
+  noticeMin?: number;
+  noticeMax?: number;
+  salaryMin?: number;
+  salaryMax?: number;
+  designation?: string;
+  applicationFrom?: string;
+  applicationTo?: string;
+  pastCompany?: string;
+  skills?: string;
+  skillMatchMode?: 'ALL' | 'ANY';
+}
+
 export const candidatesApi = {
-  getAll: (params?: any) =>
-    api.get<{ success: boolean; data: Candidate[]; total: number; totalPages: number }>('/candidates', { params }),
+  getAll: (params?: CandidateQueryParams) =>
+    api.get<{ success: boolean; data: Candidate[]; total: number; totalPages: number; page: number; limit: number }>(
+      '/candidates',
+      { params },
+    ),
   getById: (id: string) => api.get<{ success: boolean; data: Candidate }>(`/candidates/${id}`),
 };

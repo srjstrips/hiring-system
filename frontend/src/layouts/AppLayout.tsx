@@ -9,15 +9,18 @@ export function AppLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        open={sidebarOpen}
+        onToggle={() => setSidebarOpen((prev) => !prev)}
+      />
 
       <div
         className={cn(
           'flex flex-1 flex-col overflow-hidden transition-all duration-300',
-          sidebarOpen ? 'lg:ml-[260px]' : 'lg:ml-0'
+          sidebarOpen ? 'ml-[260px]' : 'ml-[72px]'
         )}
       >
-        <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+        <Header />
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>

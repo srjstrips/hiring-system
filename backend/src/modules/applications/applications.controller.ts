@@ -22,7 +22,7 @@ class ApplicationsController {
   }
 
   async getPipelineStats(req: AuthRequest, res: Response) {
-    const jobId = req.query['jobId'] as string | undefined;
+    const { jobId } = req.query as { jobId?: string };
     const stats = await applicationsService.getPipelineStats(jobId);
     res.json({ success: true, data: stats });
   }

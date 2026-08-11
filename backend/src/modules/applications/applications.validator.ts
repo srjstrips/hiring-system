@@ -7,12 +7,48 @@ const CandidateStatusEnum = z.enum([
   'REJECTED', 'WITHDRAWN', 'ON_HOLD',
 ]);
 
+/** Treat missing/empty query values as undefined */
+const emptyToUndefined = (v: unknown) => {
+  if (v === undefined || v === null || v === '') return undefined;
+  if (Array.isArray(v)) return emptyToUndefined(v[0]);
+  return v;
+};
+
+const optionalUuid = z.preprocess(
+  emptyToUndefined,
+  z.string().uuid().optional(),
+);
+
+const optionalStatus = z.preprocess(
+  emptyToUndefined,
+  CandidateStatusEnum.optional(),
+);
+
+const optionalSearch = z.preprocess(
+  emptyToUndefined,
+  z.string().optional(),
+);
+
+const pageParam = z.preprocess(
+  emptyToUndefined,
+  z.union([z.string(), z.number()]).optional().default('1'),
+).transform((v) => Math.max(1, Number(v) || 1));
+
+const limitParam = z.preprocess(
+  emptyToUndefined,
+  z.union([z.string(), z.number()]).optional().default('10'),
+).transform((v) => Math.min(100, Math.max(1, Number(v) || 10)));
+
 export const ApplicationQuerySchema = z.object({
-  page: z.string().optional().default('1').transform(Number),
-  limit: z.string().optional().default('10').transform(Number),
-  jobId: z.string().uuid().optional(),
-  status: CandidateStatusEnum.optional(),
-  search: z.string().optional(),
+  page: pageParam,
+  limit: limitParam,
+  jobId: optionalUuid,
+  status: optionalStatus,
+  search: optionalSearch,
+});
+
+export const ApplicationPipelineStatsQuerySchema = z.object({
+  jobId: optionalUuid,
 });
 
 export const UpdateStatusSchema = z.object({
@@ -22,4 +58,5 @@ export const UpdateStatusSchema = z.object({
 });
 
 export type ApplicationQueryDto = z.infer<typeof ApplicationQuerySchema>;
+export type ApplicationPipelineStatsQueryDto = z.infer<typeof ApplicationPipelineStatsQuerySchema>;
 export type UpdateStatusDto = z.infer<typeof UpdateStatusSchema>;

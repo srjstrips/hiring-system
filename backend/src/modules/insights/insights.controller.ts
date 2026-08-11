@@ -18,6 +18,70 @@ function daysBetween(a: Date, b: Date) {
   return Math.max(0, Math.round((b.getTime() - a.getTime()) / 86400000));
 }
 
+function parseInsightFilters(query: Record<string, unknown>) {
+  const departmentId = typeof query.departmentId === 'string' && query.departmentId
+    ? query.departmentId
+    : undefined;
+  const dateFrom = typeof query.dateFrom === 'string' && query.dateFrom
+    ? new Date(query.dateFrom)
+    : undefined;
+  const dateToRaw = typeof query.dateTo === 'string' && query.dateTo
+    ? new Date(query.dateTo)
+    : undefined;
+  if (dateToRaw) dateToRaw.setHours(23, 59, 59, 999);
+  return { departmentId, dateFrom, dateTo: dateToRaw };
+}
+
+function inDateRange(d: Date | null | undefined, from?: Date, to?: Date) {
+  if (!d) return false;
+  if (from && d < from) return false;
+  if (to && d > to) return false;
+  return true;
+}
+
+const IN_PROGRESS_STATUSES = [
+  'APPLIED',
+  'SCREENING',
+  'SHORTLISTED',
+  'INTERVIEW_ROUND_1',
+  'INTERVIEW_ROUND_2',
+  'HR_ROUND',
+  'SELECTED',
+  'OFFER_SENT',
+  'OFFER_ACCEPTED',
+] as const;
+
+const INTERVIEW_STATUSES = ['INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2', 'HR_ROUND'] as const;
+
+const applicationInsightInclude = {
+  candidate: { select: { id: true, firstName: true, lastName: true, email: true } },
+  job: {
+    select: {
+      id: true,
+      title: true,
+      departmentId: true,
+      department: { select: { id: true, name: true } },
+      designation: { select: { id: true, name: true } },
+    },
+  },
+  ownedBy: { select: { id: true, firstName: true, lastName: true } },
+  timeline: { orderBy: { createdAt: 'asc' as const } },
+};
+
+function stageLabel(s: string) {
+  return s.replace(/_/g, ' ');
+}
+
+function lastTransitionTo(timeline: Array<{ toStatus: string; fromStatus: string | null; createdAt: Date; notes: string | null; createdById: string | null }>, status: string) {
+  const matches = timeline.filter((t) => t.toStatus === status);
+  return matches.length ? matches[matches.length - 1] : null;
+}
+
+function previousStageFrom(timeline: Array<{ toStatus: string; fromStatus: string | null }>, status: string) {
+  const t = lastTransitionTo(timeline as any, status);
+  return t?.fromStatus ?? null;
+}
+
 export async function hiringOverview(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const scope = await getUserScope(req.user!.id, req.user!.roleName);
@@ -332,6 +396,299 @@ export async function timeToHire(req: AuthRequest, res: Response, next: NextFunc
       },
       remarks,
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function inProgress(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const scope = await getUserScope(req.user!.id, req.user!.roleName);
+    const { departmentId, dateFrom, dateTo } = parseInsightFilters(req.query as any);
+
+    let where: any = { status: { in: [...IN_PROGRESS_STATUSES] } };
+    if (departmentId) where.job = { departmentId };
+    if (dateFrom || dateTo) {
+      where.appliedAt = {
+        ...(dateFrom ? { gte: dateFrom } : {}),
+        ...(dateTo ? { lte: dateTo } : {}),
+      };
+    }
+    where = applyApplicationScope(where, scope);
+
+    const apps = await prisma.application.findMany({
+      where,
+      include: applicationInsightInclude,
+      orderBy: { appliedAt: 'desc' },
+    });
+
+    const now = new Date();
+    const summary = {
+      totalInProgress: apps.length,
+      screening: apps.filter((a) => a.status === 'SCREENING').length,
+      shortlisted: apps.filter((a) => a.status === 'SHORTLISTED').length,
+      interview: apps.filter((a) => (INTERVIEW_STATUSES as readonly string[]).includes(a.status)).length,
+      selected: apps.filter((a) => a.status === 'SELECTED').length,
+      offerSent: apps.filter((a) => a.status === 'OFFER_SENT' || a.status === 'OFFER_ACCEPTED').length,
+    };
+
+    const data = apps.map((a) => ({
+      id: a.id,
+      candidateId: a.candidate.id,
+      candidate: `${a.candidate.firstName} ${a.candidate.lastName}`,
+      email: a.candidate.email,
+      department: a.job.department.name,
+      designation: a.job.designation.name,
+      jobTitle: a.job.title,
+      currentStage: stageLabel(a.status),
+      status: a.status,
+      appliedDate: a.appliedAt,
+      daysInProcess: daysBetween(a.appliedAt, now),
+      assignedHr: a.ownedBy ? `${a.ownedBy.firstName} ${a.ownedBy.lastName}` : 'Not assigned',
+    }));
+
+    return ApiResponse.success(res, { summary, data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function backedOut(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const scope = await getUserScope(req.user!.id, req.user!.roleName);
+    const { departmentId, dateFrom, dateTo } = parseInsightFilters(req.query as any);
+
+    let where: any = { status: 'WITHDRAWN' };
+    if (departmentId) where.job = { departmentId };
+    where = applyApplicationScope(where, scope);
+
+    const apps = await prisma.application.findMany({
+      where,
+      include: applicationInsightInclude,
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    const rows = apps
+      .map((a) => {
+        const event = lastTransitionTo(a.timeline, 'WITHDRAWN');
+        const eventDate = event?.createdAt ?? a.updatedAt;
+        const fromStatus = event?.fromStatus ?? previousStageFrom(a.timeline, 'WITHDRAWN');
+        return {
+          id: a.id,
+          candidateId: a.candidate.id,
+          candidate: `${a.candidate.firstName} ${a.candidate.lastName}`,
+          department: a.job.department.name,
+          designation: a.job.designation.name,
+          lastStage: fromStatus ? stageLabel(fromStatus) : 'Not recorded',
+          backedOutDate: eventDate,
+          reason: event?.notes || a.rejectionReason || 'Reason not provided',
+          fromStatus,
+        };
+      })
+      .filter((r) => inDateRange(r.backedOutDate, dateFrom, dateTo));
+
+    const beforeInterview = ['APPLIED', 'SCREENING', 'SHORTLISTED'];
+    const afterInterview = ['INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2', 'HR_ROUND', 'SELECTED'];
+    const afterOffer = ['OFFER_SENT', 'OFFER_ACCEPTED'];
+
+    const summary = {
+      totalBackedOut: rows.length,
+      beforeInterview: rows.filter((r) => r.fromStatus && beforeInterview.includes(r.fromStatus)).length,
+      afterInterview: rows.filter((r) => r.fromStatus && afterInterview.includes(r.fromStatus)).length,
+      afterOffer: rows.filter((r) => r.fromStatus && afterOffer.includes(r.fromStatus)).length,
+    };
+
+    return ApiResponse.success(res, { summary, data: rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function rejected(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const scope = await getUserScope(req.user!.id, req.user!.roleName);
+    const { departmentId, dateFrom, dateTo } = parseInsightFilters(req.query as any);
+
+    let where: any = { status: 'REJECTED' };
+    if (departmentId) where.job = { departmentId };
+    where = applyApplicationScope(where, scope);
+
+    const apps = await prisma.application.findMany({
+      where,
+      include: applicationInsightInclude,
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    // Load users who created timeline entries (createdById has no Prisma relation name in include easily)
+    const creatorIds = Array.from(
+      new Set(
+        apps.flatMap((a) =>
+          a.timeline
+            .filter((t) => t.toStatus === 'REJECTED' && t.createdById)
+            .map((t) => t.createdById as string),
+        ),
+      ),
+    );
+    const creators = creatorIds.length
+      ? await prisma.user.findMany({
+          where: { id: { in: creatorIds } },
+          select: { id: true, firstName: true, lastName: true },
+        })
+      : [];
+    const creatorMap = new Map(creators.map((u) => [u.id, `${u.firstName} ${u.lastName}`]));
+
+    const screening = ['APPLIED', 'SCREENING'];
+    const interview = ['SHORTLISTED', 'INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2'];
+    const hrRound = ['HR_ROUND', 'SELECTED'];
+
+    const rows = apps
+      .map((a) => {
+        const event = lastTransitionTo(a.timeline, 'REJECTED');
+        const eventDate = event?.createdAt ?? a.updatedAt;
+        const fromStatus = event?.fromStatus ?? null;
+        return {
+          id: a.id,
+          candidateId: a.candidate.id,
+          candidate: `${a.candidate.firstName} ${a.candidate.lastName}`,
+          department: a.job.department.name,
+          designation: a.job.designation.name,
+          rejectedAtStage: fromStatus ? stageLabel(fromStatus) : 'Not recorded',
+          rejectedDate: eventDate,
+          rejectedBy: event?.createdById ? creatorMap.get(event.createdById) ?? 'Not recorded' : 'Not recorded',
+          reason: a.rejectionReason || event?.notes || 'Not recorded',
+          fromStatus,
+        };
+      })
+      .filter((r) => inDateRange(r.rejectedDate, dateFrom, dateTo));
+
+    const summary = {
+      totalRejected: rows.length,
+      rejectedDuringScreening: rows.filter((r) => r.fromStatus && screening.includes(r.fromStatus)).length,
+      rejectedDuringInterview: rows.filter((r) => r.fromStatus && interview.includes(r.fromStatus)).length,
+      rejectedDuringHrRound: rows.filter((r) => r.fromStatus && hrRound.includes(r.fromStatus)).length,
+      other: rows.filter(
+        (r) =>
+          !r.fromStatus ||
+          (![...screening, ...interview, ...hrRound].includes(r.fromStatus)),
+      ).length,
+    };
+
+    return ApiResponse.success(res, { summary, data: rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function onHold(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const scope = await getUserScope(req.user!.id, req.user!.roleName);
+    const { departmentId, dateFrom, dateTo } = parseInsightFilters(req.query as any);
+
+    let where: any = { status: 'ON_HOLD' };
+    if (departmentId) where.job = { departmentId };
+    where = applyApplicationScope(where, scope);
+
+    const apps = await prisma.application.findMany({
+      where,
+      include: applicationInsightInclude,
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    const now = new Date();
+    const rows = apps
+      .map((a) => {
+        const event = lastTransitionTo(a.timeline, 'ON_HOLD');
+        const eventDate = event?.createdAt ?? a.updatedAt;
+        const fromStatus = event?.fromStatus ?? null;
+        return {
+          id: a.id,
+          candidateId: a.candidate.id,
+          candidate: `${a.candidate.firstName} ${a.candidate.lastName}`,
+          department: a.job.department.name,
+          designation: a.job.designation.name,
+          previousStage: fromStatus ? stageLabel(fromStatus) : 'Not recorded',
+          holdDate: eventDate,
+          daysOnHold: daysBetween(eventDate, now),
+          holdReason: event?.notes || a.rejectionReason || 'Not recorded',
+        };
+      })
+      .filter((r) => inDateRange(r.holdDate, dateFrom, dateTo));
+
+    const summary = {
+      totalOnHold: rows.length,
+    };
+
+    return ApiResponse.success(res, { summary, data: rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function companyLeft(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const scope = await getUserScope(req.user!.id, req.user!.roleName);
+    const { departmentId, dateFrom, dateTo } = parseInsightFilters(req.query as any);
+
+    const where: any = {
+      status: 'EXITED',
+      ...(departmentId
+        ? { departmentId }
+        : !scope.isSuperAdmin
+          ? { departmentId: { in: scope.departmentIds?.length ? scope.departmentIds : ['__none__'] } }
+          : {}),
+      ...(dateFrom || dateTo
+        ? {
+            exitedAt: {
+              ...(dateFrom ? { gte: dateFrom } : {}),
+              ...(dateTo ? { lte: dateTo } : {}),
+            },
+          }
+        : {}),
+    };
+
+    const employees = await prisma.employee.findMany({
+      where,
+      include: {
+        candidate: { select: { id: true, firstName: true, lastName: true } },
+        department: { select: { id: true, name: true } },
+        designation: { select: { id: true, name: true } },
+      },
+      orderBy: { exitedAt: 'desc' },
+    });
+
+    const data = employees.map((e) => {
+      const leaving = e.exitedAt ?? e.updatedAt;
+      const tenureDays = daysBetween(e.joinedAt, leaving);
+      const months = Math.max(0, Math.round(tenureDays / 30));
+      const reason = (e.exitReason ?? '').trim();
+      const reasonLower = reason.toLowerCase();
+      const involuntaryHints = ['terminat', 'fired', 'dismiss', 'involuntary', 'laid off', 'layoff'];
+      let exitType = 'Not recorded';
+      if (reason) {
+        exitType = involuntaryHints.some((h) => reasonLower.includes(h)) ? 'Involuntary' : 'Voluntary';
+      }
+
+      return {
+        id: e.id,
+        candidateId: e.candidateId,
+        employee: `${e.candidate.firstName} ${e.candidate.lastName}`,
+        department: e.department.name,
+        designation: e.designation.name,
+        joiningDate: e.joinedAt,
+        leavingDate: e.exitedAt,
+        tenure: months >= 1 ? `${months} month${months === 1 ? '' : 's'}` : `${tenureDays} day${tenureDays === 1 ? '' : 's'}`,
+        exitType,
+        reason: reason || 'Not recorded',
+      };
+    });
+
+    const summary = {
+      totalCompanyLeft: data.length,
+      voluntaryExit: data.filter((d) => d.exitType === 'Voluntary').length,
+      involuntaryExit: data.filter((d) => d.exitType === 'Involuntary').length,
+    };
+
+    return ApiResponse.success(res, { summary, data });
   } catch (err) {
     next(err);
   }

@@ -296,19 +296,24 @@ model Department {
 }
 
 model Designation {
-  id          String    @id @default(uuid())
-  name        String    @unique
-  code        String    @unique
-  description String?
-  level       Int?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
+  id                      String    @id @default(uuid())
+  name                    String    @unique
+  code                    String    @unique
+  description             String?
+  level                   Int?
+  defaultDescription      String?
+  defaultResponsibilities String?
+  defaultRequirements     String?
+  defaultBenefits         String?
+  isActive                Boolean   @default(true)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  deletedAt               DateTime?
 
   jobs                 Job[]
   manpowerRequisitions ManpowerRequisition[]
   employees            Employee[]
+  skills               DesignationSkill[]
 
   @@map("designations")
 }
@@ -377,6 +382,7 @@ model Skill {
   jobSkills            JobSkill[]
   requisitionSkills    RequisitionSkill[]
   candidateSkills      CandidateSkill[]
+  designationSkills    DesignationSkill[]
 
   @@map("skills")
 }
@@ -490,6 +496,19 @@ model RequisitionSkill {
 
   @@unique([requisitionId, skillId])
   @@map("requisition_skills")
+}
+
+model DesignationSkill {
+  id             String  @id @default(uuid())
+  designationId  String
+  skillId        String
+  isRequired     Boolean @default(true)
+
+  designation Designation @relation(fields: [designationId], references: [id], onDelete: Cascade)
+  skill       Skill       @relation(fields: [skillId], references: [id])
+
+  @@unique([designationId, skillId])
+  @@map("designation_skills")
 }
 
 // ─── JOBS ─────────────────────────────────────────────────────────────────────

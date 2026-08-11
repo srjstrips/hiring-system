@@ -27,6 +27,11 @@ export const insightsApi = {
   retention: (params?: Record<string, unknown>) => api.get('/insights/retention', { params }).then((r) => r.data),
   noticePeriod: (params?: Record<string, unknown>) => api.get('/insights/notice-period', { params }).then((r) => r.data),
   timeToHire: (params?: Record<string, unknown>) => api.get('/insights/time-to-hire', { params }).then((r) => r.data),
+  inProgress: (params?: Record<string, unknown>) => api.get('/insights/in-progress', { params }).then((r) => r.data),
+  backedOut: (params?: Record<string, unknown>) => api.get('/insights/backed-out', { params }).then((r) => r.data),
+  rejected: (params?: Record<string, unknown>) => api.get('/insights/rejected', { params }).then((r) => r.data),
+  onHold: (params?: Record<string, unknown>) => api.get('/insights/on-hold', { params }).then((r) => r.data),
+  companyLeft: (params?: Record<string, unknown>) => api.get('/insights/company-left', { params }).then((r) => r.data),
 };
 
 export const usersApi = {

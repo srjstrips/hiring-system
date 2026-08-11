@@ -1,17 +1,52 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jobsApi } from '@/api/jobs';
 import { api } from '@/api/axios';
+import { designationService } from '@/services/master.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/useToast';
-import { ArrowLeft, X } from 'lucide-react';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { ArrowLeft, X, Loader2 } from 'lucide-react';
 
 interface MasterItem { id: string; name: string }
+
+type SkillPick = { skillId: string; name: string; isRequired: boolean };
+
+type JdSnapshot = {
+  description: string;
+  responsibilities: string;
+  requirements: string;
+  benefits: string;
+  skillsKey: string;
+};
+
+function skillsKey(skills: SkillPick[]) {
+  return skills
+    .map((s) => `${s.skillId}:${s.isRequired ? 1 : 0}`)
+    .sort()
+    .join('|');
+}
+
+function toSnapshot(
+  description: string,
+  responsibilities: string,
+  requirements: string,
+  benefits: string,
+  skills: SkillPick[],
+): JdSnapshot {
+  return {
+    description,
+    responsibilities,
+    requirements,
+    benefits,
+    skillsKey: skillsKey(skills),
+  };
+}
 
 export default function JobFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -38,7 +73,12 @@ export default function JobFormPage() {
     closingDate: '',
   });
 
-  const [selectedSkills, setSelectedSkills] = useState<Array<{ skillId: string; name: string; isRequired: boolean }>>([]);
+  const [selectedSkills, setSelectedSkills] = useState<SkillPick[]>([]);
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
+  const [templateHint, setTemplateHint] = useState<'loaded' | 'empty' | null>(null);
+  const [pendingDesignationId, setPendingDesignationId] = useState<string | null>(null);
+
+  const baselineRef = useRef<JdSnapshot>(toSnapshot('', '', '', '', []));
 
   // Load masters
   const { data: masters } = useQuery({
@@ -65,6 +105,11 @@ export default function JobFormPage() {
 
   useEffect(() => {
     if (jobData) {
+      const skills = jobData.skills.map((s: any) => ({
+        skillId: s.skill.id,
+        name: s.skill.name,
+        isRequired: s.isRequired,
+      }));
       setForm({
         title: jobData.title,
         departmentId: jobData.department.id,
@@ -83,13 +128,92 @@ export default function JobFormPage() {
         priority: jobData.priority,
         closingDate: jobData.closingDate ? jobData.closingDate.slice(0, 10) : '',
       });
-      setSelectedSkills(jobData.skills.map((s: any) => ({
-        skillId: s.skill.id,
-        name: s.skill.name,
-        isRequired: s.isRequired,
-      })));
+      setSelectedSkills(skills);
+      baselineRef.current = toSnapshot(
+        jobData.description,
+        jobData.responsibilities ?? '',
+        jobData.requirements ?? '',
+        jobData.benefits ?? '',
+        skills,
+      );
+      setTemplateHint(null);
     }
   }, [jobData]);
+
+  const applyTemplate = async (designationId: string) => {
+    if (!designationId) return;
+    setLoadingTemplate(true);
+    try {
+      const desig = await designationService.getById(designationId);
+      const skills: SkillPick[] = ((desig as any).skills ?? []).map((s: any) => ({
+        skillId: s.skill?.id ?? s.skillId,
+        name: s.skill?.name ?? '',
+        isRequired: s.isRequired ?? true,
+      }));
+
+      const description = String((desig as any).defaultDescription ?? '');
+      const responsibilities = String((desig as any).defaultResponsibilities ?? '');
+      const requirements = String((desig as any).defaultRequirements ?? '');
+      const benefits = String((desig as any).defaultBenefits ?? '');
+
+      setForm((f) => ({
+        ...f,
+        designationId,
+        description,
+        responsibilities,
+        requirements,
+        benefits,
+      }));
+      setSelectedSkills(skills);
+      baselineRef.current = toSnapshot(description, responsibilities, requirements, benefits, skills);
+
+      const hasTemplate = !!(description || responsibilities || requirements || benefits || skills.length);
+      setTemplateHint(hasTemplate ? 'loaded' : 'empty');
+    } catch {
+      toast({ title: 'Could not load designation template', variant: 'destructive' });
+      setTemplateHint(null);
+    } finally {
+      setLoadingTemplate(false);
+    }
+  };
+
+  const isJdDirty = () => {
+    const current = toSnapshot(
+      form.description,
+      form.responsibilities,
+      form.requirements,
+      form.benefits,
+      selectedSkills,
+    );
+    const base = baselineRef.current;
+    return (
+      current.description !== base.description ||
+      current.responsibilities !== base.responsibilities ||
+      current.requirements !== base.requirements ||
+      current.benefits !== base.benefits ||
+      current.skillsKey !== base.skillsKey
+    );
+  };
+
+  const handleDesignationChange = (nextId: string) => {
+    if (isEdit) {
+      setForm((f) => ({ ...f, designationId: nextId }));
+      return;
+    }
+
+    if (!nextId) {
+      setForm((f) => ({ ...f, designationId: '' }));
+      setTemplateHint(null);
+      return;
+    }
+
+    if (isJdDirty() && (form.description || form.responsibilities || form.requirements || form.benefits || selectedSkills.length)) {
+      setPendingDesignationId(nextId);
+      return;
+    }
+
+    void applyTemplate(nextId);
+  };
 
   const mutation = useMutation({
     mutationFn: (payload: any) => isEdit ? jobsApi.update(id!, payload) : jobsApi.create(payload),
@@ -156,10 +280,21 @@ export default function JobFormPage() {
               </div>
               <div>
                 <Label>Designation *</Label>
-                <select required className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.designationId} onChange={set('designationId')}>
+                <select
+                  required
+                  className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                  value={form.designationId}
+                  onChange={(e) => handleDesignationChange(e.target.value)}
+                  disabled={loadingTemplate}
+                >
                   <option value="">Select designation</option>
                   {masters?.desigs.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
+                {loadingTemplate && (
+                  <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Loading default job description...
+                  </p>
+                )}
               </div>
               <div>
                 <Label>Location *</Label>
@@ -223,7 +358,19 @@ export default function JobFormPage() {
 
         {/* JD */}
         <Card>
-          <CardHeader><CardTitle>Job Description</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Job Description</CardTitle>
+            {!isEdit && templateHint === 'loaded' && (
+              <p className="text-sm text-muted-foreground">
+                Default content loaded from the selected designation. You can edit it for this job.
+              </p>
+            )}
+            {!isEdit && templateHint === 'empty' && (
+              <p className="text-sm text-muted-foreground">
+                No default Job Description template is configured for this designation.
+              </p>
+            )}
+          </CardHeader>
           <CardContent className="space-y-4">
             {[
               { key: 'description', label: 'Overview *', required: true, rows: 6, placeholder: 'Brief overview of the role...' },
@@ -284,11 +431,25 @@ export default function JobFormPage() {
 
         <div className="flex gap-3 justify-end">
           <Button type="button" variant="outline" onClick={() => navigate('/jobs')}>Cancel</Button>
-          <Button type="submit" disabled={mutation.isPending}>
+          <Button type="submit" disabled={mutation.isPending || loadingTemplate}>
             {mutation.isPending ? 'Saving...' : isEdit ? 'Update Job' : 'Create Job'}
           </Button>
         </div>
       </form>
+
+      <ConfirmDialog
+        open={!!pendingDesignationId}
+        onClose={() => setPendingDesignationId(null)}
+        title="Change designation template?"
+        description="Changing the designation will replace the current Job Description content with the selected designation's template."
+        confirmLabel="Apply New Template"
+        variant="default"
+        onConfirm={() => {
+          const nextId = pendingDesignationId;
+          setPendingDesignationId(null);
+          if (nextId) void applyTemplate(nextId);
+        }}
+      />
     </div>
   );
 }

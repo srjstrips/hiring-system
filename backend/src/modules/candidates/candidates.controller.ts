@@ -1,13 +1,11 @@
 import type { Response } from 'express';
 import type { AuthRequest } from '@/types';
 import candidatesService from './candidates.service';
+import type { CandidateQueryDto } from './candidates.validator';
 
 class CandidatesController {
   async getAll(req: AuthRequest, res: Response) {
-    const page = Number(req.query['page'] ?? 1);
-    const limit = Number(req.query['limit'] ?? 20);
-    const search = req.query['search'] as string | undefined;
-    const result = await candidatesService.getAll({ page, limit, search });
+    const result = await candidatesService.getAll(req.query as unknown as CandidateQueryDto);
     res.json({ success: true, ...result });
   }
 

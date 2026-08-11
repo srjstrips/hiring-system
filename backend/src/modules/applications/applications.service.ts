@@ -32,23 +32,38 @@ class ApplicationsService {
     const { page, limit, jobId, status, search } = query;
     const skip = (page - 1) * limit;
 
+    // Job ID is the source of truth for job-scoped application lists.
+    // When jobId is provided, ONLY applications for that exact Job Opening are returned.
     const where: any = {};
-    if (jobId) where.jobId = jobId;
+    if (jobId) {
+      where.jobId = jobId;
+    }
     if (status) where.status = status;
     if (search) {
-      where.OR = [
-        { candidate: { firstName: { contains: search, mode: 'insensitive' } } },
-        { candidate: { lastName: { contains: search, mode: 'insensitive' } } },
-        { candidate: { email: { contains: search, mode: 'insensitive' } } },
+      where.AND = [
+        ...(where.AND ?? []),
+        {
+          OR: [
+            { candidate: { firstName: { contains: search, mode: 'insensitive' } } },
+            { candidate: { lastName: { contains: search, mode: 'insensitive' } } },
+            { candidate: { email: { contains: search, mode: 'insensitive' } } },
+          ],
+        },
       ];
     }
 
     const [data, total] = await Promise.all([
-      prisma.application.findMany({ where, skip, take: limit, include: applicationInclude, orderBy: { appliedAt: 'desc' } }),
+      prisma.application.findMany({
+        where,
+        skip,
+        take: limit,
+        include: applicationInclude,
+        orderBy: { appliedAt: 'desc' },
+      }),
       prisma.application.count({ where }),
     ]);
 
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
   }
 
   async getById(id: string) {
@@ -80,8 +95,11 @@ class ApplicationsService {
   }
 
   async getPipelineStats(jobId?: string) {
+    // When jobId is provided, stage counts are scoped to that Job Opening only.
     const where: any = {};
-    if (jobId) where.jobId = jobId;
+    if (jobId) {
+      where.jobId = jobId;
+    }
 
     const grouped = await prisma.application.groupBy({
       by: ['status'],

@@ -16,5 +16,10 @@ router.get('/onboarding', controller.onboarding);
 router.get('/retention', controller.retention);
 router.get('/notice-period', controller.noticePeriod);
 router.get('/time-to-hire', controller.timeToHire);
+router.get('/in-progress', controller.inProgress);
+router.get('/backed-out', controller.backedOut);
+router.get('/rejected', controller.rejected);
+router.get('/on-hold', controller.onHold);
+router.get('/company-left', controller.companyLeft);
 
 export default router;

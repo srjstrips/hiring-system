@@ -23,11 +23,21 @@ export const createDepartmentSchema = z.object({
 export const updateDepartmentSchema = createDepartmentSchema.partial();
 
 // Designation
+const designationSkillSchema = z.object({
+  skillId: z.string().uuid(),
+  isRequired: z.boolean().default(true),
+});
+
 export const createDesignationSchema = z.object({
   name: z.string().min(1).max(100),
   code: z.string().min(1).max(10).toUpperCase(),
   description: z.string().max(500).optional(),
   level: z.coerce.number().int().min(1).max(20).optional(),
+  defaultDescription: z.string().min(1, 'Overview is required'),
+  defaultResponsibilities: z.string().optional(),
+  defaultRequirements: z.string().optional(),
+  defaultBenefits: z.string().optional(),
+  skillIds: z.array(designationSkillSchema).optional(),
 });
 export const updateDesignationSchema = createDesignationSchema.partial();
 

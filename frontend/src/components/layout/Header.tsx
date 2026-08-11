@@ -1,4 +1,4 @@
-import { Menu, Bell, LogOut, User, Settings } from 'lucide-react';
+import { Bell, LogOut, User, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -9,11 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/useToast';
 
-interface HeaderProps {
-  onMenuClick: () => void;
-}
-
-export function Header({ onMenuClick }: HeaderProps) {
+export function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -28,13 +24,7 @@ export function Header({ onMenuClick }: HeaderProps) {
     : '??';
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-background px-4 shadow-sm">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onMenuClick}>
-          <Menu className="h-5 w-5" />
-        </Button>
-      </div>
-
+    <header className="flex h-16 items-center justify-end border-b bg-background px-4 shadow-sm">
       <div className="flex items-center gap-2">
         {/* Notification bell */}
         <Button variant="ghost" size="icon" className="relative">

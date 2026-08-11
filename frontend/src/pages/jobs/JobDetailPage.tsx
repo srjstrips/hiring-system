@@ -58,6 +58,14 @@ export default function JobDetailPage() {
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-3">
+        <Button asChild>
+          <Link to={`/applications?jobId=${encodeURIComponent(data.id)}`}>
+            <Users className="h-4 w-4 mr-2" /> View Applications ({data._count.applications})
+          </Link>
+        </Button>
+      </div>
+
       <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-4">
@@ -179,20 +187,15 @@ export default function JobDetailPage() {
         </div>
       </div>
 
-      <div className="flex gap-3">
-        <Button asChild>
-          <Link to={`/applications?jobId=${id}`}>
-            <Users className="h-4 w-4 mr-2" /> View Applications ({data._count.applications})
-          </Link>
-        </Button>
-        {data.isPublished && (
+      {data.isPublished && (
+        <div className="flex gap-3">
           <Button variant="outline" asChild>
             <a href={`/careers/jobs/${data.slug}`} target="_blank" rel="noreferrer">
               <Globe className="h-4 w-4 mr-2" /> View on Career Portal
             </a>
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

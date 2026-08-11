@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { MasterRepository } from './master.repository';
+import { DesignationRepository } from './designation.repository';
 import { MasterService } from './master.service';
 import { MasterController } from './master.controller';
 import { createMasterRouter } from './master.routes.factory';
@@ -31,10 +32,17 @@ function buildMasterRouter<T extends { id: string }>(
   return createMasterRouter<T>(controller, createSchema, updateSchema);
 }
 
+function buildDesignationRouter() {
+  const repo = new DesignationRepository();
+  const service = new MasterService(repo, 'Designation', ['name', 'code']);
+  const controller = new MasterController(service);
+  return createMasterRouter(controller, createDesignationSchema, updateDesignationSchema);
+}
+
 const router = Router();
 
 router.use('/departments',       buildMasterRouter('Department',       'Department',       createDepartmentSchema,       updateDepartmentSchema,       ['name', 'code']));
-router.use('/designations',      buildMasterRouter('Designation',      'Designation',      createDesignationSchema,      updateDesignationSchema,      ['name', 'code']));
+router.use('/designations',      buildDesignationRouter());
 router.use('/locations',         buildMasterRouter('Location',         'Location',         createLocationSchema,         updateLocationSchema,         ['name', 'city', 'state']));
 router.use('/employment-types',  buildMasterRouter('EmploymentType',   'Employment Type',  createEmploymentTypeSchema,   updateEmploymentTypeSchema));
 router.use('/experience-levels', buildMasterRouter('ExperienceLevel',  'Experience Level', createExperienceLevelSchema,  updateExperienceLevelSchema));

@@ -129,7 +129,19 @@ export default function JobsPage() {
       ) : (
         <div className="space-y-3">
           {jobs.map((job) => (
-            <Card key={job.id} className="hover:shadow-md transition-shadow">
+            <Card
+              key={job.id}
+              role="link"
+              tabIndex={0}
+              onClick={() => navigate(`/jobs/${job.id}`)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigate(`/jobs/${job.id}`);
+                }
+              }}
+              className="hover:shadow-md hover:bg-muted/30 transition-all cursor-pointer"
+            >
               <CardContent className="pt-4 pb-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -176,7 +188,11 @@ export default function JobsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div
+                    className="flex items-center gap-2 shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
                     <Button variant="ghost" size="icon" title="View" asChild>
                       <Link to={`/jobs/${job.id}`}><Eye className="h-4 w-4" /></Link>
                     </Button>

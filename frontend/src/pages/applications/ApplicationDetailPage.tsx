@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useState, type ComponentType } from 'react';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { applicationsApi } from '@/api/applications';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,8 @@ import SendEmailModal from '@/components/SendEmailModal';
 import {
   ArrowLeft, FileText, Link2, Mail, Phone, Briefcase,
   Clock, Star, CheckCircle2, XCircle, ChevronRight, User,
-  Calendar, DollarSign, Building2, Send
+  Calendar, DollarSign, Building2, Send, Search, Users,
+  ShieldCheck, Gift, UserCheck, PauseCircle, Hourglass,
 } from 'lucide-react';
 
 const PIPELINE = [
@@ -19,7 +20,10 @@ const PIPELINE = [
   'SELECTED', 'OFFER_SENT', 'OFFER_ACCEPTED', 'JOINED',
 ];
 
-const TERMINAL = ['REJECTED', 'WITHDRAWN', 'ON_HOLD'];
+/** Final outcomes — cannot resume the active pipeline banner */
+const FINAL_OUTCOMES = ['REJECTED', 'WITHDRAWN'];
+/** Non-pipeline statuses selectable in Change Stage (On Hold is reversible) */
+const OUTCOME_STATUSES = ['REJECTED', 'WITHDRAWN', 'ON_HOLD'];
 
 const stageLabel = (s: string) => s.replace(/_/g, ' ');
 
@@ -39,12 +43,45 @@ const stageColor: Record<string, string> = {
   ON_HOLD: 'bg-gray-100 text-gray-700',
 };
 
+const stageIcon: Record<string, ComponentType<{ className?: string }>> = {
+  APPLIED: Send,
+  SCREENING: Search,
+  SHORTLISTED: Users,
+  INTERVIEW_ROUND_1: Calendar,
+  INTERVIEW_ROUND_2: Calendar,
+  HR_ROUND: User,
+  SELECTED: ShieldCheck,
+  OFFER_SENT: Gift,
+  OFFER_ACCEPTED: CheckCircle2,
+  JOINED: UserCheck,
+  REJECTED: XCircle,
+  WITHDRAWN: XCircle,
+  ON_HOLD: PauseCircle,
+};
+
+const stageIconTone: Record<string, string> = {
+  APPLIED: 'bg-blue-50 text-blue-600',
+  SCREENING: 'bg-emerald-50 text-emerald-600',
+  SHORTLISTED: 'bg-purple-50 text-purple-600',
+  INTERVIEW_ROUND_1: 'bg-orange-50 text-orange-600',
+  INTERVIEW_ROUND_2: 'bg-amber-50 text-amber-600',
+  HR_ROUND: 'bg-sky-50 text-sky-600',
+  SELECTED: 'bg-green-50 text-green-600',
+  OFFER_SENT: 'bg-green-50 text-green-600',
+  OFFER_ACCEPTED: 'bg-green-50 text-green-600',
+  JOINED: 'bg-green-50 text-green-600',
+  REJECTED: 'bg-red-50 text-red-600',
+  WITHDRAWN: 'bg-gray-50 text-gray-600',
+  ON_HOLD: 'bg-gray-50 text-gray-600',
+};
+
 export default function ApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const filterJobId = (location.state as { filterJobId?: string } | null)?.filterJobId;
   const queryClient = useQueryClient();
 
-  const [showMoveStage, setShowMoveStage] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [stageNotes, setStageNotes] = useState('');
@@ -63,8 +100,12 @@ export default function ApplicationDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['application', id] });
       queryClient.invalidateQueries({ queryKey: ['applications'] });
       queryClient.invalidateQueries({ queryKey: ['pipeline-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['insights-in-progress'] });
+      queryClient.invalidateQueries({ queryKey: ['insights-backed-out'] });
+      queryClient.invalidateQueries({ queryKey: ['insights-rejected'] });
+      queryClient.invalidateQueries({ queryKey: ['insights-on-hold'] });
+      queryClient.invalidateQueries({ queryKey: ['insights-company-left'] });
       toast({ title: `Stage moved to ${stageLabel(res.data.data.status)}`, variant: 'success' });
-      setShowMoveStage(false);
       setNewStatus('');
       setStageNotes('');
       setRejectionReason('');
@@ -85,13 +126,21 @@ export default function ApplicationDetailPage() {
   if (!app) return <div className="text-center py-20 text-muted-foreground">Application not found</div>;
 
   const currentStageIdx = PIPELINE.indexOf(app.status);
-  const isTerminal = TERMINAL.includes(app.status);
+  const isFinalOutcome = FINAL_OUTCOMES.includes(app.status);
+  const isOnHold = app.status === 'ON_HOLD';
+  const CurrentStageIcon = app.status === 'SCREENING'
+    ? Hourglass
+    : (stageIcon[app.status] ?? Clock);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/applications')}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate(filterJobId ? `/applications?jobId=${encodeURIComponent(filterJobId)}` : '/applications')}
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
@@ -119,7 +168,7 @@ export default function ApplicationDetailPage() {
       )}
 
       {/* Pipeline Progress */}
-      {!isTerminal && (
+      {!isFinalOutcome && !isOnHold && (
         <Card>
           <CardContent className="pt-5 pb-5">
             <div className="flex items-center gap-0 overflow-x-auto">
@@ -151,7 +200,19 @@ export default function ApplicationDetailPage() {
         </Card>
       )}
 
-      {isTerminal && (
+      {isOnHold && (
+        <div className="rounded-lg px-4 py-3 flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800">
+          <PauseCircle className="h-5 w-5 shrink-0" />
+          <div>
+            <p className="font-medium">Application On Hold</p>
+            <p className="text-sm opacity-80 mt-0.5">
+              Use Change Stage to resume this candidate into an active recruitment stage.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isFinalOutcome && (
         <div className={`rounded-lg px-4 py-3 flex items-center gap-3 ${
           app.status === 'REJECTED' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-gray-50 border border-gray-200 text-gray-700'
         }`}>
@@ -298,95 +359,98 @@ export default function ApplicationDetailPage() {
           {/* Move Stage */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Move Stage</CardTitle>
+              <CardTitle className="text-base">Change Stage</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {!showMoveStage ? (
-                <Button className="w-full" onClick={() => setShowMoveStage(true)}>
-                  Change Stage
-                </Button>
-              ) : (
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Select next stage</label>
-                    <select
-                      className="w-full border rounded-md px-3 py-2 text-sm bg-background"
-                      value={newStatus}
-                      onChange={(e) => setNewStatus(e.target.value)}
-                    >
-                      <option value="">Select stage...</option>
-                      <optgroup label="Pipeline">
-                        {PIPELINE.map((s) => (
-                          <option key={s} value={s} disabled={s === app.status}>
-                            {stageLabel(s)}{s === app.status ? ' (current)' : ''}
-                          </option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="Close">
-                        {TERMINAL.map((s) => (
-                          <option key={s} value={s}>{stageLabel(s)}</option>
-                        ))}
-                      </optgroup>
-                    </select>
-                  </div>
-
-                  {newStatus === 'REJECTED' && (
-                    <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">Rejection Reason</label>
-                      <textarea
-                        rows={2}
-                        className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none"
-                        placeholder="Why is this candidate being rejected?"
-                        value={rejectionReason}
-                        onChange={(e) => setRejectionReason(e.target.value)}
-                      />
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Notes (optional)</label>
-                    <textarea
-                      rows={2}
-                      className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none"
-                      placeholder="Add a note about this stage change..."
-                      value={stageNotes}
-                      onChange={(e) => setStageNotes(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      className="flex-1"
-                      disabled={!newStatus || statusMutation.isPending}
-                      onClick={handleMoveStage}
-                    >
-                      {statusMutation.isPending ? 'Saving...' : 'Confirm'}
-                    </Button>
-                    <Button variant="outline" onClick={() => { setShowMoveStage(false); setNewStatus(''); }}>
-                      Cancel
-                    </Button>
-                  </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Current Stage</label>
+                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${stageColor[app.status] ?? 'bg-gray-100 text-gray-700'}`}>
+                  <CurrentStageIcon className="h-3.5 w-3.5" />
+                  {stageLabel(app.status).toUpperCase()}
                 </div>
-              )}
+              </div>
 
-              {/* Quick stage shortcuts */}
-              {!showMoveStage && (
-                <div className="space-y-1.5 pt-1">
-                  <p className="text-xs text-muted-foreground">Quick actions</p>
-                  {['SCREENING', 'SHORTLISTED', 'INTERVIEW_ROUND_1', 'SELECTED', 'REJECTED'].map((s) => (
-                    s !== app.status && (
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Select Next Stage</label>
+                <div className="max-h-56 overflow-y-auto rounded-lg border bg-white divide-y divide-border">
+                  {[...PIPELINE, ...OUTCOME_STATUSES].map((s) => {
+                    const isCurrent = s === app.status;
+                    const isSelected = newStatus === s;
+                    const Icon = stageIcon[s] ?? Clock;
+                    return (
                       <button
                         key={s}
-                        onClick={() => statusMutation.mutate({ status: s })}
-                        disabled={statusMutation.isPending}
-                        className={`w-full text-left text-xs px-3 py-1.5 rounded border transition-colors hover:opacity-80 ${stageColor[s]}`}
+                        type="button"
+                        disabled={isCurrent}
+                        onClick={() => setNewStatus(s)}
+                        className={`w-full text-left px-3 py-2.5 transition-colors ${
+                          isCurrent
+                            ? 'cursor-not-allowed bg-muted/30'
+                            : isSelected
+                              ? 'bg-blue-50'
+                              : 'hover:bg-muted/40'
+                        }`}
                       >
-                        → Move to {stageLabel(s)}
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className={`h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center ${
+                              isSelected
+                                ? 'border-primary'
+                                : 'border-muted-foreground/35'
+                            }`}
+                          >
+                            {isSelected && (
+                              <span className="h-2 w-2 rounded-full bg-primary" />
+                            )}
+                          </span>
+                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${stageIconTone[s] ?? 'bg-gray-50 text-gray-600'}`}>
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <span className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                            {stageLabel(s)}
+                          </span>
+                          {isCurrent && (
+                            <span className="text-xs font-medium text-emerald-600">(current)</span>
+                          )}
+                        </div>
                       </button>
-                    )
-                  ))}
+                    );
+                  })}
+                </div>
+              </div>
+
+              {newStatus === 'REJECTED' && (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Rejection Reason</label>
+                  <textarea
+                    rows={2}
+                    className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none"
+                    placeholder="Why is this candidate being rejected?"
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                  />
                 </div>
               )}
+
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Comments</label>
+                <textarea
+                  rows={2}
+                  className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none"
+                  placeholder="Add a note about this stage change..."
+                  value={stageNotes}
+                  onChange={(e) => setStageNotes(e.target.value)}
+                />
+              </div>
+
+              <Button
+                className="w-full"
+                disabled={!newStatus || statusMutation.isPending}
+                onClick={handleMoveStage}
+              >
+                {statusMutation.isPending ? 'Saving...' : 'Update Stage'}
+                {!statusMutation.isPending && <ChevronRight className="h-4 w-4 ml-1" />}
+              </Button>
             </CardContent>
           </Card>
 
