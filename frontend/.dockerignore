@@ -2,3 +2,9 @@ node_modules
 dist
 npm-debug.log
 *.md
+
+# Never bake a stray local .env into the production bundle -- Vite inlines
+# VITE_* vars at build time, so a wrong value here (e.g. pointing at
+# localhost:5000) would silently break the deployed app.
+.env
+.env.*
