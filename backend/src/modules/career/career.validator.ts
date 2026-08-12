@@ -11,9 +11,6 @@ export const PublicJobQuerySchema = z.object({
 });
 
 export const ApplyJobSchema = z.object({
-  firstName: z.string().min(2).max(100),
-  lastName: z.string().min(1).max(100),
-  email: z.string().email(),
   phone: z.string().optional(),
   currentCompany: z.string().optional(),
   currentDesignation: z.string().optional(),

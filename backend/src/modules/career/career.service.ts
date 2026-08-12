@@ -75,56 +75,34 @@ class CareerService {
     return mapPublicJob(job);
   }
 
-  async applyToJob(jobId: string, dto: ApplyJobDto, resumeUrl?: string) {
+  async applyToJob(candidateId: string, jobId: string, dto: ApplyJobDto, resumeUrl?: string) {
     const job = await prisma.job.findFirst({ where: { id: jobId, isPublished: true, isActive: true, deletedAt: null } });
     if (!job) throw new AppError('Job not found or no longer accepting applications', 404);
 
-    // Upsert candidate
-    let candidate = await prisma.candidate.findUnique({ where: { email: dto.email } });
+    const existingCandidate = await prisma.candidate.findFirst({ where: { id: candidateId, deletedAt: null } });
+    if (!existingCandidate) throw new AppError('Candidate not found', 404);
 
-    if (candidate) {
-      candidate = await prisma.candidate.update({
-        where: { id: candidate.id },
-        data: {
-          firstName: dto.firstName,
-          lastName: dto.lastName,
-          phone: dto.phone,
-          currentCompany: dto.currentCompany,
-          currentDesignation: dto.currentDesignation,
-          totalExperience: dto.totalExperience,
-          currentSalary: dto.currentSalary,
-          expectedSalary: dto.expectedSalary,
-          noticePeriodDays: dto.noticePeriodDays,
-          linkedinUrl: dto.linkedinUrl,
-          resumeUrl: resumeUrl || candidate.resumeUrl,
-          sourceId: dto.sourceId,
-        },
-      });
-    } else {
-      candidate = await prisma.candidate.create({
-        data: {
-          firstName: dto.firstName,
-          lastName: dto.lastName,
-          email: dto.email,
-          phone: dto.phone,
-          currentCompany: dto.currentCompany,
-          currentDesignation: dto.currentDesignation,
-          totalExperience: dto.totalExperience,
-          currentSalary: dto.currentSalary,
-          expectedSalary: dto.expectedSalary,
-          noticePeriodDays: dto.noticePeriodDays,
-          linkedinUrl: dto.linkedinUrl,
-          resumeUrl,
-          sourceId: dto.sourceId,
-        },
-      });
+    const candidate = await prisma.candidate.update({
+      where: { id: candidateId },
+      data: {
+        phone: dto.phone ?? existingCandidate.phone,
+        currentCompany: dto.currentCompany,
+        currentDesignation: dto.currentDesignation,
+        totalExperience: dto.totalExperience,
+        currentSalary: dto.currentSalary,
+        expectedSalary: dto.expectedSalary,
+        noticePeriodDays: dto.noticePeriodDays,
+        linkedinUrl: dto.linkedinUrl,
+        resumeUrl: resumeUrl || existingCandidate.resumeUrl,
+        sourceId: dto.sourceId,
+      },
+    });
 
-      if (dto.skills?.length) {
-        await prisma.candidateSkill.createMany({
-          data: dto.skills.map((skillId) => ({ candidateId: candidate!.id, skillId })),
-          skipDuplicates: true,
-        });
-      }
+    if (dto.skills?.length) {
+      await prisma.candidateSkill.createMany({
+        data: dto.skills.map((skillId) => ({ candidateId: candidate.id, skillId })),
+        skipDuplicates: true,
+      });
     }
 
     // Check if already applied

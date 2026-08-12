@@ -2,16 +2,18 @@ import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { careerApi } from '@/api/career';
+import { useCandidateAuth } from '@/contexts/CandidateAuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronRight, Upload, CheckCircle2, Loader2 } from 'lucide-react';
+import { ChevronRight, Upload, CheckCircle2, Loader2, UserCircle2 } from 'lucide-react';
 
 export default function ApplyPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { candidate } = useCandidateAuth();
 
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -20,7 +22,7 @@ export default function ApplyPage() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
 
   const [form, setForm] = useState({
-    firstName: '', lastName: '', email: '', phone: '',
+    phone: candidate?.phone ?? '',
     currentCompany: '', currentDesignation: '',
     totalExperience: '', expectedSalary: '', noticePeriodDays: '',
     linkedinUrl: '', coverLetter: '',
@@ -120,22 +122,21 @@ export default function ApplyPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
+          <CardHeader><CardTitle className="text-base">Applying As</CardTitle></CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3 rounded-lg bg-muted/50 p-3">
+              <UserCircle2 className="h-9 w-9 text-muted-foreground" />
+              <div>
+                <p className="font-medium">{candidate?.firstName} {candidate?.lastName}</p>
+                <p className="text-sm text-muted-foreground">{candidate?.email}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardHeader><CardTitle className="text-base">Personal Details</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>First Name *</Label>
-                <Input required value={form.firstName} onChange={set('firstName')} />
-              </div>
-              <div>
-                <Label>Last Name *</Label>
-                <Input required value={form.lastName} onChange={set('lastName')} />
-              </div>
-            </div>
-            <div>
-              <Label>Email *</Label>
-              <Input required type="email" value={form.email} onChange={set('email')} />
-            </div>
             <div>
               <Label>Phone</Label>
               <Input type="tel" value={form.phone} onChange={set('phone')} placeholder="+91 9876543210" />

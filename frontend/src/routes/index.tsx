@@ -46,6 +46,9 @@ import CareerJobsPage from '@/pages/career/CareerJobsPage';
 import CareerJobDetailPage from '@/pages/career/CareerJobDetailPage';
 import ApplyPage from '@/pages/career/ApplyPage';
 import AssessmentPage from '@/pages/career/AssessmentPage';
+import CandidateLoginPage from '@/pages/career/CandidateLoginPage';
+import CandidateSignupPage from '@/pages/career/CandidateSignupPage';
+import { CandidateProtectedRoute } from './CandidateProtectedRoute';
 import CandidateAssessmentTakePage from '@/pages/assessments/CandidateAssessmentTakePage';
 
 export const router = createBrowserRouter([
@@ -60,7 +63,12 @@ export const router = createBrowserRouter([
       { index: true, element: <CareerHomePage /> },
       { path: 'jobs', element: <CareerJobsPage /> },
       { path: 'jobs/:slug', element: <CareerJobDetailPage /> },
-      { path: 'jobs/:slug/apply', element: <ApplyPage /> },
+      { path: 'login', element: <CandidateLoginPage /> },
+      { path: 'signup', element: <CandidateSignupPage /> },
+      {
+        element: <CandidateProtectedRoute />,
+        children: [{ path: 'jobs/:slug/apply', element: <ApplyPage /> }],
+      },
       { path: 'assessment/:applicationId', element: <AssessmentPage /> },
     ],
   },

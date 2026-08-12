@@ -20,6 +20,22 @@ export interface AuthRequest<
   user?: AuthUser;
 }
 
+export interface CandidateAuthUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface CandidateAuthRequest<
+  P = ParamsDictionary,
+  ResBody = unknown,
+  ReqBody = unknown,
+  ReqQuery = ParsedQs,
+> extends Request<P, ResBody, ReqBody, ReqQuery> {
+  candidate?: CandidateAuthUser;
+}
+
 export interface PaginationQuery {
   page?: number;
   limit?: number;

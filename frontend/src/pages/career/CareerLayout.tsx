@@ -1,25 +1,64 @@
-import { Outlet, Link } from 'react-router-dom';
-import { Briefcase } from 'lucide-react';
+import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { LogOut, Menu, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useCandidateAuth } from '@/contexts/CandidateAuthContext';
 
 export default function CareerLayout() {
+  const { candidate, isAuthenticated, logout } = useCandidateAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/careers');
+  };
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navbar */}
-      <header className="border-b sticky top-0 bg-background/95 backdrop-blur z-40">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/careers" className="flex items-center gap-2 font-bold text-lg">
-            <Briefcase className="h-6 w-6 text-primary" />
-            HireFlow Careers
+    <div className="career-theme dark min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#090909]/90 backdrop-blur-xl">
+        <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5 lg:px-8">
+          <Link to="/careers" className="group leading-none" aria-label="SRJ Careers home">
+            <span className="block text-3xl font-black italic tracking-[-0.12em] text-white">
+              SRJ<span className="ml-1 inline-block text-lg not-italic text-[#f97316] transition-transform group-hover:rotate-12">✦</span>
+            </span>
+            <span className="mt-1 block text-[7px] font-bold uppercase tracking-[0.18em] text-[#f97316]">
+              TMT | HR Coils | Pipes
+            </span>
           </Link>
-          <div className="flex items-center gap-3">
-            <Link to="/careers/jobs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <nav className="hidden items-center gap-5 sm:flex">
+            <Link to="/careers/jobs" className="text-sm font-medium text-zinc-300 transition-colors hover:text-[#f97316]">
               Browse Jobs
             </Link>
+            {isAuthenticated ? (
+              <>
+                <span className="flex items-center gap-1.5 text-sm text-zinc-400">
+                  <User className="h-4 w-4" />
+                  {candidate?.firstName}
+                </span>
+                <Button variant="outline" size="sm" className="border-[#f97316]/50 bg-transparent hover:bg-[#f97316]/10" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4 mr-1" />
+                  Log out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/careers/login">
+                  <Button variant="ghost" size="sm" className="text-zinc-300 hover:bg-white/5 hover:text-white">Candidate Login</Button>
+                </Link>
+                <Link to="/careers/signup">
+                  <Button size="sm" className="bg-[#f97316] text-white hover:bg-[#ea580c]">Join Us</Button>
+                </Link>
+              </>
+            )}
             <Link to="/login">
-              <Button variant="outline" size="sm">HR Login</Button>
+              <Button variant="outline" size="sm" className="border-[#f97316]/60 bg-transparent text-white hover:bg-[#f97316]">
+                <User className="mr-1.5 h-3.5 w-3.5" />
+                HR Login
+              </Button>
             </Link>
-          </div>
+          </nav>
+          <Link to="/careers/jobs" className="sm:hidden" aria-label="Browse jobs">
+            <Menu className="h-6 w-6 text-zinc-200" />
+          </Link>
         </div>
       </header>
 
@@ -27,8 +66,27 @@ export default function CareerLayout() {
         <Outlet />
       </main>
 
-      <footer className="border-t mt-24 py-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} HireFlow. Powered by HireFlow ATS.
+      <footer className="border-t border-white/10 bg-[#090909]">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-7 px-5 py-9 sm:flex-row lg:px-8">
+          <div>
+            <Link to="/careers" className="text-3xl font-black italic tracking-[-0.12em] text-white">
+              SRJ<span className="ml-1 text-lg not-italic text-[#f97316]">✦</span>
+            </Link>
+            <p className="mt-2 text-xs text-zinc-500">© {new Date().getFullYear()} SRJ Group. All rights reserved.</p>
+          </div>
+          <div className="flex items-center gap-3 text-zinc-400">
+            <span className="mr-2 text-xs">Follow Us</span>
+            {[
+              { label: 'LinkedIn', mark: 'in' },
+              { label: 'Instagram', mark: '◎' },
+              { label: 'YouTube', mark: '▶' },
+            ].map(({ label, mark }) => (
+              <a key={label} href="#" aria-label={label} className="flex h-9 w-9 items-center justify-center rounded-md border border-white/10 text-xs font-bold transition-colors hover:border-[#f97316]/60 hover:text-[#f97316]">
+                {mark}
+              </a>
+            ))}
+          </div>
+        </div>
       </footer>
     </div>
   );

@@ -2,8 +2,10 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import { validateBody, validateQuery } from '@/middlewares/validate';
+import { authenticateCandidate } from '@/middlewares/authenticateCandidate';
 import { PublicJobQuerySchema, ApplyJobSchema } from './career.validator';
 import careerController from './career.controller';
+import candidateAuthRoutes from '../candidate-auth/candidate-auth.routes';
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, 'uploads/resumes'),
@@ -25,11 +27,22 @@ const upload = multer({
 
 const router = Router();
 
+// Candidate signup/login/refresh/logout/me
+router.use('/auth', candidateAuthRoutes);
+
 // Public — no auth
 router.get('/jobs', validateQuery(PublicJobQuerySchema), careerController.getJobs);
 router.get('/jobs/filters', careerController.getFilters);
 router.get('/jobs/:slug', careerController.getJob);
-router.post('/jobs/:jobId/apply', upload.single('resume'), validateBody(ApplyJobSchema), careerController.apply);
+
+// Requires a logged-in candidate
+router.post(
+  '/jobs/:jobId/apply',
+  authenticateCandidate,
+  upload.single('resume'),
+  validateBody(ApplyJobSchema),
+  careerController.apply
+);
 router.post('/applications/:applicationId/assessment/start', careerController.startAssessment);
 router.post('/applications/:applicationId/assessment/submit', careerController.submitAssessment);
 

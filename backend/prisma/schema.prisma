@@ -698,6 +698,8 @@ model Candidate {
   profileSummary       String?
   sourceId             String?
   ownedById            String?
+  passwordHash         String?
+  lastLoginAt          DateTime?
   isActive             Boolean   @default(true)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
@@ -715,8 +717,24 @@ model Candidate {
   assessmentAttempts    AssessmentAttempt[]
   assessmentAssignments AssessmentAssignment[]
   employees             Employee[]
+  refreshTokens         CandidateRefreshToken[]
 
   @@map("candidates")
+}
+
+model CandidateRefreshToken {
+  id          String    @id @default(uuid())
+  candidateId String
+  token       String    @unique
+  expiresAt   DateTime
+  isRevoked   Boolean   @default(false)
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@map("candidate_refresh_tokens")
 }
 
 model CandidateSkill {
