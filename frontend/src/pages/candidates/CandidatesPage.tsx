@@ -522,7 +522,7 @@ export default function CandidatesPage() {
                     <div className="flex items-center gap-2 shrink-0">
                       {c.resumeUrl && (
                         <Button variant="ghost" size="icon" title="View Resume" asChild>
-                          <a href={`http://localhost:5000${c.resumeUrl}`} target="_blank" rel="noreferrer">
+                          <a href={c.resumeUrl} target="_blank" rel="noreferrer">
                             <FileText className="h-4 w-4" />
                           </a>
                         </Button>

@@ -257,7 +257,7 @@ export default function ApplicationDetailPage() {
               <div className="flex gap-3 pt-2 border-t">
                 {app.candidate.resumeUrl && (
                   <Button variant="outline" size="sm" asChild>
-                    <a href={`http://localhost:5000${app.candidate.resumeUrl}`} target="_blank" rel="noreferrer">
+                    <a href={app.candidate.resumeUrl} target="_blank" rel="noreferrer">
                       <FileText className="h-3.5 w-3.5 mr-1.5" /> View Resume
                     </a>
                   </Button>

@@ -76,7 +76,7 @@ export default function CandidateDetailPage() {
               <div className="flex gap-2 pt-2 border-t">
                 {candidate.resumeUrl && (
                   <Button variant="outline" size="sm" asChild>
-                    <a href={`http://localhost:5000${candidate.resumeUrl}`} target="_blank" rel="noreferrer">
+                    <a href={candidate.resumeUrl} target="_blank" rel="noreferrer">
                       <FileText className="h-3.5 w-3.5 mr-1.5" /> Resume
                     </a>
                   </Button>
