@@ -4,6 +4,12 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+# Alpine ships without OpenSSL by default. Prisma needs it present *before*
+# `prisma generate` runs so it can detect the real OpenSSL version and fetch
+# the matching engine binary (otherwise it silently guesses wrong and the
+# engine fails to load its shared libs later).
+RUN apk add --no-cache openssl
+
 COPY package*.json ./
 COPY prisma ./prisma
 RUN npm ci
@@ -18,6 +24,10 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+
+# Needed at runtime too -- the Prisma query/schema engine binary dynamically
+# links against libssl, which Alpine doesn't include by default.
+RUN apk add --no-cache openssl
 
 COPY package*.json ./
 COPY prisma ./prisma
