@@ -1,0 +1,93 @@
+# Docker Compose stack for the hiring app.
+#
+# Only the "web" service publishes a host port (3005). "backend" and
+# "postgres" are reachable only from inside the "hiring_net" network, so
+# they can't collide with ports used by other apps/containers on this VPS.
+#
+# Usage:
+#   cp .env.docker.example .env   # fill in real values first
+#   docker compose build
+#   docker compose up -d
+#
+# See deploy-docker/DEPLOY.md for the full runbook.
+
+name: hiring
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hiring_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-hiring_db}
+    volumes:
+      - hiring_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hiring_user} -d ${POSTGRES_DB:-hiring_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - hiring_net
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      API_PREFIX: /api/v1
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hiring_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-hiring_db}?schema=public
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      COOKIE_SECRET: ${COOKIE_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      EMAIL_FROM: ${EMAIL_FROM:-Hiring System <noreply@company.com>}
+      UPLOAD_DIR: uploads
+      MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-10}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_DIR: logs
+      LINKEDIN_API_BASE_URL: ${LINKEDIN_API_BASE_URL:-}
+      LINKEDIN_CLIENT_ID: ${LINKEDIN_CLIENT_ID:-}
+      LINKEDIN_CLIENT_SECRET: ${LINKEDIN_CLIENT_SECRET:-}
+      LINKEDIN_ACCESS_TOKEN: ${LINKEDIN_ACCESS_TOKEN:-}
+      NAUKRI_API_BASE_URL: ${NAUKRI_API_BASE_URL:-}
+      NAUKRI_API_KEY: ${NAUKRI_API_KEY:-}
+      NAUKRI_API_SECRET: ${NAUKRI_API_SECRET:-}
+    volumes:
+      - hiring_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - hiring_net
+
+  web:
+    build:
+      context: ./frontend
+    ports:
+      - "3005:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - hiring_net
+
+volumes:
+  hiring_pg_data:
+  hiring_uploads:
+
+networks:
+  hiring_net:
+    driver: bridge
