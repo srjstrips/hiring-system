@@ -47,7 +47,7 @@ export default function CareerHomePage() {
     <div className="overflow-hidden bg-[#090909]">
       <section
         className="relative min-h-[620px] border-b border-white/10 bg-cover bg-[70%_center] px-5 py-20 lg:bg-center lg:px-8 lg:py-28"
-        style={{ backgroundImage: "url('/careers/steel-rods-hero.png')" }}
+        style={{ backgroundImage: "url('/career-assets/steel-rods-hero.png')" }}
       >
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,5,0.98)_0%,rgba(5,5,5,0.88)_35%,rgba(5,5,5,0.2)_72%,rgba(5,5,5,0.42)_100%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(0deg,#090909_0%,transparent_28%)]" />
@@ -179,7 +179,7 @@ export default function CareerHomePage() {
       <section className="mx-auto max-w-7xl px-5 py-20 lg:px-8">
         <div
           className="relative overflow-hidden rounded-xl border border-white/10 bg-cover bg-[75%_center] px-7 py-14 sm:px-12 lg:py-16"
-          style={{ backgroundImage: "url('/careers/steel-pipes.png')" }}
+          style={{ backgroundImage: "url('/career-assets/steel-pipes.png')" }}
         >
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,5,0.98)_0%,rgba(5,5,5,0.82)_48%,rgba(5,5,5,0.2)_100%)]" />
           <div className="relative max-w-2xl">
