@@ -26,7 +26,11 @@ export class MasterService<T extends { id: string }> {
   async create(data: Record<string, unknown>): Promise<T> {
     const name = data['name'] as string | undefined;
     if (name) {
-      const existing = await this.repo.findByName(name);
+      const existing = await this.repo.findByName(
+        name,
+        undefined,
+        data['departmentId'] as string | undefined
+      );
       if (existing) throw new ConflictError(`${this.resourceName} with this name already exists`);
     }
     return this.repo.create(data);
@@ -38,7 +42,10 @@ export class MasterService<T extends { id: string }> {
 
     const name = data['name'] as string | undefined;
     if (name) {
-      const existing = await this.repo.findByName(name, id);
+      const departmentId =
+        (data['departmentId'] as string | undefined) ??
+        ((record as { departmentId?: string }).departmentId);
+      const existing = await this.repo.findByName(name, id, departmentId);
       if (existing) throw new ConflictError(`${this.resourceName} with this name already exists`);
     }
 

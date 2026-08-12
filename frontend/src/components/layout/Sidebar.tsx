@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, Briefcase, FileText,
   UserCheck, Calendar, Gift, UserPlus, BarChart3, Settings,
-  ChevronDown, X, Layers, Menu,
+  ChevronDown, X, Layers, Menu, ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,6 +23,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Applications', icon: FileText, to: '/applications', permission: 'applications:read' },
   { label: 'Candidates', icon: Users, to: '/candidates', permission: 'candidates:read' },
   { label: 'Interviews', icon: Calendar, to: '/interviews', permission: 'interviews:read' },
+  { label: 'Assessments', icon: ClipboardList, to: '/assessments', permission: 'assessments:read' },
   { label: 'Offers', icon: Gift, to: '/offers', permission: 'offers:read' },
   { label: 'Insights', icon: BarChart3, to: '/insights', permission: 'reports:read' },
   {
@@ -31,6 +32,7 @@ const NAV_ITEMS: NavItem[] = [
     permission: 'masters:read',
     children: [
       { label: 'Departments', to: '/masters/departments' },
+      { label: 'Sub Departments', to: '/masters/sub-departments' },
       { label: 'Designations', to: '/masters/designations' },
       { label: 'Locations', to: '/masters/locations' },
       { label: 'Skills', to: '/masters/skills' },
@@ -117,7 +119,7 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className={cn('flex-1 overflow-y-auto py-4', open ? 'px-3' : 'px-2')}>
+      <nav className={cn('flex-1 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-4', open ? 'px-3' : 'px-2')}>
         {NAV_ITEMS.filter(canShow).map((item) => {
           if (item.children) {
             const isExpanded = expandedItems.has(item.label);

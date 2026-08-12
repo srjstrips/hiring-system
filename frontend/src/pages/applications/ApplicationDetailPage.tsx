@@ -171,7 +171,7 @@ export default function ApplicationDetailPage() {
       {!isFinalOutcome && !isOnHold && (
         <Card>
           <CardContent className="pt-5 pb-5">
-            <div className="flex items-center gap-0 overflow-x-auto">
+            <div className="flex items-center gap-0 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {PIPELINE.map((stage, idx) => {
                 const done = idx < currentStageIdx;
                 const active = idx === currentStageIdx;

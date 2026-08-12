@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { requisitionsApi } from '@/api/requisitions';
+import { requisitionsApi, type Requisition } from '@/api/requisitions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/useToast';
-import { Plus, CheckCircle2, XCircle, X, Search } from 'lucide-react';
+import { Plus, CheckCircle2, XCircle, X, Search, Pencil } from 'lucide-react';
 import { api } from '@/api/axios';
 
 const APPROVAL_COLORS: Record<string, string> = {
@@ -14,6 +13,7 @@ const APPROVAL_COLORS: Record<string, string> = {
   APPROVED: 'bg-green-100 text-green-700',
   REJECTED: 'bg-red-100 text-red-700',
   ON_HOLD: 'bg-gray-100 text-gray-700',
+  DRAFT: 'bg-slate-100 text-slate-700',
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -23,21 +23,91 @@ const PRIORITY_COLORS: Record<string, string> = {
   URGENT: 'bg-red-100 text-red-700',
 };
 
+const RAISED_FROM_OPTIONS = [
+  { value: 'DEPARTMENT', label: 'Department' },
+  { value: 'PLANT', label: 'Plant' },
+  { value: 'CORPORATE_HEAD_OFFICE', label: 'Corporate/Head Office' },
+  { value: 'MANAGEMENT', label: 'Management' },
+  { value: 'OTHER', label: 'Other' },
+] as const;
+
+const RAISED_FROM_LABELS: Record<string, string> = Object.fromEntries(
+  RAISED_FROM_OPTIONS.map((o) => [o.value, o.label])
+);
+
 const emptyForm = {
-  departmentId: '', designationId: '', locationId: '',
-  experienceLevelId: '', numberOfPositions: '1',
-  salaryMin: '', salaryMax: '', priority: 'MEDIUM',
-  targetDate: '', jobDescription: '',
+  departmentId: '',
+  subDepartmentId: '',
+  designationId: '',
+  locationId: '',
+  numberOfPositions: '1',
+  replacementAvailable: 'NO',
+  replacementEmployeeName: '',
+  hodName: '',
+  raisedFrom: '',
+  priority: 'MEDIUM',
+  salaryMin: '',
+  salaryMax: '',
+  experienceLevelId: '',
+  targetDate: '',
+  jobDescription: '',
+  remark: '',
 };
+
+function toForm(r: Requisition) {
+  return {
+    departmentId: r.department.id,
+    subDepartmentId: r.subDepartment?.id ?? '',
+    designationId: r.designation.id,
+    locationId: r.location.id,
+    numberOfPositions: String(r.numberOfPositions),
+    replacementAvailable: r.replacementAvailable ? 'YES' : 'NO',
+    replacementEmployeeName: r.replacementEmployeeName ?? '',
+    hodName: r.hodName ?? '',
+    raisedFrom: r.raisedFrom ?? '',
+    priority: r.priority || 'MEDIUM',
+    salaryMin: r.salaryMin != null ? String(r.salaryMin) : '',
+    salaryMax: r.salaryMax != null ? String(r.salaryMax) : '',
+    experienceLevelId: r.experienceLevel?.id ?? '',
+    targetDate: r.targetDate ? r.targetDate.slice(0, 10) : '',
+    jobDescription: r.jobDescription ?? '',
+    remark: r.remark ?? '',
+  };
+}
+
+function buildPayload(form: typeof emptyForm) {
+  return {
+    departmentId: form.departmentId,
+    subDepartmentId: form.subDepartmentId || undefined,
+    designationId: form.designationId,
+    locationId: form.locationId,
+    numberOfPositions: Number(form.numberOfPositions),
+    replacementAvailable: form.replacementAvailable === 'YES',
+    replacementEmployeeName:
+      form.replacementAvailable === 'YES' ? (form.replacementEmployeeName || undefined) : undefined,
+    hodName: form.hodName || undefined,
+    raisedFrom: form.raisedFrom || undefined,
+    priority: form.priority,
+    salaryMin: form.salaryMin ? Number(form.salaryMin) : undefined,
+    salaryMax: form.salaryMax ? Number(form.salaryMax) : undefined,
+    experienceLevelId: form.experienceLevelId || undefined,
+    targetDate: form.targetDate || undefined,
+    jobDescription: form.jobDescription || undefined,
+    remark: form.remark || undefined,
+  };
+}
 
 export default function RequisitionsPage() {
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
+
+  const formOpen = showCreate || !!editingId;
 
   const { data, isLoading } = useQuery({
     queryKey: ['requisitions', statusFilter, search],
@@ -47,22 +117,32 @@ export default function RequisitionsPage() {
   const { data: departments } = useQuery({
     queryKey: ['departments-all'],
     queryFn: () => api.get('/masters/departments?limit=200').then((r) => r.data.data),
-    enabled: showCreate,
+    enabled: formOpen,
+  });
+  const { data: subDepartments } = useQuery({
+    queryKey: ['sub-departments-all', form.departmentId],
+    queryFn: () =>
+      api
+        .get('/masters/sub-departments', {
+          params: { limit: 200, departmentId: form.departmentId || undefined, isActive: 'true' },
+        })
+        .then((r) => r.data.data),
+    enabled: formOpen && !!form.departmentId,
   });
   const { data: designations } = useQuery({
     queryKey: ['designations-all'],
     queryFn: () => api.get('/masters/designations?limit=200').then((r) => r.data.data),
-    enabled: showCreate,
+    enabled: formOpen,
   });
   const { data: locations } = useQuery({
     queryKey: ['locations-all'],
     queryFn: () => api.get('/masters/locations?limit=200').then((r) => r.data.data),
-    enabled: showCreate,
+    enabled: formOpen,
   });
   const { data: expLevels } = useQuery({
     queryKey: ['exp-levels-all'],
     queryFn: () => api.get('/masters/experience-levels?limit=200').then((r) => r.data.data),
-    enabled: showCreate,
+    enabled: formOpen,
   });
 
   const createMutation = useMutation({
@@ -70,8 +150,18 @@ export default function RequisitionsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['requisitions'] });
       toast({ title: 'Requisition submitted', variant: 'success' });
-      setShowCreate(false);
-      setForm(emptyForm);
+      closeForm();
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: ReturnType<typeof buildPayload> }) =>
+      requisitionsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['requisitions'] });
+      toast({ title: 'Requisition updated', variant: 'success' });
+      closeForm();
     },
     onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
   });
@@ -93,23 +183,47 @@ export default function RequisitionsPage() {
     onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
   });
 
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
-    setForm((f) => ({ ...f, [k]: e.target.value }));
-
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    createMutation.mutate({
-      ...form,
-      numberOfPositions: Number(form.numberOfPositions),
-      salaryMin: form.salaryMin ? Number(form.salaryMin) : undefined,
-      salaryMax: form.salaryMax ? Number(form.salaryMax) : undefined,
-      experienceLevelId: form.experienceLevelId || undefined,
-      targetDate: form.targetDate || undefined,
-      jobDescription: form.jobDescription || undefined,
+  const set = (k: keyof typeof emptyForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const value = e.target.value;
+    setForm((f) => {
+      if (k === 'departmentId') {
+        return { ...f, departmentId: value, subDepartmentId: '' };
+      }
+      if (k === 'replacementAvailable' && value !== 'YES') {
+        return { ...f, replacementAvailable: value, replacementEmployeeName: '' };
+      }
+      return { ...f, [k]: value };
     });
   };
 
+  const closeForm = () => {
+    setShowCreate(false);
+    setEditingId(null);
+    setForm(emptyForm);
+  };
+
+  const openCreate = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setShowCreate(true);
+  };
+
+  const openEdit = (r: Requisition) => {
+    setShowCreate(false);
+    setEditingId(r.id);
+    setForm(toForm(r));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const payload = buildPayload(form);
+    if (editingId) updateMutation.mutate({ id: editingId, data: payload });
+    else createMutation.mutate(payload);
+  };
+
   const requisitions = data?.data ?? [];
+  const saving = createMutation.isPending || updateMutation.isPending;
+  const canEdit = (status: string) => ['DRAFT', 'PENDING', 'ON_HOLD'].includes(status);
 
   return (
     <div className="space-y-6">
@@ -118,18 +232,19 @@ export default function RequisitionsPage() {
           <h1 className="text-2xl font-bold">Manpower Requisitions</h1>
           <p className="text-sm text-muted-foreground">{data?.total ?? 0} total requisitions</p>
         </div>
-        <Button onClick={() => setShowCreate(true)}><Plus className="h-4 w-4 mr-2" /> New Requisition</Button>
+        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> New Requisition</Button>
       </div>
 
-      {/* Create Form */}
-      {showCreate && (
+      {formOpen && (
         <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-base">New Manpower Requisition</CardTitle>
-            <Button variant="ghost" size="icon" onClick={() => setShowCreate(false)}><X className="h-4 w-4" /></Button>
+            <CardTitle className="text-base">
+              {editingId ? 'Edit Manpower Requisition' : 'New Manpower Requisition'}
+            </CardTitle>
+            <Button variant="ghost" size="icon" onClick={closeForm}><X className="h-4 w-4" /></Button>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Department *</label>
@@ -139,12 +254,28 @@ export default function RequisitionsPage() {
                   </select>
                 </div>
                 <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Sub Department *</label>
+                  <select
+                    className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                    value={form.subDepartmentId}
+                    onChange={set('subDepartmentId')}
+                    required
+                    disabled={!form.departmentId}
+                  >
+                    <option value="">{form.departmentId ? 'Select...' : 'Select department first'}</option>
+                    {subDepartments?.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
+                <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Designation *</label>
                   <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.designationId} onChange={set('designationId')} required>
                     <option value="">Select...</option>
                     {designations?.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Location *</label>
                   <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.locationId} onChange={set('locationId')} required>
@@ -152,11 +283,39 @@ export default function RequisitionsPage() {
                     {locations?.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
                   </select>
                 </div>
-              </div>
-              <div className="grid grid-cols-4 gap-4">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">No. of Positions *</label>
                   <Input type="number" min="1" value={form.numberOfPositions} onChange={set('numberOfPositions')} required />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Replacement Available</label>
+                  <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.replacementAvailable} onChange={set('replacementAvailable')}>
+                    <option value="NO">No</option>
+                    <option value="YES">Yes</option>
+                  </select>
+                </div>
+              </div>
+
+              {form.replacementAvailable === 'YES' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Replacement Employee Name</label>
+                    <Input value={form.replacementEmployeeName} onChange={set('replacementEmployeeName')} placeholder="Employee name" />
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">HOD Name</label>
+                  <Input value={form.hodName} onChange={set('hodName')} placeholder="Head of Department" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Requisition Raised From</label>
+                  <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.raisedFrom} onChange={set('raisedFrom')}>
+                    <option value="">Select...</option>
+                    {RAISED_FROM_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Priority</label>
@@ -164,6 +323,9 @@ export default function RequisitionsPage() {
                     {['LOW', 'MEDIUM', 'HIGH', 'URGENT'].map((p) => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-4">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Salary Min (₹)</label>
                   <Input type="number" value={form.salaryMin} onChange={set('salaryMin')} placeholder="800000" />
@@ -172,8 +334,6 @@ export default function RequisitionsPage() {
                   <label className="text-xs text-muted-foreground mb-1 block">Salary Max (₹)</label>
                   <Input type="number" value={form.salaryMax} onChange={set('salaryMax')} placeholder="1500000" />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Experience Level</label>
                   <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.experienceLevelId} onChange={set('experienceLevelId')}>
@@ -186,20 +346,26 @@ export default function RequisitionsPage() {
                   <Input type="date" value={form.targetDate} onChange={set('targetDate')} />
                 </div>
               </div>
+
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Job Description / Notes</label>
                 <textarea rows={3} className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none" value={form.jobDescription} onChange={set('jobDescription')} placeholder="Describe the role and requirements..." />
               </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Remark</label>
+                <textarea rows={2} className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none" value={form.remark} onChange={set('remark')} placeholder="Additional remarks or comments..." />
+              </div>
               <div className="flex gap-2 justify-end">
-                <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
-                <Button type="submit" disabled={createMutation.isPending}>{createMutation.isPending ? 'Submitting...' : 'Submit Requisition'}</Button>
+                <Button type="button" variant="outline" onClick={closeForm}>Cancel</Button>
+                <Button type="submit" disabled={saving}>
+                  {saving ? 'Saving...' : editingId ? 'Update Requisition' : 'Submit Requisition'}
+                </Button>
               </div>
             </form>
           </CardContent>
         </Card>
       )}
 
-      {/* Reject Modal */}
       {rejectId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <Card className="w-full max-w-md">
@@ -220,7 +386,6 @@ export default function RequisitionsPage() {
         </div>
       )}
 
-      {/* Filters */}
       <div className="flex gap-3">
         <div className="relative max-w-xs flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -232,7 +397,6 @@ export default function RequisitionsPage() {
         </select>
       </div>
 
-      {/* List */}
       {isLoading ? (
         <div className="text-center py-12 text-muted-foreground">Loading...</div>
       ) : requisitions.length === 0 ? (
@@ -256,31 +420,49 @@ export default function RequisitionsPage() {
                     </div>
                     <div className="flex gap-3 mt-1 text-sm text-muted-foreground flex-wrap">
                       <span>{r.department.name}</span>
+                      {r.subDepartment?.name && (<><span>·</span><span>{r.subDepartment.name}</span></>)}
                       <span>·</span>
                       <span>{r.location.name}</span>
                       <span>·</span>
                       <span>{r.numberOfPositions} position{r.numberOfPositions !== 1 ? 's' : ''}</span>
                       {r.salaryMin && r.salaryMax && (
-                        <><span>·</span><span>₹{(r.salaryMin / 100000).toFixed(1)}L – ₹{(r.salaryMax / 100000).toFixed(1)}L</span></>
+                        <><span>·</span><span>₹{(Number(r.salaryMin) / 100000).toFixed(1)}L – ₹{(Number(r.salaryMax) / 100000).toFixed(1)}L</span></>
                       )}
                       {r._count.jobs > 0 && <><span>·</span><span className="text-blue-600">{r._count.jobs} job{r._count.jobs !== 1 ? 's' : ''} linked</span></>}
                     </div>
+                    <div className="flex gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                      {r.hodName && <span>HOD: {r.hodName}</span>}
+                      {r.raisedFrom && <span>Raised from: {RAISED_FROM_LABELS[r.raisedFrom] ?? r.raisedFrom}</span>}
+                      {r.replacementAvailable && (
+                        <span>
+                          Replacement: {r.replacementEmployeeName || 'Yes'}
+                        </span>
+                      )}
+                    </div>
+                    {r.remark && <p className="text-xs text-muted-foreground mt-0.5">Remark: {r.remark}</p>}
                     {r.targetDate && <p className="text-xs text-muted-foreground mt-0.5">Target: {new Date(r.targetDate).toLocaleDateString()}</p>}
                     {r.rejectionReason && <p className="text-xs text-red-600 mt-1">Rejection reason: {r.rejectionReason}</p>}
                     <p className="text-xs text-muted-foreground mt-1">By {r.createdBy.firstName} {r.createdBy.lastName} · {new Date(r.createdAt).toLocaleDateString()}</p>
                   </div>
-                  {r.approvalStatus === 'PENDING' && (
-                    <div className="flex gap-2 shrink-0">
-                      <Button size="sm" variant="outline" className="text-green-700 border-green-300 hover:bg-green-50"
-                        onClick={() => approveMutation.mutate(r.id)} disabled={approveMutation.isPending}>
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" /> Approve
+                  <div className="flex gap-2 shrink-0">
+                    {canEdit(r.approvalStatus) && (
+                      <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
+                        <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit
                       </Button>
-                      <Button size="sm" variant="outline" className="text-red-700 border-red-300 hover:bg-red-50"
-                        onClick={() => setRejectId(r.id)}>
-                        <XCircle className="h-3.5 w-3.5 mr-1.5" /> Reject
-                      </Button>
-                    </div>
-                  )}
+                    )}
+                    {r.approvalStatus === 'PENDING' && (
+                      <>
+                        <Button size="sm" variant="outline" className="text-green-700 border-green-300 hover:bg-green-50"
+                          onClick={() => approveMutation.mutate(r.id)} disabled={approveMutation.isPending}>
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" /> Approve
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-red-700 border-red-300 hover:bg-red-50"
+                          onClick={() => setRejectId(r.id)}>
+                          <XCircle className="h-3.5 w-3.5 mr-1.5" /> Reject
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

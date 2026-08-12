@@ -23,9 +23,22 @@ const applicationInclude = {
   source: { select: { id: true, name: true } },
   ownedBy: { select: { id: true, firstName: true, lastName: true } },
   timeline: { orderBy: { createdAt: 'asc' as const } },
-  assessmentAttempt: { select: { score: true, isPassed: true, submittedAt: true } },
+  assessmentAttempts: {
+    where: { submittedAt: { not: null } },
+    orderBy: { submittedAt: 'desc' as const },
+    take: 1,
+    select: { score: true, isPassed: true, submittedAt: true },
+  },
   _count: { select: { interviews: true } },
 };
+
+function withLegacyAssessmentAttempt<T extends { assessmentAttempts?: any[] }>(row: T) {
+  const { assessmentAttempts, ...rest } = row as any;
+  return {
+    ...rest,
+    assessmentAttempt: assessmentAttempts?.[0] ?? null,
+  };
+}
 
 class ApplicationsService {
   async getAll(query: ApplicationQueryDto) {
@@ -63,13 +76,19 @@ class ApplicationsService {
       prisma.application.count({ where }),
     ]);
 
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) || 1 };
+    return {
+      data: data.map(withLegacyAssessmentAttempt),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
   }
 
   async getById(id: string) {
     const app = await prisma.application.findUnique({ where: { id }, include: applicationInclude });
     if (!app) throw new AppError('Application not found', 404);
-    return app;
+    return withLegacyAssessmentAttempt(app);
   }
 
   async updateStatus(id: string, dto: UpdateStatusDto, updatedById: string) {

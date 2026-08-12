@@ -11,11 +11,27 @@ const candidateInclude = {
     orderBy: { appliedAt: 'desc' as const },
     include: {
       job: { select: { id: true, title: true } },
-      assessmentAttempt: { select: { score: true, isPassed: true } },
+      assessmentAttempts: {
+        where: { submittedAt: { not: null } },
+        orderBy: { submittedAt: 'desc' as const },
+        take: 1,
+        select: { score: true, isPassed: true },
+      },
     },
   },
   _count: { select: { applications: true } },
 };
+
+function mapCandidate(row: any) {
+  if (!row) return row;
+  return {
+    ...row,
+    applications: (row.applications ?? []).map((app: any) => {
+      const { assessmentAttempts, ...rest } = app;
+      return { ...rest, assessmentAttempt: assessmentAttempts?.[0] ?? null };
+    }),
+  };
+}
 
 function endOfDay(dateStr: string): Date {
   const d = new Date(dateStr);
@@ -145,7 +161,7 @@ class CandidatesService {
   async getById(id: string) {
     const c = await prisma.candidate.findUnique({ where: { id }, include: candidateInclude });
     if (!c) throw new AppError('Candidate not found', 404);
-    return c;
+    return mapCandidate(c);
   }
 }
 

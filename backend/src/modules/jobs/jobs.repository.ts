@@ -19,9 +19,32 @@ const jobInclude = {
   experienceLevel: { select: { id: true, name: true } },
   createdBy: { select: { id: true, firstName: true, lastName: true } },
   skills: { include: { skill: { select: { id: true, name: true, category: true } } } },
-  assessmentTemplate: { select: { id: true, title: true, durationMins: true } },
+  assessments: {
+    where: { deletedAt: null },
+    orderBy: { createdAt: 'desc' as const },
+    take: 1,
+    select: { id: true, name: true, durationMins: true, passingScore: true, status: true },
+  },
   _count: { select: { applications: true } },
 };
+
+function withLegacyAssessmentTemplate(job: any) {
+  if (!job) return job;
+  const primary = job.assessments?.[0];
+  const { assessments, ...rest } = job;
+  return {
+    ...rest,
+    assessmentTemplate: primary
+      ? {
+          id: primary.id,
+          title: primary.name,
+          durationMins: primary.durationMins,
+          passingScore: primary.passingScore,
+          status: primary.status,
+        }
+      : null,
+  };
+}
 
 export class JobsRepository {
   async findAll(query: JobQueryDto, scope?: UserScope) {
@@ -51,22 +74,27 @@ export class JobsRepository {
       prisma.job.count({ where }),
     ]);
 
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return { data: data.map(withLegacyAssessmentTemplate), total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async findById(id: string) {
-    return prisma.job.findFirst({ where: { id, deletedAt: null }, include: jobInclude });
+    const job = await prisma.job.findFirst({ where: { id, deletedAt: null }, include: jobInclude });
+    return withLegacyAssessmentTemplate(job);
   }
 
   async findBySlug(slug: string) {
-    return prisma.job.findFirst({ where: { slug, deletedAt: null, isPublished: true, isActive: true }, include: jobInclude });
+    const job = await prisma.job.findFirst({
+      where: { slug, deletedAt: null, isPublished: true, isActive: true },
+      include: jobInclude,
+    });
+    return withLegacyAssessmentTemplate(job);
   }
 
   async create(data: CreateJobDto, createdById: string) {
     const { skillIds, closingDate, ...rest } = data;
     const slug = buildSlug(data.title);
 
-    return prisma.job.create({
+    const job = await prisma.job.create({
       data: {
         ...rest,
         slug,
@@ -80,6 +108,7 @@ export class JobsRepository {
       },
       include: jobInclude,
     });
+    return withLegacyAssessmentTemplate(job);
   }
 
   async update(id: string, data: Partial<CreateJobDto>, updatedById: string) {
@@ -89,7 +118,7 @@ export class JobsRepository {
       await prisma.jobSkill.deleteMany({ where: { jobId: id } });
     }
 
-    return prisma.job.update({
+    const job = await prisma.job.update({
       where: { id },
       data: {
         ...rest,
@@ -103,6 +132,7 @@ export class JobsRepository {
       },
       include: jobInclude,
     });
+    return withLegacyAssessmentTemplate(job);
   }
 
   async publish(id: string, updatedById: string) {

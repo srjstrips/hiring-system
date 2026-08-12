@@ -2,11 +2,13 @@ import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { MasterRepository } from './master.repository';
 import { DesignationRepository } from './designation.repository';
+import { SubDepartmentRepository } from './sub-department.repository';
 import { MasterService } from './master.service';
 import { MasterController } from './master.controller';
 import { createMasterRouter } from './master.routes.factory';
 import {
   createDepartmentSchema, updateDepartmentSchema,
+  createSubDepartmentSchema, updateSubDepartmentSchema,
   createDesignationSchema, updateDesignationSchema,
   createLocationSchema, updateLocationSchema,
   createEmploymentTypeSchema, updateEmploymentTypeSchema,
@@ -39,9 +41,17 @@ function buildDesignationRouter() {
   return createMasterRouter(controller, createDesignationSchema, updateDesignationSchema);
 }
 
+function buildSubDepartmentRouter() {
+  const repo = new SubDepartmentRepository();
+  const service = new MasterService(repo as any, 'Sub Department', ['name', 'code']);
+  const controller = new MasterController(service);
+  return createMasterRouter(controller, createSubDepartmentSchema, updateSubDepartmentSchema);
+}
+
 const router = Router();
 
 router.use('/departments',       buildMasterRouter('Department',       'Department',       createDepartmentSchema,       updateDepartmentSchema,       ['name', 'code']));
+router.use('/sub-departments',   buildSubDepartmentRouter());
 router.use('/designations',      buildDesignationRouter());
 router.use('/locations',         buildMasterRouter('Location',         'Location',         createLocationSchema,         updateLocationSchema,         ['name', 'city', 'state']));
 router.use('/employment-types',  buildMasterRouter('EmploymentType',   'Employment Type',  createEmploymentTypeSchema,   updateEmploymentTypeSchema));

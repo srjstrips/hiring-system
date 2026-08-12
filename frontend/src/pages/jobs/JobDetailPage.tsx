@@ -151,16 +151,21 @@ export default function JobDetailPage() {
                 <div className="space-y-2">
                   <p className="font-medium">{data.assessmentTemplate.title}</p>
                   <p className="text-sm text-muted-foreground">{data.assessmentTemplate.durationMins} minutes</p>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to={`/jobs/${id}/assessment`}>Manage Assessment</Link>
-                  </Button>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to={`/assessments/${data.assessmentTemplate.id}`}>View Assessment</Link>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to={`/assessments?jobId=${id}`}>All for Job</Link>
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div>
                   <p className="text-sm text-muted-foreground mb-3">No assessment attached to this job.</p>
                   {hasPermission('assessments:create') && (
                     <Button variant="outline" size="sm" asChild>
-                      <Link to={`/jobs/${id}/assessment`}>Create Assessment</Link>
+                      <Link to={`/assessments/new?jobId=${id}`}>Create Assessment</Link>
                     </Button>
                   )}
                 </div>

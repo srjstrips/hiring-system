@@ -13,6 +13,7 @@ import TimeToHirePage from '@/pages/dashboard/TimeToHirePage';
 import InsightsPage from '@/pages/insights/InsightsPage';
 import UsersPage from '@/pages/users/UsersPage';
 import { DepartmentsPage } from '@/pages/masters/DepartmentsPage';
+import { SubDepartmentsPage } from '@/pages/masters/SubDepartmentsPage';
 import { DesignationsPage } from '@/pages/masters/DesignationsPage';
 import { LocationsPage } from '@/pages/masters/LocationsPage';
 import { SkillsPage } from '@/pages/masters/SkillsPage';
@@ -25,6 +26,13 @@ import JobsPage from '@/pages/jobs/JobsPage';
 import JobFormPage from '@/pages/jobs/JobFormPage';
 import JobDetailPage from '@/pages/jobs/JobDetailPage';
 import AssessmentBuilderPage from '@/pages/jobs/AssessmentBuilderPage';
+import AssessmentsPage from '@/pages/assessments/AssessmentsPage';
+import AssessmentFormPage from '@/pages/assessments/AssessmentFormPage';
+import AssessmentDetailPage from '@/pages/assessments/AssessmentDetailPage';
+import AssessmentQuestionsPage from '@/pages/assessments/AssessmentQuestionsPage';
+import AssessmentAssignPage from '@/pages/assessments/AssessmentAssignPage';
+import AssessmentResultsPage from '@/pages/assessments/AssessmentResultsPage';
+import AssessmentResultDetailPage from '@/pages/assessments/AssessmentResultDetailPage';
 import ApplicationsPage from '@/pages/applications/ApplicationsPage';
 import ApplicationDetailPage from '@/pages/applications/ApplicationDetailPage';
 import EmailTemplatesPage from '@/pages/settings/EmailTemplatesPage';
@@ -38,8 +46,13 @@ import CareerJobsPage from '@/pages/career/CareerJobsPage';
 import CareerJobDetailPage from '@/pages/career/CareerJobDetailPage';
 import ApplyPage from '@/pages/career/ApplyPage';
 import AssessmentPage from '@/pages/career/AssessmentPage';
+import CandidateAssessmentTakePage from '@/pages/assessments/CandidateAssessmentTakePage';
 
 export const router = createBrowserRouter([
+  {
+    path: '/assessment/t/:secureToken',
+    element: <CandidateAssessmentTakePage />,
+  },
   {
     path: '/careers',
     element: <CareerLayout />,
@@ -73,6 +86,7 @@ export const router = createBrowserRouter([
           { path: '/insights', element: <InsightsPage /> },
 
           { path: '/masters/departments', element: <DepartmentsPage /> },
+          { path: '/masters/sub-departments', element: <SubDepartmentsPage /> },
           { path: '/masters/designations', element: <DesignationsPage /> },
           { path: '/masters/locations', element: <LocationsPage /> },
           { path: '/masters/skills', element: <SkillsPage /> },
@@ -87,6 +101,15 @@ export const router = createBrowserRouter([
           { path: '/jobs/:id', element: <JobDetailPage /> },
           { path: '/jobs/:id/edit', element: <JobFormPage /> },
           { path: '/jobs/:id/assessment', element: <AssessmentBuilderPage /> },
+
+          { path: '/assessments', element: <AssessmentsPage /> },
+          { path: '/assessments/new', element: <AssessmentFormPage /> },
+          { path: '/assessments/:id', element: <AssessmentDetailPage /> },
+          { path: '/assessments/:id/edit', element: <AssessmentFormPage /> },
+          { path: '/assessments/:id/questions', element: <AssessmentQuestionsPage /> },
+          { path: '/assessments/:id/assign', element: <AssessmentAssignPage /> },
+          { path: '/assessments/:id/results', element: <AssessmentResultsPage /> },
+          { path: '/assessments/:id/results/:assignmentId', element: <AssessmentResultDetailPage /> },
 
           { path: '/applications', element: <ApplicationsPage /> },
           { path: '/applications/:id', element: <ApplicationDetailPage /> },

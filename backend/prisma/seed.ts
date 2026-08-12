@@ -215,6 +215,31 @@ async function main() {
   }
   console.log(`✓ ${departments.length} departments seeded`);
 
+  const subDepartmentsByDept: Record<string, string[]> = {
+    Engineering: ['Backend', 'Frontend', 'QA', 'DevOps'],
+    'Human Resources': ['Talent Acquisition', 'HR Operations', 'Learning & Development'],
+    Sales: ['Enterprise', 'SMB', 'Inside Sales'],
+    Marketing: ['Digital Marketing', 'Brand', 'Content'],
+    Finance: ['Accounts', 'Payroll', 'FP&A'],
+    Operations: ['Facilities', 'Admin', 'Procurement'],
+  };
+  for (const [deptName, subs] of Object.entries(subDepartmentsByDept)) {
+    const dept = await prisma.department.findUnique({ where: { name: deptName } });
+    if (!dept) continue;
+    for (const name of subs) {
+      await prisma.subDepartment.upsert({
+        where: { departmentId_name: { departmentId: dept.id, name } },
+        update: {},
+        create: {
+          name,
+          code: name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) || undefined,
+          departmentId: dept.id,
+        },
+      });
+    }
+  }
+  console.log('✓ Sub departments seeded');
+
   const designations = [
     { name: 'Software Engineer', code: 'SWE', level: 3 },
     { name: 'Senior Software Engineer', code: 'SSE', level: 4 },

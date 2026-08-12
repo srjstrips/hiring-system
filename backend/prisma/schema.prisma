@@ -38,6 +38,14 @@ enum ApprovalStatus {
   ON_HOLD
 }
 
+enum RequisitionRaisedFrom {
+  DEPARTMENT
+  PLANT
+  CORPORATE_HEAD_OFFICE
+  MANAGEMENT
+  OTHER
+}
+
 enum JobPositionStatus {
   OPEN
   ON_HOLD
@@ -215,6 +223,8 @@ model User {
   ownedApplications     Application[]        @relation("ApplicationOwnedBy")
   employees             Employee[]           @relation("EmployeeHrOwner")
   jobShares             JobShare[]           @relation("JobShareSharedBy")
+  createdAssessments    Assessment[]         @relation("AssessmentCreatedBy")
+  assessmentAssignments AssessmentAssignment[] @relation("AssessmentAssignedBy")
 
   @@map("users")
 }
@@ -286,13 +296,32 @@ model Department {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
-  users               User[]             @relation("UserPrimaryDepartment")
-  userAssignments     UserDepartment[]
-  jobs                Job[]
+  users                User[]              @relation("UserPrimaryDepartment")
+  userAssignments      UserDepartment[]
+  jobs                 Job[]
   manpowerRequisitions ManpowerRequisition[]
-  employees           Employee[]
+  employees            Employee[]
+  subDepartments       SubDepartment[]
 
   @@map("departments")
+}
+
+model SubDepartment {
+  id           String    @id @default(uuid())
+  name         String
+  code         String?
+  description  String?
+  departmentId String
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  department           Department            @relation(fields: [departmentId], references: [id])
+  manpowerRequisitions ManpowerRequisition[]
+
+  @@unique([departmentId, name])
+  @@map("sub_departments")
 }
 
 model Designation {
@@ -314,6 +343,7 @@ model Designation {
   manpowerRequisitions ManpowerRequisition[]
   employees            Employee[]
   skills               DesignationSkill[]
+  assessments          Assessment[]
 
   @@map("designations")
 }
@@ -450,34 +480,41 @@ model Reason {
 model ManpowerRequisition {
   id                String         @id @default(uuid())
   requisitionNumber String         @unique
-  departmentId      String
-  designationId     String
-  locationId        String
-  experienceLevelId String?
-  numberOfPositions Int
-  filledPositions   Int            @default(0)
-  salaryMin         Decimal?       @db.Decimal(12, 2)
-  salaryMax         Decimal?       @db.Decimal(12, 2)
-  jobDescription    String?
-  priority          Priority       @default(MEDIUM)
-  hiringManagerId   String?
-  approvalStatus    ApprovalStatus @default(PENDING)
-  approvedById      String?
-  approvedAt        DateTime?
-  rejectionReason   String?
-  targetDate        DateTime?
-  isActive          Boolean        @default(true)
+  departmentId            String
+  subDepartmentId         String?
+  designationId           String
+  locationId              String
+  experienceLevelId       String?
+  numberOfPositions       Int
+  filledPositions         Int                     @default(0)
+  salaryMin               Decimal?                @db.Decimal(12, 2)
+  salaryMax               Decimal?                @db.Decimal(12, 2)
+  jobDescription          String?
+  remark                  String?
+  priority                Priority                @default(MEDIUM)
+  hiringManagerId         String?
+  approvalStatus          ApprovalStatus          @default(PENDING)
+  approvedById            String?
+  approvedAt              DateTime?
+  rejectionReason         String?
+  targetDate              DateTime?
+  replacementAvailable    Boolean                 @default(false)
+  replacementEmployeeName String?
+  hodName                 String?
+  raisedFrom              RequisitionRaisedFrom?
+  isActive                Boolean                 @default(true)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   deletedAt         DateTime?
   createdById       String
 
-  department      Department      @relation(fields: [departmentId], references: [id])
-  designation     Designation     @relation(fields: [designationId], references: [id])
-  location        Location        @relation(fields: [locationId], references: [id])
+  department      Department       @relation(fields: [departmentId], references: [id])
+  subDepartment   SubDepartment?   @relation(fields: [subDepartmentId], references: [id])
+  designation     Designation      @relation(fields: [designationId], references: [id])
+  location        Location         @relation(fields: [locationId], references: [id])
   experienceLevel ExperienceLevel? @relation(fields: [experienceLevelId], references: [id])
-  createdBy       User            @relation("RequisitionCreatedBy", fields: [createdById], references: [id])
-  approvedBy      User?           @relation("RequisitionApprovedBy", fields: [approvedById], references: [id])
+  createdBy       User             @relation("RequisitionCreatedBy", fields: [createdById], references: [id])
+  approvedBy      User?            @relation("RequisitionApprovedBy", fields: [approvedById], references: [id])
 
   skills RequisitionSkill[]
   jobs   Job[]
@@ -557,10 +594,11 @@ model Job {
   hiringManager   User?           @relation("JobHiringManager", fields: [hiringManagerId], references: [id])
   ownedBy         User?           @relation("JobOwnedBy", fields: [ownedById], references: [id])
 
-  skills             JobSkill[]
-  applications       Application[]
-  assessmentTemplate AssessmentTemplate?
-  shares             JobShare[]
+  skills                JobSkill[]
+  applications          Application[]
+  assessments           Assessment[]
+  assessmentAssignments AssessmentAssignment[]
+  shares                JobShare[]
 
   @@map("jobs")
 }
@@ -674,8 +712,9 @@ model Candidate {
   applications        Application[]
   notes               CandidateNote[]
   tags                CandidateTag[]
-  assessmentAttempts  AssessmentAttempt[]
-  employees           Employee[]
+  assessmentAttempts    AssessmentAttempt[]
+  assessmentAssignments AssessmentAssignment[]
+  employees             Employee[]
 
   @@map("candidates")
 }
@@ -774,12 +813,13 @@ model Application {
   source    RecruitmentSource? @relation(fields: [sourceId], references: [id])
   ownedBy   User?              @relation("ApplicationOwnedBy", fields: [ownedById], references: [id])
 
-  timeline          ApplicationTimeline[]
-  interviews        Interview[]
-  offer             Offer?
-  assessmentAttempt AssessmentAttempt?
-  joiningChecklist  JoiningChecklist?
-  employee          Employee?
+  timeline              ApplicationTimeline[]
+  interviews            Interview[]
+  offer                 Offer?
+  assessmentAssignments AssessmentAssignment[]
+  assessmentAttempts    AssessmentAttempt[]
+  joiningChecklist      JoiningChecklist?
+  employee              Employee?
 
   @@unique([candidateId, jobId])
   @@map("applications")
@@ -949,78 +989,200 @@ enum QuestionType {
   MCQ
   TEXT
   TRUE_FALSE
+  MULTIPLE_SELECT
+  SHORT_ANSWER
+  CODING
+  DESCRIPTIVE
 }
 
-model AssessmentTemplate {
-  id           String   @id @default(uuid())
-  jobId        String   @unique
-  title        String
-  description  String?
-  durationMins Int      @default(30)
-  passingScore Int      @default(60)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+enum AssessmentStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
 
-  job       Job                  @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  questions AssessmentQuestion[]
-  attempts  AssessmentAttempt[]
+enum AssignmentStatus {
+  ASSIGNED
+  STARTED
+  COMPLETED
+  EXPIRED
+  CANCELLED
+}
 
-  @@map("assessment_templates")
+model Assessment {
+  id             String           @id @default(uuid())
+  name           String
+  description    String?
+  jobId          String
+  designationId  String?
+  durationMins   Int              @default(30)
+  passingScore   Int              @default(60)
+  maxAttempts    Int              @default(1)
+  startAt        DateTime?
+  endAt          DateTime?
+  status         AssessmentStatus @default(DRAFT)
+  createdById    String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  deletedAt      DateTime?
+
+  job           Job                     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  designation   Designation?            @relation(fields: [designationId], references: [id])
+  createdBy     User                    @relation("AssessmentCreatedBy", fields: [createdById], references: [id])
+  questions     AssessmentQuestion[]
+  assignments   AssessmentAssignment[]
+  attempts      AssessmentAttempt[]
+
+  @@index([jobId])
+  @@index([status])
+  @@map("assessments")
 }
 
 model AssessmentQuestion {
-  id             String       @id @default(uuid())
-  templateId     String
-  questionText   String
-  questionType   QuestionType @default(MCQ)
-  options        Json?
-  correctAnswer  String?
-  marks          Int          @default(1)
-  orderIndex     Int          @default(0)
-  explanation    String?
-  createdAt      DateTime     @default(now())
+  id           String       @id @default(uuid())
+  assessmentId String
+  questionText String
+  questionType QuestionType @default(MCQ)
+  options      Json?
+  correctAnswer String?
+  marks        Int          @default(1)
+  displayOrder Int          @default(0)
+  isActive     Boolean      @default(true)
+  explanation  String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
-  template AssessmentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  answers  AssessmentAnswer[]
+  assessment Assessment         @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  optionItems AssessmentOption[]
+  answers    AssessmentAnswer[]
 
+  @@index([assessmentId])
   @@map("assessment_questions")
 }
 
+model AssessmentOption {
+  id           String  @id @default(uuid())
+  questionId   String
+  optionText   String
+  isCorrect    Boolean @default(false)
+  displayOrder Int     @default(0)
+
+  question AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@map("assessment_options")
+}
+
+model AssessmentAssignment {
+  id            String           @id @default(uuid())
+  assessmentId  String
+  candidateId   String
+  applicationId String
+  jobId         String
+  assignedById  String
+  assignedAt    DateTime         @default(now())
+  status        AssignmentStatus @default(ASSIGNED)
+  maxAttempts   Int              @default(1)
+  secureToken   String           @unique
+  expiresAt     DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  assessment  Assessment          @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  candidate   Candidate           @relation(fields: [candidateId], references: [id])
+  application Application         @relation(fields: [applicationId], references: [id])
+  job         Job                 @relation(fields: [jobId], references: [id])
+  assignedBy  User                @relation("AssessmentAssignedBy", fields: [assignedById], references: [id])
+  attempts    AssessmentAttempt[]
+
+  @@unique([assessmentId, applicationId])
+  @@index([assessmentId])
+  @@index([candidateId])
+  @@index([secureToken])
+  @@map("assessment_assignments")
+}
+
 model AssessmentAttempt {
-  id           String    @id @default(uuid())
-  templateId   String
-  candidateId  String
-  applicationId String   @unique
-  startedAt    DateTime  @default(now())
-  submittedAt  DateTime?
-  score        Int?
-  totalMarks   Int?
-  isPassed     Boolean?
-  isTimedOut   Boolean   @default(false)
-  createdAt    DateTime  @default(now())
+  id            String    @id @default(uuid())
+  assessmentId  String
+  assignmentId  String?
+  candidateId   String
+  applicationId String
+  attemptNumber Int       @default(1)
+  startedAt     DateTime  @default(now())
+  submittedAt   DateTime?
+  score         Int?
+  totalMarks    Int?
+  obtainedMarks Int?
+  isPassed      Boolean?
+  isTimedOut    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
 
-  template    AssessmentTemplate @relation(fields: [templateId], references: [id])
-  candidate   Candidate          @relation(fields: [candidateId], references: [id])
-  application Application        @relation(fields: [applicationId], references: [id])
-  answers     AssessmentAnswer[]
+  assessment        Assessment                 @relation(fields: [assessmentId], references: [id])
+  assignment        AssessmentAssignment?      @relation(fields: [assignmentId], references: [id])
+  candidate         Candidate                  @relation(fields: [candidateId], references: [id])
+  application       Application                @relation(fields: [applicationId], references: [id])
+  answers           AssessmentAnswer[]
+  questionSnapshots AssessmentAttemptQuestion[]
 
+  @@index([applicationId])
+  @@index([assignmentId])
+  @@unique([assignmentId, attemptNumber])
   @@map("assessment_attempts")
 }
 
-model AssessmentAnswer {
-  id          String   @id @default(uuid())
-  attemptId   String
-  questionId  String
-  answerText  String?
-  isCorrect   Boolean?
-  marksGiven  Int?
-  createdAt   DateTime @default(now())
+model AssessmentAttemptQuestion {
+  id                 String   @id @default(uuid())
+  attemptId          String
+  originalQuestionId String?
+  questionText       String
+  questionType       QuestionType @default(MCQ)
+  marks              Int      @default(1)
+  displayOrder       Int      @default(0)
+  createdAt          DateTime @default(now())
 
-  attempt  AssessmentAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  question AssessmentQuestion @relation(fields: [questionId], references: [id])
+  attempt AssessmentAttempt         @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  options AssessmentAttemptOption[]
+  answers AssessmentAnswer[]
+
+  @@index([attemptId])
+  @@map("assessment_attempt_questions")
+}
+
+model AssessmentAttemptOption {
+  id               String  @id @default(uuid())
+  attemptQuestionId String
+  originalOptionId String?
+  optionText       String
+  isCorrect        Boolean @default(false)
+  displayOrder     Int     @default(0)
+
+  attemptQuestion AssessmentAttemptQuestion @relation(fields: [attemptQuestionId], references: [id], onDelete: Cascade)
+  answers         AssessmentAnswer[]
+
+  @@index([attemptQuestionId])
+  @@map("assessment_attempt_options")
+}
+
+model AssessmentAnswer {
+  id                String   @id @default(uuid())
+  attemptId         String
+  questionId        String?
+  attemptQuestionId String?
+  selectedOptionId  String?
+  answerText        String?
+  isCorrect         Boolean?
+  marksGiven        Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  attempt         AssessmentAttempt          @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question        AssessmentQuestion?        @relation(fields: [questionId], references: [id])
+  attemptQuestion AssessmentAttemptQuestion? @relation(fields: [attemptQuestionId], references: [id])
+  selectedOption  AssessmentAttemptOption?   @relation(fields: [selectedOptionId], references: [id])
 
   @@unique([attemptId, questionId])
+  @@unique([attemptId, attemptQuestionId])
   @@map("assessment_answers")
 }
 

@@ -96,6 +96,42 @@ class EmailService {
       `,
     });
   }
+  async sendAssessmentInviteEmail(params: {
+    email: string;
+    candidateName: string;
+    assessmentName: string;
+    assessmentUrl: string;
+    durationMins: number;
+  }): Promise<void> {
+    const { email, candidateName, assessmentName, assessmentUrl, durationMins } = params;
+    await this.send({
+      to: email,
+      subject: `Complete your assessment — ${assessmentName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">Assessment Invitation</h2>
+          <p>Hello ${candidateName},</p>
+          <p>Please complete your assessment using the link below.</p>
+          <p><strong>Assessment:</strong> ${assessmentName}<br/>
+             <strong>Duration:</strong> ${durationMins} minutes</p>
+          <p style="margin: 30px 0;">
+            <a href="${assessmentUrl}"
+               style="background-color: #2563eb; color: white; padding: 12px 24px;
+                      text-decoration: none; border-radius: 6px; display: inline-block;">
+              Start Assessment
+            </a>
+          </p>
+          <p style="color: #6b7280; font-size: 13px;">
+            Use a desktop/laptop browser. Camera, microphone, and screen sharing will be required before you begin.
+          </p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
+          <p style="color: #6b7280; font-size: 12px;">
+            HireFlow ATS | Do not reply to this email
+          </p>
+        </div>
+      `,
+    });
+  }
 }
 
 export const emailService = new EmailService();

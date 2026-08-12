@@ -11,6 +11,7 @@ export const masterQuerySchema = z.object({
     .transform((v) => (v === 'true' ? true : v === 'false' ? false : undefined)),
   sortBy: z.string().default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
+  departmentId: z.string().uuid().optional(),
 });
 
 // Department
@@ -21,6 +22,15 @@ export const createDepartmentSchema = z.object({
   headId: z.string().uuid().optional(),
 });
 export const updateDepartmentSchema = createDepartmentSchema.partial();
+
+// Sub Department
+export const createSubDepartmentSchema = z.object({
+  name: z.string().min(1).max(100),
+  code: z.string().max(10).toUpperCase().optional(),
+  description: z.string().max(500).optional(),
+  departmentId: z.string().uuid(),
+});
+export const updateSubDepartmentSchema = createSubDepartmentSchema.partial();
 
 // Designation
 const designationSkillSchema = z.object({

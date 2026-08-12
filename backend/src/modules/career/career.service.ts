@@ -23,9 +23,31 @@ const publicJobSelect = {
   employmentType: { select: { id: true, name: true } },
   experienceLevel: { select: { id: true, name: true, minYears: true, maxYears: true } },
   skills: { include: { skill: { select: { id: true, name: true } } } },
-  assessmentTemplate: { select: { id: true, title: true, durationMins: true, passingScore: true } },
+  assessments: {
+    where: { deletedAt: null, status: 'ACTIVE' as const },
+    orderBy: { createdAt: 'desc' as const },
+    take: 1,
+    select: { id: true, name: true, durationMins: true, passingScore: true },
+  },
   _count: { select: { applications: true } },
 };
+
+function mapPublicJob(job: any) {
+  if (!job) return job;
+  const primary = job.assessments?.[0];
+  const { assessments, ...rest } = job;
+  return {
+    ...rest,
+    assessmentTemplate: primary
+      ? {
+          id: primary.id,
+          title: primary.name,
+          durationMins: primary.durationMins,
+          passingScore: primary.passingScore,
+        }
+      : null,
+  };
+}
 
 class CareerService {
   async getPublicJobs(query: PublicJobQueryDto) {
@@ -44,13 +66,13 @@ class CareerService {
       prisma.job.count({ where }),
     ]);
 
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return { data: data.map(mapPublicJob), total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async getPublicJobBySlug(slug: string) {
     const job = await prisma.job.findFirst({ where: { slug, isPublished: true, isActive: true, deletedAt: null }, select: publicJobSelect });
     if (!job) throw new AppError('Job not found', 404);
-    return job;
+    return mapPublicJob(job);
   }
 
   async applyToJob(jobId: string, dto: ApplyJobDto, resumeUrl?: string) {
@@ -136,11 +158,10 @@ class CareerService {
     });
     if (!application) throw new AppError('Application not found', 404);
 
-    return assessmentsRepository.startAttempt(
-      (await assessmentsRepository.findTemplateByJobId(application.jobId))!.id,
-      candidateId,
-      applicationId,
-    );
+    const template = await assessmentsRepository.findTemplateByJobId(application.jobId);
+    if (!template) throw new AppError('No assessment for this job', 404);
+
+    return assessmentsRepository.startAttempt(template.id, candidateId, applicationId);
   }
 
   async submitAssessment(applicationId: string, candidateId: string, answers: any[]) {
@@ -148,7 +169,7 @@ class CareerService {
     if (!attempt) throw new AppError('Assessment attempt not found', 404);
     if (attempt.candidateId !== candidateId) throw new AppError('Forbidden', 403);
     if (attempt.submittedAt) throw new AppError('Already submitted', 400);
-    return assessmentsRepository.submitAttempt(attempt.id, answers, attempt.template);
+    return assessmentsRepository.submitAttempt(attempt.id, answers, attempt.assessment);
   }
 
   async getFilters() {

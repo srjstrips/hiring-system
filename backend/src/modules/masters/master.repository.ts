@@ -20,7 +20,7 @@ export class MasterRepository<T extends { id: string }> {
   }
 
   async findAll(query: MasterQueryDto, searchFields: string[] = ['name']) {
-    const { page, limit, search, isActive, sortBy, sortOrder } = query;
+    const { page, limit, search, isActive, sortBy, sortOrder, departmentId } = query;
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = { deletedAt: null };
@@ -33,6 +33,10 @@ export class MasterRepository<T extends { id: string }> {
 
     if (isActive !== undefined) {
       where['isActive'] = isActive;
+    }
+
+    if (departmentId) {
+      where['departmentId'] = departmentId;
     }
 
     const [data, total] = await Promise.all([
@@ -52,12 +56,13 @@ export class MasterRepository<T extends { id: string }> {
     return this.delegate.findFirst({ where: { id, deletedAt: null } });
   }
 
-  async findByName(name: string, excludeId?: string): Promise<T | null> {
+  async findByName(name: string, excludeId?: string, departmentId?: string): Promise<T | null> {
     return this.delegate.findFirst({
       where: {
         name: { equals: name, mode: 'insensitive' },
         deletedAt: null,
         ...(excludeId && { id: { not: excludeId } }),
+        ...(departmentId && { departmentId }),
       },
     });
   }

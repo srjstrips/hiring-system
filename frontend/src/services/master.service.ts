@@ -17,6 +17,7 @@ export interface MasterQueryParams {
   isActive?: boolean;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  departmentId?: string;
 }
 
 export function createMasterService(endpoint: string) {
@@ -64,6 +65,7 @@ export function createMasterService(endpoint: string) {
 
 // Pre-built service instances for each master
 export const departmentService       = createMasterService('departments');
+export const subDepartmentService    = createMasterService('sub-departments');
 export const designationService      = createMasterService('designations');
 export const locationService         = createMasterService('locations');
 export const employmentTypeService   = createMasterService('employment-types');

@@ -4,6 +4,7 @@ import { getUserScope, applyRequisitionScope } from '@/utils/scope';
 
 const requisitionInclude = {
   department: { select: { id: true, name: true } },
+  subDepartment: { select: { id: true, name: true } },
   designation: { select: { id: true, name: true } },
   location: { select: { id: true, name: true } },
   experienceLevel: { select: { id: true, name: true } },
@@ -17,6 +18,40 @@ function generateRequisitionNumber() {
   const year = new Date().getFullYear();
   const rand = Math.floor(Math.random() * 90000) + 10000;
   return `MR-${year}-${rand}`;
+}
+
+function parseReplacementAvailable(value: unknown): boolean {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const v = value.trim().toUpperCase();
+    return v === 'YES' || v === 'TRUE' || v === '1';
+  }
+  return false;
+}
+
+function mapRequisitionFields(dto: any) {
+  const replacementAvailable = parseReplacementAvailable(dto.replacementAvailable);
+  return {
+    departmentId: dto.departmentId,
+    subDepartmentId: dto.subDepartmentId || null,
+    designationId: dto.designationId,
+    locationId: dto.locationId,
+    experienceLevelId: dto.experienceLevelId || null,
+    numberOfPositions: dto.numberOfPositions,
+    salaryMin: dto.salaryMin ?? null,
+    salaryMax: dto.salaryMax ?? null,
+    jobDescription: dto.jobDescription || null,
+    remark: dto.remark || null,
+    priority: dto.priority ?? 'MEDIUM',
+    hiringManagerId: dto.hiringManagerId || null,
+    targetDate: dto.targetDate ? new Date(dto.targetDate) : null,
+    replacementAvailable,
+    replacementEmployeeName: replacementAvailable
+      ? (dto.replacementEmployeeName || null)
+      : null,
+    hodName: dto.hodName || null,
+    raisedFrom: dto.raisedFrom || null,
+  };
 }
 
 class RequisitionsService {
@@ -76,21 +111,12 @@ class RequisitionsService {
   }
 
   async create(dto: any, createdById: string) {
+    const fields = mapRequisitionFields(dto);
     return prisma.manpowerRequisition.create({
       data: {
         requisitionNumber: generateRequisitionNumber(),
-        departmentId: dto.departmentId,
-        designationId: dto.designationId,
-        locationId: dto.locationId,
-        experienceLevelId: dto.experienceLevelId,
-        numberOfPositions: dto.numberOfPositions,
-        salaryMin: dto.salaryMin,
-        salaryMax: dto.salaryMax,
-        jobDescription: dto.jobDescription,
-        priority: dto.priority ?? 'MEDIUM',
-        hiringManagerId: dto.hiringManagerId,
+        ...fields,
         approvalStatus: dto.isDraft ? 'DRAFT' : 'PENDING',
-        targetDate: dto.targetDate ? new Date(dto.targetDate) : undefined,
         createdById,
         skills: dto.skillIds
           ? { create: dto.skillIds.map((s: any) => ({ skillId: s.skillId, isRequired: s.isRequired ?? true })) }
@@ -102,18 +128,18 @@ class RequisitionsService {
 
   async update(id: string, dto: any) {
     const r = await this.getById(id);
-    if (!['DRAFT', 'ON_HOLD'].includes(r.approvalStatus)) {
-      throw new AppError('Only DRAFT or ON_HOLD requisitions can be edited', 400);
+    if (!['DRAFT', 'ON_HOLD', 'PENDING'].includes(r.approvalStatus)) {
+      throw new AppError('Only DRAFT, PENDING, or ON_HOLD requisitions can be edited', 400);
     }
-    const { skillIds, targetDate, ...rest } = dto;
+    const { skillIds, ...rest } = dto;
+    const fields = mapRequisitionFields({ ...r, ...rest });
     if (skillIds !== undefined) {
       await prisma.requisitionSkill.deleteMany({ where: { requisitionId: id } });
     }
     return prisma.manpowerRequisition.update({
       where: { id },
       data: {
-        ...rest,
-        targetDate: targetDate ? new Date(targetDate) : undefined,
+        ...fields,
         skills: skillIds?.length
           ? { create: skillIds.map((s: any) => ({ skillId: s.skillId, isRequired: s.isRequired ?? true })) }
           : undefined,
