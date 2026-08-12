@@ -16,13 +16,12 @@ export default function CareerLayout() {
     <div className="career-theme dark min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[#090909]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5 lg:px-8">
-          <Link to="/careers" className="group leading-none" aria-label="SRJ Careers home">
-            <span className="block text-3xl font-black italic tracking-[-0.12em] text-white">
-              SRJ<span className="ml-1 inline-block text-lg not-italic text-[#f97316] transition-transform group-hover:rotate-12">✦</span>
-            </span>
-            <span className="mt-1 block text-[7px] font-bold uppercase tracking-[0.18em] text-[#f97316]">
-              TMT | HR Coils | Pipes
-            </span>
+          <Link to="/careers" className="block" aria-label="SRJ Careers home">
+            <img
+              src="/career-assets/srj-logo.png"
+              alt="SRJ — TMT, HR Coil and Pipes"
+              className="h-14 w-auto object-contain"
+            />
           </Link>
           <nav className="hidden items-center gap-5 sm:flex">
             <Link to="/careers/jobs" className="text-sm font-medium text-zinc-300 transition-colors hover:text-[#f97316]">
@@ -69,8 +68,12 @@ export default function CareerLayout() {
       <footer className="border-t border-white/10 bg-[#090909]">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-7 px-5 py-9 sm:flex-row lg:px-8">
           <div>
-            <Link to="/careers" className="text-3xl font-black italic tracking-[-0.12em] text-white">
-              SRJ<span className="ml-1 text-lg not-italic text-[#f97316]">✦</span>
+            <Link to="/careers" aria-label="SRJ Careers home">
+              <img
+                src="/career-assets/srj-logo.png"
+                alt="SRJ — TMT, HR Coil and Pipes"
+                className="h-16 w-auto object-contain"
+              />
             </Link>
             <p className="mt-2 text-xs text-zinc-500">© {new Date().getFullYear()} SRJ Group. All rights reserved.</p>
           </div>
