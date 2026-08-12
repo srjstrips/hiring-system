@@ -15,7 +15,7 @@ interface Props {
   onClose: () => void;
 }
 
-export default function SendEmailModal({ applicationId, candidateEmail, candidateName, jobTitle, onClose }: Props) {
+export default function SendEmailModal({ applicationId, candidateEmail, candidateName, onClose }: Props) {
   const [selectedId, setSelectedId] = useState('');
   const [toEmail, setToEmail] = useState(candidateEmail);
   const [preview, setPreview] = useState<{ subject: string; body: string } | null>(null);

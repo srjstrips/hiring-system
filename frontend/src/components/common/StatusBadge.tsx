@@ -11,7 +11,6 @@ const STATUS_STYLES: Record<string, string> = {
   ON_HOLD: 'bg-amber-100 text-amber-800',
   CLOSED: 'bg-slate-100 text-slate-700',
   DRAFT: 'bg-slate-100 text-slate-700',
-  PENDING: 'bg-yellow-100 text-yellow-800',
   APPROVED: 'bg-green-100 text-green-800',
   REJECTED: 'bg-red-100 text-red-800',
   APPLIED: 'bg-slate-100 text-slate-700',

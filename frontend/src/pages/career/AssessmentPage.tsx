@@ -24,7 +24,7 @@ export default function AssessmentPage() {
 
   const questions = attempt?.template?.questions ?? [];
 
-  const handleSubmit = useCallback(async (timedOut = false) => {
+  const handleSubmit = useCallback(async (_timedOut = false) => {
     try {
       const answerList = Object.entries(answers).map(([questionId, answerText]) => ({ questionId, answerText }));
       const res = await careerApi.submitAssessment(applicationId!, candidateId, answerList);

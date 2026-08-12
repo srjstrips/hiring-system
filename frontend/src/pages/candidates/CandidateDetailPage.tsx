@@ -2,9 +2,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { candidatesApi } from '@/api/candidates';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Mail, Phone, Briefcase, Clock, FileText, Link2, DollarSign, MapPin } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, Briefcase, Clock, FileText, Link2, DollarSign } from 'lucide-react';
 
 const stageColor: Record<string, string> = {
   APPLIED: 'bg-blue-100 text-blue-700',

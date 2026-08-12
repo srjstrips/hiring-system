@@ -4,7 +4,6 @@ import { offersApi } from '@/api/offers';
 import { applicationsApi } from '@/api/applications';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/useToast';
 import { Plus, Send, CheckCircle2, XCircle, X, Search } from 'lucide-react';

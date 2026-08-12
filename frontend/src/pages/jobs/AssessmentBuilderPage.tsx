@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { assessmentsApi, type AssessmentQuestion } from '@/api/assessments';
+import { assessmentsApi } from '@/api/assessments';
 import { jobsApi } from '@/api/jobs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,7 +67,7 @@ export default function AssessmentBuilderPage() {
         setQuestions(templateData.questions.map((q) => ({
           id: q.id,
           questionText: q.questionText,
-          questionType: q.questionType,
+          questionType: q.questionType as QType,
           options: (q.options as string[] | undefined) ?? ['', '', '', ''],
           correctAnswer: q.correctAnswer ?? '',
           marks: q.marks,

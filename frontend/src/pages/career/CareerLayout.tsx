@@ -1,5 +1,5 @@
-import { Outlet, Link, useNavigate } from 'react-router-dom';
-import { Briefcase, Search } from 'lucide-react';
+import { Outlet, Link } from 'react-router-dom';
+import { Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function CareerLayout() {

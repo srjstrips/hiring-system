@@ -10,7 +10,7 @@ import { Search, MapPin, Briefcase, Clock, ArrowRight, SlidersHorizontal } from 
 
 export default function CareerJobsPage() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   const [search, setSearch] = useState(searchParams.get('search') ?? '');
   const [departmentId, setDepartmentId] = useState(searchParams.get('departmentId') ?? '');

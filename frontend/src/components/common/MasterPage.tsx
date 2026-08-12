@@ -27,6 +27,12 @@ export interface FieldDef {
   colSpan?: boolean;
 }
 
+export interface ColumnDef {
+  key: string;
+  label: string;
+  render?: (row: MasterRecord) => React.ReactNode;
+}
+
 interface MasterPageProps {
   title: string;
   description?: string;
@@ -41,7 +47,7 @@ interface MasterPageProps {
   fields: FieldDef[];
   createSchema: ZodSchema;
   updateSchema: ZodSchema;
-  columns?: { key: string; label: string; render?: (row: MasterRecord) => React.ReactNode }[];
+  columns?: ColumnDef[];
 }
 
 export function MasterPage({
@@ -110,7 +116,7 @@ export function MasterPage({
     }
   };
 
-  const defaultColumns = [
+  const defaultColumns: ColumnDef[] = [
     { key: 'name', label: 'Name' },
     ...fields.filter(f => f.name !== 'name' && f.name !== 'description').map(f => ({ key: f.name, label: f.label })),
   ];

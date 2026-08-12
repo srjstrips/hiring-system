@@ -38,7 +38,9 @@ export function useToastState() {
   const subscribe = useCallback(() => {
     const listener = (updated: ToastItem[]) => setItems(updated);
     listeners.add(listener);
-    return () => listeners.delete(listener);
+    return () => {
+      listeners.delete(listener);
+    };
   }, []);
 
   return { items, subscribe };

@@ -2,12 +2,14 @@ import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
+import { cn } from '@/utils/cn';
 
 interface SearchInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   debounceMs?: number;
+  className?: string;
 }
 
 export function SearchInput({
@@ -15,6 +17,7 @@ export function SearchInput({
   onChange,
   placeholder = 'Search...',
   debounceMs = 300,
+  className,
 }: SearchInputProps) {
   const [local, setLocal] = useState(value);
 
@@ -28,7 +31,7 @@ export function SearchInput({
   }, [local, debounceMs, onChange]);
 
   return (
-    <div className="relative">
+    <div className={cn('relative', className)}>
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       <Input
         value={local}

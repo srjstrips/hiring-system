@@ -4,7 +4,7 @@ import { careerApi } from '@/api/career';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, Briefcase, Clock, Users, Star, ChevronRight } from 'lucide-react';
+import { MapPin, Briefcase, Star, ChevronRight } from 'lucide-react';
 
 export default function CareerJobDetailPage() {
   const { slug } = useParams<{ slug: string }>();
