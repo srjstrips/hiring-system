@@ -162,7 +162,7 @@ class PublicAssessmentsService {
     }
   }
 
-  async start(secureToken: string) {
+  async start(secureToken: string): ReturnType<PublicAssessmentsService['buildAttemptPayload']> {
     const assignment = await this.loadAssignmentByToken(secureToken);
     const { openAttempt, completedAttempts } = this.assertCanAccess(assignment);
 
