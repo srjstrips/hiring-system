@@ -176,13 +176,13 @@ export default function CareerHomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 py-8 lg:px-8 lg:py-10">
-        <div
-          className="relative overflow-hidden rounded-xl border border-white/10 bg-cover bg-[75%_center] px-7 py-10 sm:px-10 lg:py-12"
-          style={{ backgroundImage: "url('/career-assets/steel-pipes.png')" }}
-        >
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,5,0.98)_0%,rgba(5,5,5,0.82)_48%,rgba(5,5,5,0.2)_100%)]" />
-          <div className="relative max-w-2xl">
+      <section
+        className="relative border-y border-white/10 bg-cover bg-[70%_center] py-14 sm:py-16"
+        style={{ backgroundImage: "url('/career-assets/steel-pipes.png')" }}
+      >
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,5,0.98)_0%,rgba(5,5,5,0.82)_48%,rgba(5,5,5,0.2)_100%)]" />
+        <div className="relative mx-auto max-w-7xl px-5 lg:px-8">
+          <div className="max-w-2xl">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#f97316]">Be part of something stronger</p>
             <h2 className="mt-3 text-2xl font-bold text-white sm:text-3xl">
               Build a stronger tomorrow with <span className="text-[#f97316]">SRJ Group.</span>
