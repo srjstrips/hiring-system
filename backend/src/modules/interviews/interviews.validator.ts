@@ -28,17 +28,10 @@ const optionalUrl = z.preprocess((v) => {
 }, z.string().url('Enter a valid meeting URL (Google Meet, Zoom, etc.)').nullable().optional());
 
 function refineModeFields(
-  data: { mode?: 'VIDEO' | 'IN_PERSON'; meetingLink?: string | null; location?: string | null },
+  data: { mode?: 'VIDEO' | 'IN_PERSON'; location?: string | null },
   ctx: z.RefinementCtx,
 ) {
   const mode = data.mode ?? 'VIDEO';
-  if (mode === 'VIDEO' && !String(data.meetingLink ?? '').trim()) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Meeting link is required for video interviews',
-      path: ['meetingLink'],
-    });
-  }
   if (mode === 'IN_PERSON' && !String(data.location ?? '').trim()) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,

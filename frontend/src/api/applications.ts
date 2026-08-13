@@ -24,6 +24,7 @@ export interface Application {
     mode: 'VIDEO' | 'IN_PERSON';
     location?: string | null;
     meetingLink?: string | null;
+    meetingToken?: string | null;
     status: string;
     interviewType?: { id: string; name: string } | null;
   }>;

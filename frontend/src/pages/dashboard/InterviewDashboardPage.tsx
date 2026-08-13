@@ -178,9 +178,13 @@ export default function InterviewDashboardPage() {
                     <TableCell className="max-w-[160px] truncate text-xs">{row.notes ?? '—'}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        {row.mode !== 'IN_PERSON' && row.meetingLink && (
+                        {row.mode !== 'IN_PERSON' && (row.meetingToken || row.meetingLink) && (
                           <Button size="sm" variant="outline" asChild>
-                            <a href={row.meetingLink} target="_blank" rel="noreferrer">
+                            <a
+                              href={row.meetingToken ? `/interview/call/${row.meetingToken}?as=hr` : row.meetingLink}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
                               <Video className="h-3 w-3 mr-1" /> Join
                             </a>
                           </Button>

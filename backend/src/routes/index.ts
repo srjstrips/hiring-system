@@ -13,6 +13,7 @@ import offerRoutes from '../modules/offers/offers.routes';
 import requisitionRoutes from '../modules/requisitions/requisitions.routes';
 import dashboardRoutes from '../modules/dashboard/dashboard.routes';
 import interviewRoutes from '../modules/interviews/interviews.routes';
+import publicInterviewCallRoutes from '../modules/interviews/public-interview-call.routes';
 import insightRoutes from '../modules/insights/insights.routes';
 import employeeRoutes from '../modules/employees/employees.routes';
 import jobSharingRoutes from '../modules/job-sharing/job-sharing.routes';
@@ -34,6 +35,7 @@ router.use('/offers', offerRoutes);
 router.use('/requisitions', requisitionRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/interviews', interviewRoutes);
+router.use('/public/interviews', publicInterviewCallRoutes);
 router.use('/insights', insightRoutes);
 router.use('/employees', employeeRoutes);
 

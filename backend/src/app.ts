@@ -29,6 +29,7 @@ const limiter = rateLimit({
   max: env.RATE_LIMIT_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.originalUrl.includes('/public/interviews/'),
   message: {
     success: false,
     message: 'Too many requests. Please try again later.',

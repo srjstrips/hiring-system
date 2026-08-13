@@ -45,6 +45,7 @@ const applicationDetailInclude = {
       mode: true,
       location: true,
       meetingLink: true,
+      meetingToken: true,
       status: true,
       interviewType: { select: { id: true, name: true } },
     },

@@ -875,6 +875,7 @@ model Interview {
   mode            InterviewMode   @default(VIDEO)
   location        String?
   meetingLink     String?
+  meetingToken    String?         @unique
   status          InterviewStatus @default(SCHEDULED)
   notes           String?
   scheduledById   String

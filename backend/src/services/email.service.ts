@@ -137,6 +137,46 @@ class EmailService {
     });
   }
 
+  async sendInterviewInviteEmail(params: {
+    email: string;
+    candidateName: string;
+    jobTitle: string;
+    round: number;
+    scheduledAt: Date;
+    durationMinutes: number;
+    interviewUrl: string;
+  }): Promise<void> {
+    const { email, candidateName, jobTitle, round, scheduledAt, durationMinutes, interviewUrl } = params;
+    const when = scheduledAt.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    await this.send({
+      to: email,
+      subject: `Video interview scheduled — ${jobTitle}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #ea580c;">You're invited to a video interview</h2>
+          <p>Hello ${candidateName},</p>
+          <p>Please join your HireFlow video interview using the button below. No Google Meet or Zoom account is required.</p>
+          <p>
+            <strong>Role:</strong> ${jobTitle}<br/>
+            <strong>Round:</strong> ${round}<br/>
+            <strong>When:</strong> ${when}<br/>
+            <strong>Duration:</strong> ${durationMinutes} minutes
+          </p>
+          <p style="margin: 30px 0;">
+            <a href="${interviewUrl}"
+               style="background-color: #ea580c; color: white; padding: 12px 24px;
+                      text-decoration: none; border-radius: 6px; display: inline-block;">
+              Join video interview
+            </a>
+          </p>
+          <p style="color: #6b7280; font-size: 13px;">Allow camera and microphone when the browser asks.</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
+          <p style="color: #6b7280; font-size: 12px;">SRJ Hiring | Do not reply to this email</p>
+        </div>
+      `,
+    });
+  }
+
   async sendAssessmentInviteEmail(params: {
     email: string;
     candidateName: string;

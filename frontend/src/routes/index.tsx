@@ -50,11 +50,16 @@ import CandidateLoginPage from '@/pages/career/CandidateLoginPage';
 import CandidateSignupPage from '@/pages/career/CandidateSignupPage';
 import { CandidateProtectedRoute } from './CandidateProtectedRoute';
 import CandidateAssessmentTakePage from '@/pages/assessments/CandidateAssessmentTakePage';
+import InterviewCallPage from '@/pages/interviews/InterviewCallPage';
 
 export const router = createBrowserRouter([
   {
     path: '/assessment/t/:secureToken',
     element: <CandidateAssessmentTakePage />,
+  },
+  {
+    path: '/interview/call/:token',
+    element: <InterviewCallPage />,
   },
   {
     path: '/careers',

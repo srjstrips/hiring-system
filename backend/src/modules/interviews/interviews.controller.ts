@@ -1,11 +1,18 @@
+import { randomBytes } from 'crypto';
 import { Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
+import { env } from '../../config/env';
 import { AuthRequest } from '../../types';
 import { ApiResponse, buildPagination } from '../../utils/response';
 import { NotFoundError } from '../../utils/errors';
 import { getUserScope, applyInterviewScope } from '../../utils/scope';
+import { emailService } from '../../services/email.service';
 import type { CreateInterviewDto, UpdateInterviewDto } from './interviews.validator';
+
+function buildInterviewCallUrl(token: string) {
+  return `${env.FRONTEND_URL.replace(/\/$/, '')}/interview/call/${token}`;
+}
 
 const ROUND_TO_STATUS: Record<number, 'INTERVIEW_ROUND_1' | 'INTERVIEW_ROUND_2' | 'HR_ROUND'> = {
   1: 'INTERVIEW_ROUND_1',
@@ -162,8 +169,17 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
       updateApplicationStatus = true,
     } = body;
 
-    const app = await prisma.application.findUnique({ where: { id: applicationId } });
+    const app = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: {
+        candidate: { select: { firstName: true, lastName: true, email: true } },
+        job: { select: { title: true } },
+      },
+    });
     if (!app) throw new NotFoundError('Application');
+
+    const meetingToken = mode === 'VIDEO' ? randomBytes(24).toString('base64url') : null;
+    const callUrl = meetingToken ? buildInterviewCallUrl(meetingToken) : null;
 
     const interview = await prisma.interview.create({
       data: {
@@ -175,7 +191,8 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
         durationMinutes: Number(durationMinutes) || 60,
         mode,
         location: location || null,
-        meetingLink: meetingLink || null,
+        meetingLink: mode === 'VIDEO' ? callUrl : (meetingLink || null),
+        meetingToken,
         notes: notes || null,
         scheduledById: req.user!.id,
         interviewersList: {
@@ -184,6 +201,18 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
       },
       include: interviewInclude,
     });
+
+    if (mode === 'VIDEO' && callUrl && app.candidate.email) {
+      await emailService.sendInterviewInviteEmail({
+        email: app.candidate.email,
+        candidateName: `${app.candidate.firstName} ${app.candidate.lastName}`.trim(),
+        jobTitle: app.job.title,
+        round: Number(round) || 1,
+        scheduledAt: new Date(scheduledAt),
+        durationMinutes: Number(durationMinutes) || 60,
+        interviewUrl: callUrl,
+      });
+    }
 
     const nextStatus = ROUND_TO_STATUS[interview.round];
     if (updateApplicationStatus && nextStatus && app.status !== nextStatus) {

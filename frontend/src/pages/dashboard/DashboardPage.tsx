@@ -183,9 +183,9 @@ export function DashboardPage() {
                     {item.scheduledAt ? format(new Date(item.scheduledAt), 'PPp') : '—'}
                     {item.mode === 'IN_PERSON' ? ' · In person' : ' · Video'}
                   </p>
-                  {item.meetingLink && item.mode !== 'IN_PERSON' && (
+                  {(item.meetingToken || item.meetingLink) && item.mode !== 'IN_PERSON' && (
                     <a
-                      href={item.meetingLink}
+                      href={item.meetingToken ? `/interview/call/${item.meetingToken}?as=hr` : item.meetingLink}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"

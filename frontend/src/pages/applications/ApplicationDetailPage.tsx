@@ -106,7 +106,6 @@ export default function ApplicationDetailPage() {
   const [interviewAt, setInterviewAt] = useState(defaultInterviewDateTime);
   const [interviewDuration, setInterviewDuration] = useState('60');
   const [interviewMode, setInterviewMode] = useState<'VIDEO' | 'IN_PERSON'>('VIDEO');
-  const [meetingLink, setMeetingLink] = useState('');
   const [interviewLocation, setInterviewLocation] = useState('');
 
   const { data: app, isLoading } = useQuery({
@@ -135,7 +134,6 @@ export default function ApplicationDetailPage() {
     setInterviewAt(defaultInterviewDateTime());
     setInterviewDuration('60');
     setInterviewMode('VIDEO');
-    setMeetingLink('');
     setInterviewLocation('');
   };
 
@@ -167,10 +165,6 @@ export default function ApplicationDetailPage() {
     if (!newStatus || !app) return;
 
     if (isInterviewStage) {
-      if (interviewMode === 'VIDEO' && !meetingLink.trim()) {
-        toast({ title: 'Meeting link is required for a video interview', variant: 'destructive' });
-        return;
-      }
       if (interviewMode === 'IN_PERSON' && !interviewLocation.trim()) {
         toast({ title: 'Location is required for an in-person interview', variant: 'destructive' });
         return;
@@ -187,7 +181,6 @@ export default function ApplicationDetailPage() {
         scheduledAt: new Date(interviewAt).toISOString(),
         durationMinutes: Number(interviewDuration) || 60,
         mode: interviewMode,
-        meetingLink: interviewMode === 'VIDEO' ? meetingLink.trim() : undefined,
         location: interviewMode === 'IN_PERSON' ? interviewLocation.trim() : undefined,
         notes: stageNotes || undefined,
       });
@@ -549,15 +542,9 @@ export default function ApplicationDetailPage() {
                     </div>
                   </div>
                   {interviewMode === 'VIDEO' ? (
-                    <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">Meeting link (Google Meet / Zoom)</label>
-                      <Input
-                        type="url"
-                        placeholder="https://meet.google.com/..."
-                        value={meetingLink}
-                        onChange={(e) => setMeetingLink(e.target.value)}
-                      />
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      A HireFlow video room is created automatically. The candidate gets a join link by email. You can join from this page — no Google Meet or Zoom needed.
+                    </p>
                   ) : (
                     <div>
                       <label className="text-xs text-muted-foreground mb-1 block">Location</label>
@@ -626,7 +613,7 @@ export default function ApplicationDetailPage() {
             <CardContent className="space-y-3">
               {(app.interviews ?? []).length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No interview scheduled yet. Move to Round 1 / Round 2 / HR Round and add a video meeting link.
+                  No interview scheduled yet. Move to Round 1 / Round 2 / HR Round to create a HireFlow video room.
                 </p>
               ) : (
                 (app.interviews ?? []).map((interview) => (
@@ -640,9 +627,13 @@ export default function ApplicationDetailPage() {
                     <p className="text-xs text-muted-foreground">
                       {new Date(interview.scheduledAt).toLocaleString()} · {interview.durationMinutes} min · {interview.status.replace(/_/g, ' ')}
                     </p>
-                    {interview.mode === 'VIDEO' && interview.meetingLink ? (
+                    {interview.mode === 'VIDEO' && (interview.meetingToken || interview.meetingLink) ? (
                       <Button variant="outline" size="sm" className="w-full" asChild>
-                        <a href={interview.meetingLink} target="_blank" rel="noreferrer">
+                        <a
+                          href={interview.meetingToken ? `/interview/call/${interview.meetingToken}?as=hr` : interview.meetingLink!}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
                           <Video className="h-3.5 w-3.5 mr-1.5" />
                           Join video call
                         </a>
