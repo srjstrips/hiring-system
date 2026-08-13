@@ -43,7 +43,5 @@ router.post(
   validateBody(ApplyJobSchema),
   careerController.apply
 );
-router.post('/applications/:applicationId/assessment/start', careerController.startAssessment);
-router.post('/applications/:applicationId/assessment/submit', careerController.submitAssessment);
 
 export default router;

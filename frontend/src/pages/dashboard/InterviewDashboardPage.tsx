@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Calendar, CheckCircle2, XCircle, PauseCircle, RotateCcw, UserX } from 'lucide-react';
+import { Calendar, CheckCircle2, XCircle, PauseCircle, RotateCcw, UserX, Video } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -112,6 +112,9 @@ export default function InterviewDashboardPage() {
               Department: r.application?.job?.department?.name,
               Type: r.interviewType?.name,
               Round: r.round,
+              Mode: r.mode === 'IN_PERSON' ? 'In person' : 'Video',
+              MeetingLink: r.meetingLink ?? '',
+              Location: r.location ?? '',
               Interviewer: r.interviewersList?.map((i: any) => `${i.user.firstName} ${i.user.lastName}`).join('; '),
               Date: r.scheduledAt,
               Status: r.status,
@@ -140,6 +143,7 @@ export default function InterviewDashboardPage() {
                   <TableHead>Department</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Round</TableHead>
+                  <TableHead>Mode</TableHead>
                   <TableHead>Interviewer</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Status</TableHead>
@@ -149,9 +153,9 @@ export default function InterviewDashboardPage() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
                 ) : rows.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No interviews found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">No interviews found</TableCell></TableRow>
                 ) : rows.map((row: any) => (
                   <TableRow key={row.id}>
                     <TableCell className="font-medium">
@@ -162,6 +166,9 @@ export default function InterviewDashboardPage() {
                     <TableCell>{row.interviewType?.name ?? row.title}</TableCell>
                     <TableCell>{row.round}</TableCell>
                     <TableCell className="text-xs">
+                      {row.mode === 'IN_PERSON' ? 'In person' : 'Video'}
+                    </TableCell>
+                    <TableCell className="text-xs">
                       {row.interviewersList?.length
                         ? row.interviewersList.map((i: any) => `${i.user.firstName} ${i.user.lastName}`).join(', ')
                         : '—'}
@@ -171,6 +178,13 @@ export default function InterviewDashboardPage() {
                     <TableCell className="max-w-[160px] truncate text-xs">{row.notes ?? '—'}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
+                        {row.mode !== 'IN_PERSON' && row.meetingLink && (
+                          <Button size="sm" variant="outline" asChild>
+                            <a href={row.meetingLink} target="_blank" rel="noreferrer">
+                              <Video className="h-3 w-3 mr-1" /> Join
+                            </a>
+                          </Button>
+                        )}
                         {row.status === 'SCHEDULED' && (
                           <>
                             <Button size="sm" variant="outline" onClick={() => statusMutation.mutate({ id: row.id, status: 'COMPLETED' })}>Complete</Button>

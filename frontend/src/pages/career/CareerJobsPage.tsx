@@ -134,7 +134,6 @@ export default function CareerJobsPage() {
                               {job.salaryMax ? ` – ₹${(Number(job.salaryMax) / 100000).toFixed(1)}L` : '+'}
                             </Badge>
                           )}
-                          {job.assessmentTemplate && <Badge variant="default">Has Assessment</Badge>}
                         </div>
                         <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{job.description}</p>
                       </div>

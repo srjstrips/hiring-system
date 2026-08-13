@@ -91,13 +91,16 @@ export class JobsRepository {
   }
 
   async create(data: CreateJobDto, createdById: string) {
-    const { skillIds, closingDate, ...rest } = data;
+    const { skillIds, closingDate, isPublished, ...rest } = data;
     const slug = buildSlug(data.title);
+    const publishNow = !!isPublished;
 
     const job = await prisma.job.create({
       data: {
         ...rest,
         slug,
+        isPublished: publishNow,
+        publishedAt: publishNow ? new Date() : undefined,
         closingDate: closingDate ? new Date(closingDate) : undefined,
         createdById,
         salaryMin: rest.salaryMin ? rest.salaryMin : undefined,

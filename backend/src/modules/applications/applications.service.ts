@@ -32,6 +32,25 @@ const applicationInclude = {
   _count: { select: { interviews: true } },
 };
 
+const applicationDetailInclude = {
+  ...applicationInclude,
+  interviews: {
+    orderBy: { scheduledAt: 'desc' as const },
+    select: {
+      id: true,
+      title: true,
+      round: true,
+      scheduledAt: true,
+      durationMinutes: true,
+      mode: true,
+      location: true,
+      meetingLink: true,
+      status: true,
+      interviewType: { select: { id: true, name: true } },
+    },
+  },
+};
+
 function withLegacyAssessmentAttempt<T extends { assessmentAttempts?: any[] }>(row: T) {
   const { assessmentAttempts, ...rest } = row as any;
   return {
@@ -86,7 +105,7 @@ class ApplicationsService {
   }
 
   async getById(id: string) {
-    const app = await prisma.application.findUnique({ where: { id }, include: applicationInclude });
+    const app = await prisma.application.findUnique({ where: { id }, include: applicationDetailInclude });
     if (!app) throw new AppError('Application not found', 404);
     return withLegacyAssessmentAttempt(app);
   }

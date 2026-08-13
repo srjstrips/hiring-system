@@ -2,7 +2,9 @@ import { useState, type ComponentType } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { applicationsApi } from '@/api/applications';
+import { interviewsApi } from '@/api/dashboard';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/useToast';
 import SendEmailModal from '@/components/SendEmailModal';
@@ -10,7 +12,7 @@ import {
   ArrowLeft, FileText, Link2, Mail, Phone, Briefcase,
   Clock, Star, CheckCircle2, XCircle, ChevronRight, User,
   Calendar, DollarSign, Building2, Send, Search, Users,
-  ShieldCheck, Gift, UserCheck, PauseCircle, Hourglass,
+  ShieldCheck, Gift, UserCheck, PauseCircle, Hourglass, Video,
 } from 'lucide-react';
 
 const PIPELINE = [
@@ -25,6 +27,22 @@ const FINAL_OUTCOMES = ['REJECTED', 'WITHDRAWN'];
 const OUTCOME_STATUSES = ['REJECTED', 'WITHDRAWN', 'ON_HOLD'];
 
 const stageLabel = (s: string) => s.replace(/_/g, ' ');
+
+const INTERVIEW_STAGES = ['INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2', 'HR_ROUND'] as const;
+
+function defaultInterviewDateTime() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(11, 0, 0, 0);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function interviewRoundFromStatus(status: string) {
+  if (status === 'INTERVIEW_ROUND_2') return 2;
+  if (status === 'HR_ROUND') return 3;
+  return 1;
+}
 
 const stageColor: Record<string, string> = {
   APPLIED: 'bg-blue-100 text-blue-700',
@@ -85,6 +103,11 @@ export default function ApplicationDetailPage() {
   const [newStatus, setNewStatus] = useState('');
   const [stageNotes, setStageNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
+  const [interviewAt, setInterviewAt] = useState(defaultInterviewDateTime);
+  const [interviewDuration, setInterviewDuration] = useState('60');
+  const [interviewMode, setInterviewMode] = useState<'VIDEO' | 'IN_PERSON'>('VIDEO');
+  const [meetingLink, setMeetingLink] = useState('');
+  const [interviewLocation, setInterviewLocation] = useState('');
 
   const { data: app, isLoading } = useQuery({
     queryKey: ['application', id],
@@ -92,28 +115,85 @@ export default function ApplicationDetailPage() {
     enabled: !!id,
   });
 
+  const invalidateApplication = () => {
+    queryClient.invalidateQueries({ queryKey: ['application', id] });
+    queryClient.invalidateQueries({ queryKey: ['applications'] });
+    queryClient.invalidateQueries({ queryKey: ['pipeline-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['insights-in-progress'] });
+    queryClient.invalidateQueries({ queryKey: ['insights-backed-out'] });
+    queryClient.invalidateQueries({ queryKey: ['insights-rejected'] });
+    queryClient.invalidateQueries({ queryKey: ['insights-on-hold'] });
+    queryClient.invalidateQueries({ queryKey: ['insights-company-left'] });
+    queryClient.invalidateQueries({ queryKey: ['interviews'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboard-upcoming-interviews'] });
+  };
+
+  const resetStageForm = () => {
+    setNewStatus('');
+    setStageNotes('');
+    setRejectionReason('');
+    setInterviewAt(defaultInterviewDateTime());
+    setInterviewDuration('60');
+    setInterviewMode('VIDEO');
+    setMeetingLink('');
+    setInterviewLocation('');
+  };
+
   const statusMutation = useMutation({
     mutationFn: (payload: { status: string; notes?: string; rejectionReason?: string }) =>
       applicationsApi.updateStatus(id!, payload),
     onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ['application', id] });
-      queryClient.invalidateQueries({ queryKey: ['applications'] });
-      queryClient.invalidateQueries({ queryKey: ['pipeline-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['insights-in-progress'] });
-      queryClient.invalidateQueries({ queryKey: ['insights-backed-out'] });
-      queryClient.invalidateQueries({ queryKey: ['insights-rejected'] });
-      queryClient.invalidateQueries({ queryKey: ['insights-on-hold'] });
-      queryClient.invalidateQueries({ queryKey: ['insights-company-left'] });
+      invalidateApplication();
       toast({ title: `Stage moved to ${stageLabel(res.data.data.status)}`, variant: 'success' });
-      setNewStatus('');
-      setStageNotes('');
-      setRejectionReason('');
+      resetStageForm();
     },
     onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
   });
 
+  const scheduleMutation = useMutation({
+    mutationFn: (payload: Record<string, unknown>) => interviewsApi.create(payload),
+    onSuccess: () => {
+      invalidateApplication();
+      toast({ title: 'Interview scheduled', variant: 'success' });
+      resetStageForm();
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
+  });
+
+  const isInterviewStage = INTERVIEW_STAGES.includes(newStatus as (typeof INTERVIEW_STAGES)[number]);
+  const isSaving = statusMutation.isPending || scheduleMutation.isPending;
+
   const handleMoveStage = () => {
-    if (!newStatus) return;
+    if (!newStatus || !app) return;
+
+    if (isInterviewStage) {
+      if (interviewMode === 'VIDEO' && !meetingLink.trim()) {
+        toast({ title: 'Meeting link is required for a video interview', variant: 'destructive' });
+        return;
+      }
+      if (interviewMode === 'IN_PERSON' && !interviewLocation.trim()) {
+        toast({ title: 'Location is required for an in-person interview', variant: 'destructive' });
+        return;
+      }
+      if (!interviewAt) {
+        toast({ title: 'Pick interview date and time', variant: 'destructive' });
+        return;
+      }
+
+      scheduleMutation.mutate({
+        applicationId: app.id,
+        round: interviewRoundFromStatus(newStatus),
+        title: `${stageLabel(newStatus)} — ${app.job.title}`,
+        scheduledAt: new Date(interviewAt).toISOString(),
+        durationMinutes: Number(interviewDuration) || 60,
+        mode: interviewMode,
+        meetingLink: interviewMode === 'VIDEO' ? meetingLink.trim() : undefined,
+        location: interviewMode === 'IN_PERSON' ? interviewLocation.trim() : undefined,
+        notes: stageNotes || undefined,
+      });
+      return;
+    }
+
     statusMutation.mutate({
       status: newStatus,
       notes: stageNotes || undefined,
@@ -431,6 +511,66 @@ export default function ApplicationDetailPage() {
                 </div>
               )}
 
+              {isInterviewStage && (
+                <div className="rounded-lg border bg-orange-50/60 p-3 space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-orange-800">
+                    <Video className="h-4 w-4" />
+                    Schedule {interviewMode === 'VIDEO' ? 'video call' : 'interview'}
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Date & time</label>
+                    <Input
+                      type="datetime-local"
+                      value={interviewAt}
+                      onChange={(e) => setInterviewAt(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Duration (mins)</label>
+                      <Input
+                        type="number"
+                        min={15}
+                        max={480}
+                        value={interviewDuration}
+                        onChange={(e) => setInterviewDuration(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Mode</label>
+                      <select
+                        className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                        value={interviewMode}
+                        onChange={(e) => setInterviewMode(e.target.value as 'VIDEO' | 'IN_PERSON')}
+                      >
+                        <option value="VIDEO">Video call</option>
+                        <option value="IN_PERSON">In person</option>
+                      </select>
+                    </div>
+                  </div>
+                  {interviewMode === 'VIDEO' ? (
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Meeting link (Google Meet / Zoom)</label>
+                      <Input
+                        type="url"
+                        placeholder="https://meet.google.com/..."
+                        value={meetingLink}
+                        onChange={(e) => setMeetingLink(e.target.value)}
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Location</label>
+                      <Input
+                        placeholder="Office / conference room"
+                        value={interviewLocation}
+                        onChange={(e) => setInterviewLocation(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Comments</label>
                 <textarea
@@ -444,11 +584,15 @@ export default function ApplicationDetailPage() {
 
               <Button
                 className="w-full"
-                disabled={!newStatus || statusMutation.isPending}
+                disabled={!newStatus || isSaving}
                 onClick={handleMoveStage}
               >
-                {statusMutation.isPending ? 'Saving...' : 'Update Stage'}
-                {!statusMutation.isPending && <ChevronRight className="h-4 w-4 ml-1" />}
+                {isSaving
+                  ? 'Saving...'
+                  : isInterviewStage
+                    ? 'Schedule Interview & Update Stage'
+                    : 'Update Stage'}
+                {!isSaving && <ChevronRight className="h-4 w-4 ml-1" />}
               </Button>
             </CardContent>
           </Card>
@@ -475,19 +619,45 @@ export default function ApplicationDetailPage() {
           </Card>
 
           {/* Interviews */}
-          {app._count.interviews > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Interviews</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">{app._count.interviews} interview(s) scheduled</p>
-                <Button variant="outline" size="sm" className="w-full mt-2">
-                  View Interviews
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Interviews</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {(app.interviews ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No interview scheduled yet. Move to Round 1 / Round 2 / HR Round and add a video meeting link.
+                </p>
+              ) : (
+                (app.interviews ?? []).map((interview) => (
+                  <div key={interview.id} className="rounded-lg border p-3 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium">{interview.title}</p>
+                      <span className="text-[10px] font-semibold uppercase text-muted-foreground">
+                        {interview.mode === 'VIDEO' ? 'Video' : 'In person'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(interview.scheduledAt).toLocaleString()} · {interview.durationMinutes} min · {interview.status.replace(/_/g, ' ')}
+                    </p>
+                    {interview.mode === 'VIDEO' && interview.meetingLink ? (
+                      <Button variant="outline" size="sm" className="w-full" asChild>
+                        <a href={interview.meetingLink} target="_blank" rel="noreferrer">
+                          <Video className="h-3.5 w-3.5 mr-1.5" />
+                          Join video call
+                        </a>
+                      </Button>
+                    ) : interview.location ? (
+                      <p className="text-xs text-muted-foreground">Location: {interview.location}</p>
+                    ) : null}
+                  </div>
+                ))
+              )}
+              <Button variant="outline" size="sm" className="w-full" asChild>
+                <Link to="/interviews">All Interviews</Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

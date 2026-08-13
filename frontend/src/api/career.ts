@@ -92,10 +92,6 @@ export const careerApi = {
   getFilters: () => careerAxios.get('/jobs/filters'),
   apply: (jobId: string, formData: FormData) =>
     careerAxios.post(`/jobs/${jobId}/apply`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  startAssessment: (applicationId: string, candidateId: string) =>
-    careerAxios.post(`/applications/${applicationId}/assessment/start`, { candidateId }),
-  submitAssessment: (applicationId: string, candidateId: string, answers: any[]) =>
-    careerAxios.post(`/applications/${applicationId}/assessment/submit`, { candidateId, answers }),
 };
 
 export const candidateAuthApi = {

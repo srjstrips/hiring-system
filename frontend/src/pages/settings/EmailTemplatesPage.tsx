@@ -11,6 +11,8 @@ import { Plus, Pencil, Trash2, X, Info } from 'lucide-react';
 const PLACEHOLDERS = [
   '{{candidate_name}}', '{{candidate_first_name}}', '{{candidate_email}}',
   '{{job_title}}', '{{company_name}}', '{{hr_name}}', '{{portal_link}}',
+  '{{interview_date}}', '{{interview_mode}}', '{{interview_location}}',
+  '{{meeting_link}}', '{{interview_round}}', '{{interview_title}}',
 ];
 
 const CATEGORIES = ['GENERAL', 'SHORTLISTED', 'INTERVIEW', 'OFFER', 'REJECTED', 'ONBOARDING'];

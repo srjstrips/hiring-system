@@ -31,20 +31,6 @@ class CareerController {
     );
     res.status(201).json({ success: true, data: result, message: 'Application submitted successfully' });
   }
-
-  async startAssessment(req: Request, res: Response) {
-    const applicationId = req.params['applicationId'] as string;
-    const { candidateId } = req.body as any;
-    const attempt = await careerService.startAssessment(applicationId, candidateId);
-    res.json({ success: true, data: attempt });
-  }
-
-  async submitAssessment(req: Request, res: Response) {
-    const applicationId = req.params['applicationId'] as string;
-    const { candidateId, answers } = req.body as any;
-    const result = await careerService.submitAssessment(applicationId, candidateId, answers);
-    res.json({ success: true, data: result, message: 'Assessment submitted successfully' });
-  }
 }
 
 export default new CareerController();

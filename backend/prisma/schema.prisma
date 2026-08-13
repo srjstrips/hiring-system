@@ -80,6 +80,11 @@ enum InterviewStatus {
   NO_SHOW
 }
 
+enum InterviewMode {
+  VIDEO
+  IN_PERSON
+}
+
 enum JoiningStatus {
   PENDING
   JOINED
@@ -867,6 +872,7 @@ model Interview {
   title           String
   scheduledAt     DateTime
   durationMinutes Int             @default(60)
+  mode            InterviewMode   @default(VIDEO)
   location        String?
   meetingLink     String?
   status          InterviewStatus @default(SCHEDULED)

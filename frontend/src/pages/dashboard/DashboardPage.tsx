@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Briefcase, Users, Calendar, Gift, UserPlus, Clock } from 'lucide-react';
+import { Briefcase, Users, Calendar, Gift, UserPlus, Clock, Video } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SummaryCards } from '@/components/common/SummaryCards';
@@ -181,7 +181,18 @@ export function DashboardPage() {
                   <p className="text-xs text-muted-foreground">{item.application?.job?.title}</p>
                   <p className="text-xs text-blue-600 font-medium">
                     {item.scheduledAt ? format(new Date(item.scheduledAt), 'PPp') : '—'}
+                    {item.mode === 'IN_PERSON' ? ' · In person' : ' · Video'}
                   </p>
+                  {item.meetingLink && item.mode !== 'IN_PERSON' && (
+                    <a
+                      href={item.meetingLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    >
+                      <Video className="h-3 w-3" /> Join video call
+                    </a>
+                  )}
                 </div>
               ))
             )}

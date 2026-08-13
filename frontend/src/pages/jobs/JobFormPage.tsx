@@ -71,6 +71,7 @@ export default function JobFormPage() {
     numberOfPositions: 1,
     priority: 'MEDIUM',
     closingDate: '',
+    publishToCareers: true,
   });
 
   const [selectedSkills, setSelectedSkills] = useState<SkillPick[]>([]);
@@ -127,6 +128,7 @@ export default function JobFormPage() {
         numberOfPositions: jobData.numberOfPositions,
         priority: jobData.priority,
         closingDate: jobData.closingDate ? jobData.closingDate.slice(0, 10) : '',
+        publishToCareers: jobData.isPublished,
       });
       setSelectedSkills(skills);
       baselineRef.current = toSnapshot(
@@ -219,24 +221,55 @@ export default function JobFormPage() {
     mutationFn: (payload: any) => isEdit ? jobsApi.update(id!, payload) : jobsApi.create(payload),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      toast({ title: isEdit ? 'Job updated' : 'Job created successfully' });
+      toast({
+        title: isEdit ? 'Job updated' : (form.publishToCareers ? 'Job published on careers page' : 'Job saved as draft'),
+        description: isEdit || form.publishToCareers
+          ? undefined
+          : 'Click Publish on the job page to show it on Careers.',
+      });
       navigate(`/jobs/${res.data.data.id}`);
     },
     onError: (err: any) => {
-      toast({ title: 'Error', description: err.response?.data?.message ?? 'Something went wrong', variant: 'destructive' });
+      const fieldErrors = err.response?.data?.errors as Array<{ field?: string; message?: string }> | undefined;
+      const detail = fieldErrors?.length
+        ? fieldErrors.map((e) => e.message || e.field).filter(Boolean).join(' · ')
+        : err.response?.data?.message;
+      toast({ title: 'Could not save job', description: detail ?? 'Something went wrong', variant: 'destructive' });
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.departmentId || !form.designationId || !form.locationId) {
+      toast({ title: 'Missing required fields', description: 'Select department, designation and location.', variant: 'destructive' });
+      return;
+    }
+    if (form.description.trim().length < 10) {
+      toast({ title: 'Job overview is too short', description: 'Enter at least 10 characters in Overview.', variant: 'destructive' });
+      return;
+    }
+
     mutation.mutate({
-      ...form,
-      salaryMin: form.salaryMin ? Number(form.salaryMin) : undefined,
-      salaryMax: form.salaryMax ? Number(form.salaryMax) : undefined,
-      closingDate: form.closingDate ? new Date(form.closingDate).toISOString() : undefined,
+      title: form.title.trim(),
+      departmentId: form.departmentId,
+      designationId: form.designationId,
+      locationId: form.locationId,
       employmentTypeId: form.employmentTypeId || undefined,
       experienceLevelId: form.experienceLevelId || undefined,
-      skillIds: selectedSkills.map((s) => ({ skillId: s.skillId, isRequired: s.isRequired })),
+      description: form.description.trim(),
+      responsibilities: form.responsibilities.trim() || undefined,
+      requirements: form.requirements.trim() || undefined,
+      benefits: form.benefits.trim() || undefined,
+      salaryMin: form.salaryMin ? Number(form.salaryMin) : undefined,
+      salaryMax: form.salaryMax ? Number(form.salaryMax) : undefined,
+      showSalary: form.showSalary,
+      numberOfPositions: Number(form.numberOfPositions) || 1,
+      priority: form.priority,
+      closingDate: form.closingDate || undefined,
+      ...(isEdit ? {} : { isPublished: form.publishToCareers }),
+      skillIds: selectedSkills
+        .filter((s) => s.skillId)
+        .map((s) => ({ skillId: s.skillId, isRequired: s.isRequired })),
     });
   };
 
@@ -429,10 +462,27 @@ export default function JobFormPage() {
           </CardContent>
         </Card>
 
+        {!isEdit && (
+          <label className="flex items-start gap-3 rounded-lg border bg-muted/30 px-4 py-3 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={form.publishToCareers}
+              onChange={set('publishToCareers')}
+            />
+            <span>
+              <span className="font-medium">Publish on careers page</span>
+              <span className="block text-muted-foreground">
+                If unchecked, the job stays a draft and candidates will not see it.
+              </span>
+            </span>
+          </label>
+        )}
+
         <div className="flex gap-3 justify-end">
           <Button type="button" variant="outline" onClick={() => navigate('/jobs')}>Cancel</Button>
           <Button type="submit" disabled={mutation.isPending || loadingTemplate}>
-            {mutation.isPending ? 'Saving...' : isEdit ? 'Update Job' : 'Create Job'}
+            {mutation.isPending ? 'Saving...' : isEdit ? 'Update Job' : form.publishToCareers ? 'Create & Publish' : 'Save as Draft'}
           </Button>
         </div>
       </form>

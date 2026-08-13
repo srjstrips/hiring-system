@@ -4,7 +4,7 @@ import { careerApi } from '@/api/career';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, Briefcase, Star, ChevronRight } from 'lucide-react';
+import { MapPin, Briefcase, ChevronRight } from 'lucide-react';
 
 export default function CareerJobDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -77,18 +77,6 @@ export default function CareerJobDetailPage() {
               <Button className="w-full" size="lg" asChild>
                 <Link to={`/careers/jobs/${slug}/apply`}>Apply Now</Link>
               </Button>
-
-              {data.assessmentTemplate && (
-                <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 text-sm">
-                  <div className="flex items-center gap-2 font-medium text-primary mb-1">
-                    <Star className="h-4 w-4" /> Assessment Required
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    After applying, you'll take a {data.assessmentTemplate.durationMins}-minute assessment.
-                    Passing score: {data.assessmentTemplate.passingScore}%.
-                  </p>
-                </div>
-              )}
 
               <div className="space-y-3 text-sm">
                 {[

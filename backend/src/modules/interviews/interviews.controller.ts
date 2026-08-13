@@ -3,8 +3,15 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { AuthRequest } from '../../types';
 import { ApiResponse, buildPagination } from '../../utils/response';
-import { NotFoundError, BadRequestError } from '../../utils/errors';
+import { NotFoundError } from '../../utils/errors';
 import { getUserScope, applyInterviewScope } from '../../utils/scope';
+import type { CreateInterviewDto, UpdateInterviewDto } from './interviews.validator';
+
+const ROUND_TO_STATUS: Record<number, 'INTERVIEW_ROUND_1' | 'INTERVIEW_ROUND_2' | 'HR_ROUND'> = {
+  1: 'INTERVIEW_ROUND_1',
+  2: 'INTERVIEW_ROUND_2',
+  3: 'HR_ROUND',
+};
 
 const interviewInclude = {
   interviewType: { select: { id: true, name: true } },
@@ -42,6 +49,7 @@ function parseQuery(req: AuthRequest) {
     departmentId: req.query.departmentId ? String(req.query.departmentId) : undefined,
     interviewTypeId: req.query.interviewTypeId ? String(req.query.interviewTypeId) : undefined,
     round: req.query.round ? Number(req.query.round) : undefined,
+    applicationId: req.query.applicationId ? String(req.query.applicationId) : undefined,
     dateFrom: req.query.dateFrom ? new Date(String(req.query.dateFrom)) : undefined,
     dateTo: req.query.dateTo ? new Date(String(req.query.dateTo)) : undefined,
   };
@@ -56,6 +64,7 @@ export async function getAll(req: AuthRequest, res: Response, next: NextFunction
     if (q.status) where.status = q.status as any;
     if (q.interviewTypeId) where.interviewTypeId = q.interviewTypeId;
     if (q.round) where.round = q.round;
+    if (q.applicationId) where.applicationId = q.applicationId;
     if (q.dateFrom || q.dateTo) {
       where.scheduledAt = {
         ...(q.dateFrom ? { gte: q.dateFrom } : {}),
@@ -137,7 +146,7 @@ export async function getById(req: AuthRequest, res: Response, next: NextFunctio
 
 export async function create(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const body = req.body as Record<string, any>;
+    const body = req.body as CreateInterviewDto;
     const {
       applicationId,
       interviewTypeId,
@@ -145,15 +154,13 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
       title,
       scheduledAt,
       durationMinutes = 60,
+      mode = 'VIDEO',
       location,
       meetingLink,
       notes,
       interviewerIds = [],
+      updateApplicationStatus = true,
     } = body;
-
-    if (!applicationId || !title || !scheduledAt) {
-      throw new BadRequestError('applicationId, title and scheduledAt are required');
-    }
 
     const app = await prisma.application.findUnique({ where: { id: applicationId } });
     if (!app) throw new NotFoundError('Application');
@@ -166,16 +173,38 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
         title,
         scheduledAt: new Date(scheduledAt),
         durationMinutes: Number(durationMinutes) || 60,
-        location,
-        meetingLink,
-        notes,
+        mode,
+        location: location || null,
+        meetingLink: meetingLink || null,
+        notes: notes || null,
         scheduledById: req.user!.id,
         interviewersList: {
-          create: (interviewerIds as string[]).map((userId) => ({ userId })),
+          create: interviewerIds.map((userId) => ({ userId })),
         },
       },
       include: interviewInclude,
     });
+
+    const nextStatus = ROUND_TO_STATUS[interview.round];
+    if (updateApplicationStatus && nextStatus && app.status !== nextStatus) {
+      await prisma.$transaction([
+        prisma.application.update({
+          where: { id: applicationId },
+          data: { status: nextStatus },
+        }),
+        prisma.applicationTimeline.create({
+          data: {
+            applicationId,
+            fromStatus: app.status,
+            toStatus: nextStatus,
+            notes:
+              notes
+              || `Scheduled ${mode === 'VIDEO' ? 'video call' : 'in-person'} interview`,
+            createdById: req.user!.id,
+          },
+        }),
+      ]);
+    }
 
     return ApiResponse.created(res, interview);
   } catch (err) {
@@ -189,8 +218,8 @@ export async function update(req: AuthRequest, res: Response, next: NextFunction
     const existing = await prisma.interview.findUnique({ where: { id } });
     if (!existing) throw new NotFoundError('Interview');
 
-    const body = req.body as Record<string, any>;
-    const { interviewerIds, scheduledAt, ...rest } = body;
+    const body = req.body as UpdateInterviewDto;
+    const { interviewerIds, scheduledAt, interviewTypeId, location, meetingLink, notes, ...rest } = body;
 
     const interview = await prisma.$transaction(async (tx) => {
       if (Array.isArray(interviewerIds)) {
@@ -203,6 +232,10 @@ export async function update(req: AuthRequest, res: Response, next: NextFunction
         where: { id },
         data: {
           ...rest,
+          ...(interviewTypeId !== undefined ? { interviewTypeId } : {}),
+          ...(location !== undefined ? { location } : {}),
+          ...(meetingLink !== undefined ? { meetingLink } : {}),
+          ...(notes !== undefined ? { notes } : {}),
           ...(scheduledAt ? { scheduledAt: new Date(scheduledAt) } : {}),
         },
         include: interviewInclude,

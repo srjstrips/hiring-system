@@ -63,6 +63,19 @@ class EmailTemplatesService {
 
     if (!app) throw new AppError('Application not found', 404);
 
+    const latestInterview = await prisma.interview.findFirst({
+      where: { applicationId },
+      orderBy: { scheduledAt: 'desc' },
+      select: {
+        scheduledAt: true,
+        mode: true,
+        location: true,
+        meetingLink: true,
+        round: true,
+        title: true,
+      },
+    });
+
     const vars: Record<string, string> = {
       candidate_name: `${app.candidate.firstName} ${app.candidate.lastName}`,
       candidate_first_name: app.candidate.firstName,
@@ -71,6 +84,14 @@ class EmailTemplatesService {
       company_name: process.env['COMPANY_NAME'] ?? 'HireFlow',
       hr_name: sentByName,
       portal_link: process.env['CAREER_PORTAL_URL'] ?? 'http://localhost:5173/careers',
+      interview_date: latestInterview?.scheduledAt
+        ? latestInterview.scheduledAt.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+        : '',
+      interview_mode: latestInterview?.mode === 'IN_PERSON' ? 'In person' : latestInterview ? 'Video call' : '',
+      interview_location: latestInterview?.location ?? '',
+      meeting_link: latestInterview?.meetingLink ?? '',
+      interview_round: latestInterview ? String(latestInterview.round) : '',
+      interview_title: latestInterview?.title ?? '',
       ...dto.extraVariables,
     };
 

@@ -15,6 +15,18 @@ export interface Application {
   source?: { id: string; name: string };
   timeline: Array<{ id: string; fromStatus?: string; toStatus: string; notes?: string; createdAt: string }>;
   assessmentAttempt?: { score?: number; isPassed?: boolean; submittedAt?: string } | null;
+  interviews?: Array<{
+    id: string;
+    title: string;
+    round: number;
+    scheduledAt: string;
+    durationMinutes: number;
+    mode: 'VIDEO' | 'IN_PERSON';
+    location?: string | null;
+    meetingLink?: string | null;
+    status: string;
+    interviewType?: { id: string; name: string } | null;
+  }>;
   _count: { interviews: number };
 }
 

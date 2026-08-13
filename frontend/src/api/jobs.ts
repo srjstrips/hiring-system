@@ -47,8 +47,18 @@ export interface JobQueryParams {
   isPublished?: boolean;
 }
 
+function cleanJobParams(params?: JobQueryParams): Record<string, string | number | boolean> | undefined {
+  if (!params) return undefined;
+  const cleaned: Record<string, string | number | boolean> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === '') continue;
+    cleaned[key] = value as string | number | boolean;
+  }
+  return Object.keys(cleaned).length ? cleaned : undefined;
+}
+
 export const jobsApi = {
-  getAll: (params?: JobQueryParams) => api.get<JobsResponse>('/jobs', { params }),
+  getAll: (params?: JobQueryParams) => api.get<JobsResponse>('/jobs', { params: cleanJobParams(params) }),
   getById: (id: string) => api.get<{ success: boolean; data: Job }>(`/jobs/${id}`),
   create: (data: any) => api.post<{ success: boolean; data: Job }>('/jobs', data),
   update: (id: string, data: any) => api.put<{ success: boolean; data: Job }>(`/jobs/${id}`, data),

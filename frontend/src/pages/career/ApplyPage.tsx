@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { careerApi } from '@/api/career';
 import { useCandidateAuth } from '@/contexts/CandidateAuthContext';
@@ -12,11 +12,9 @@ import { ChevronRight, Upload, CheckCircle2, Loader2, UserCircle2 } from 'lucide
 
 export default function ApplyPage() {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
   const { candidate } = useCandidateAuth();
 
   const [submitted, setSubmitted] = useState(false);
-  const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
@@ -47,8 +45,7 @@ export default function ApplyPage() {
       Object.entries(form).forEach(([k, v]) => { if (v) fd.append(k, v); });
       if (resumeFile) fd.append('resume', resumeFile);
 
-      const res = await careerApi.apply(jobData!.id, fd);
-      setResult(res.data.data);
+      await careerApi.apply(jobData!.id, fd);
       setSubmitted(true);
     } catch (err: any) {
       setError(err.response?.data?.message ?? 'Something went wrong. Please try again.');
@@ -60,7 +57,7 @@ export default function ApplyPage() {
   if (jobLoading) return <div className="max-w-2xl mx-auto px-4 py-12 text-muted-foreground">Loading...</div>;
   if (!jobData) return <div className="max-w-2xl mx-auto px-4 py-12 text-muted-foreground">Job not found</div>;
 
-  if (submitted && result) {
+  if (submitted) {
     return (
       <div className="max-w-lg mx-auto px-4 py-20 text-center space-y-6">
         <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
@@ -69,24 +66,10 @@ export default function ApplyPage() {
         <h1 className="text-2xl font-bold">Application Submitted!</h1>
         <p className="text-muted-foreground">
           Your application for <strong>{jobData.title}</strong> has been received.
-          We'll review it and get back to you soon.
+          A confirmation email has been sent to your inbox. Our HR team will review your
+          profile first. If shortlisted, you&apos;ll move through screening and interview
+          rounds. We&apos;ll contact you by email at each step.
         </p>
-        {result.hasAssessment && (
-          <Card className="text-left">
-            <CardContent className="pt-6 space-y-3">
-              <h2 className="font-semibold">Next Step: Complete the Assessment</h2>
-              <p className="text-sm text-muted-foreground">
-                This role requires a timed assessment. Complete it now to strengthen your application.
-              </p>
-              <Button
-                className="w-full"
-                onClick={() => navigate(`/careers/assessment/${result.applicationId}?candidateId=${result.candidateId}`)}
-              >
-                Start Assessment
-              </Button>
-            </CardContent>
-          </Card>
-        )}
         <Button variant="outline" asChild>
           <Link to="/careers/jobs">Browse More Jobs</Link>
         </Button>
@@ -110,7 +93,6 @@ export default function ApplyPage() {
         <div className="flex gap-2 mt-2">
           <Badge variant="secondary">{jobData.department.name}</Badge>
           <Badge variant="outline">{jobData.location.city}</Badge>
-          {jobData.assessmentTemplate && <Badge>Assessment Required</Badge>}
         </div>
       </div>
 
