@@ -28,6 +28,22 @@ const envSchema = z.object({
   UPLOAD_DIR: z.string().default('uploads'),
   MAX_FILE_SIZE_MB: z.coerce.number().default(10),
 
+  // Assessment recordings — private object storage (local default; optional S3)
+  STORAGE_PROVIDER: z.enum(['local', 's3']).default('local'),
+  STORAGE_BUCKET: z.string().optional().default(''),
+  STORAGE_REGION: z.string().optional().default(''),
+  STORAGE_ACCESS_KEY: z.string().optional().default(''),
+  STORAGE_SECRET_KEY: z.string().optional().default(''),
+  STORAGE_ENDPOINT: z.string().optional().default(''),
+  STORAGE_FORCE_PATH_STYLE: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((v) => v === true || v === 'true')
+    .default(false),
+  ASSESSMENT_RECORDING_RETENTION_DAYS: z.coerce.number().default(90),
+  ASSESSMENT_RECORDING_MAX_CHUNK_MB: z.coerce.number().default(25),
+  ASSESSMENT_RECORDING_VIEW_URL_TTL_SECONDS: z.coerce.number().default(600),
+
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
 

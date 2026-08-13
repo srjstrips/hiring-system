@@ -9,9 +9,15 @@ import {
   type AttemptStatus,
   type GateCode,
 } from '@/api/publicAssessments';
+import {
+  ChunkedRecorder,
+  mergeCameraAndMic,
+  pickSupportedMimeType,
+  supportsAssessmentRecording,
+} from '@/lib/assessmentRecording';
 import { AlertTriangle, Camera, CheckCircle2, Mic, MonitorUp, WifiOff } from 'lucide-react';
 
-type Phase = 'loading' | 'error' | 'intro' | 'device' | 'test' | 'submitted';
+type Phase = 'loading' | 'error' | 'intro' | 'device' | 'consent' | 'test' | 'submitted';
 
 type CheckState = 'pending' | 'ready' | 'denied';
 
@@ -58,18 +64,28 @@ export default function CandidateAssessmentTakePage() {
   const [offline, setOffline] = useState(!navigator.onLine);
   const [syncWarning, setSyncWarning] = useState('');
   const [mediaWarning, setMediaWarning] = useState('');
+  const [uploadWarning, setUploadWarning] = useState('');
   const [camera, setCamera] = useState<CheckState>('pending');
   const [microphone, setMicrophone] = useState<CheckState>('pending');
   const [screen, setScreen] = useState<CheckState>('pending');
+  const [recordingConsent, setRecordingConsent] = useState(false);
+  const [cameraRecStatus, setCameraRecStatus] = useState<'idle' | 'recording' | 'error' | 'stopped'>('idle');
+  const [screenRecStatus, setScreenRecStatus] = useState<'idle' | 'recording' | 'error' | 'stopped'>('idle');
   const [starting, setStarting] = useState(false);
+  const [browserUnsupported, setBrowserUnsupported] = useState(false);
 
   const cameraStream = useRef<MediaStream | null>(null);
   const micStream = useRef<MediaStream | null>(null);
   const screenStream = useRef<MediaStream | null>(null);
+  const mergedCamMic = useRef<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const submittingRef = useRef(false);
   const answersRef = useRef(answers);
   answersRef.current = answers;
+  const cameraRecorder = useRef<ChunkedRecorder | null>(null);
+  const screenRecorder = useRef<ChunkedRecorder | null>(null);
+  const cameraRecordingId = useRef<string | null>(null);
+  const screenRecordingId = useRef<string | null>(null);
 
   const fail = (err: any) => {
     const code = publicAssessmentsApi.gateCode(err);
@@ -83,15 +99,25 @@ export default function CandidateAssessmentTakePage() {
   };
 
   const cleanupMedia = useCallback(() => {
+    stopStream(mergedCamMic.current);
     stopStream(cameraStream.current);
     stopStream(micStream.current);
     stopStream(screenStream.current);
+    mergedCamMic.current = null;
     cameraStream.current = null;
     micStream.current = null;
     screenStream.current = null;
   }, []);
 
-  useEffect(() => () => cleanupMedia(), [cleanupMedia]);
+  useEffect(() => () => {
+    void cameraRecorder.current?.stop().catch(() => undefined);
+    void screenRecorder.current?.stop().catch(() => undefined);
+    cleanupMedia();
+  }, [cleanupMedia]);
+
+  useEffect(() => {
+    setBrowserUnsupported(!supportsAssessmentRecording());
+  }, []);
 
   useEffect(() => {
     const onOnline = () => setOffline(false);
@@ -123,10 +149,19 @@ export default function CandidateAssessmentTakePage() {
   const attachTrackEnded = (stream: MediaStream, label: string) => {
     stream.getTracks().forEach((track) => {
       track.onended = () => {
-        setMediaWarning(`${label} has stopped. Please restore it to continue.`);
-        if (label === 'Camera') setCamera('denied');
-        if (label === 'Microphone') setMicrophone('denied');
-        if (label === 'Screen sharing') setScreen('denied');
+        if (label === 'Camera') {
+          setMediaWarning('Camera recording has stopped. Please restore camera access.');
+          setCamera('denied');
+          setCameraRecStatus('error');
+        } else if (label === 'Microphone') {
+          setMediaWarning('Microphone recording has stopped. Please restore microphone access.');
+          setMicrophone('denied');
+          setCameraRecStatus('error');
+        } else {
+          setMediaWarning('Screen sharing has stopped. Please restore screen sharing.');
+          setScreen('denied');
+          setScreenRecStatus('error');
+        }
       };
     });
   };
@@ -176,8 +211,67 @@ export default function CandidateAssessmentTakePage() {
 
   const allReady = camera === 'ready' && microphone === 'ready' && screen === 'ready';
 
+  const finalizeRecordings = async () => {
+    const cam = cameraRecorder.current;
+    const scr = screenRecorder.current;
+    cameraRecorder.current = null;
+    screenRecorder.current = null;
+
+    try {
+      const camStop = cam ? await cam.stop() : { durationSeconds: 0 };
+      const scrStop = scr ? await scr.stop() : { durationSeconds: 0 };
+
+      const tasks: Promise<unknown>[] = [];
+      if (cameraRecordingId.current) {
+        tasks.push(
+          publicAssessmentsApi
+            .completeRecording(secureToken, cameraRecordingId.current, {
+              durationSeconds: camStop.durationSeconds,
+              failed: cam?.status === 'error',
+              failureReason: cam?.status === 'error' ? 'Camera recording interrupted' : undefined,
+            })
+            .catch(() => undefined)
+        );
+      }
+      if (screenRecordingId.current) {
+        tasks.push(
+          publicAssessmentsApi
+            .completeRecording(secureToken, screenRecordingId.current, {
+              durationSeconds: scrStop.durationSeconds,
+              failed: scr?.status === 'error',
+              failureReason: scr?.status === 'error' ? 'Screen recording interrupted' : undefined,
+            })
+            .catch(() => undefined)
+        );
+      }
+      await Promise.race([
+        Promise.all(tasks),
+        new Promise((r) => setTimeout(r, 20_000)),
+      ]);
+    } catch {
+      // Never block assessment submit on recording finalize errors
+    }
+  };
+
   const beginAssessment = async () => {
-    if (!allReady || starting) return;
+    if (!allReady || !recordingConsent || starting) return;
+    if (!supportsAssessmentRecording()) {
+      setBrowserUnsupported(true);
+      setMediaWarning(
+        'Your browser does not support the required assessment recording features. Please use a supported desktop browser such as Chrome or Edge.'
+      );
+      return;
+    }
+    if (!cameraStream.current || !micStream.current || !screenStream.current) return;
+
+    const screenTrack = screenStream.current.getVideoTracks()[0];
+    if (!screenTrack || screenTrack.readyState !== 'live') {
+      setScreen('denied');
+      setMediaWarning('Screen sharing is not active. Please restore screen sharing.');
+      setPhase('device');
+      return;
+    }
+
     setStarting(true);
     try {
       const res = await publicAssessmentsApi.start(secureToken);
@@ -189,6 +283,75 @@ export default function CandidateAssessmentTakePage() {
       } catch {
         /* ignore */
       }
+
+      // Start recording metadata + MediaRecorders (graceful if recording fails)
+      try {
+        const mime = pickSupportedMimeType();
+        const rec = await publicAssessmentsApi.startRecordings(secureToken, {
+          attemptId: data.attemptId,
+          consent: true,
+          cameraMimeType: mime || undefined,
+          screenMimeType: mime || undefined,
+        });
+        cameraRecordingId.current = rec.data.data.camera.id;
+        screenRecordingId.current = rec.data.data.screen.id;
+
+        const combined = mergeCameraAndMic(cameraStream.current, micStream.current);
+        mergedCamMic.current = combined;
+
+        const camRec = new ChunkedRecorder(
+          'camera',
+          async (blob, chunkIndex) => {
+            await publicAssessmentsApi.uploadRecordingChunk(
+              secureToken,
+              cameraRecordingId.current!,
+              chunkIndex,
+              blob
+            );
+            setUploadWarning('');
+            setCameraRecStatus('recording');
+          },
+          (msg) => {
+            setUploadWarning(msg);
+            setCameraRecStatus('error');
+          },
+          15_000,
+          rec.data.data.camera.nextChunkIndex ?? 0
+        );
+        const scrRec = new ChunkedRecorder(
+          'screen',
+          async (blob, chunkIndex) => {
+            await publicAssessmentsApi.uploadRecordingChunk(
+              secureToken,
+              screenRecordingId.current!,
+              chunkIndex,
+              blob
+            );
+            setUploadWarning('');
+            setScreenRecStatus('recording');
+          },
+          (msg) => {
+            setUploadWarning(msg);
+            setScreenRecStatus('error');
+          },
+          15_000,
+          rec.data.data.screen.nextChunkIndex ?? 0
+        );
+
+        cameraRecorder.current = camRec;
+        screenRecorder.current = scrRec;
+        camRec.start(combined);
+        scrRec.start(screenStream.current);
+        setCameraRecStatus('recording');
+        setScreenRecStatus('recording');
+      } catch {
+        setUploadWarning(
+          'Recording could not be fully initialized. You may continue the assessment; HR may see incomplete recording status.'
+        );
+        setCameraRecStatus('error');
+        setScreenRecStatus('error');
+      }
+
       setAttempt(data);
       setAnswers(merged);
       setRemaining(data.remainingSeconds);
@@ -253,6 +416,9 @@ export default function CandidateAssessmentTakePage() {
             .catch(() => undefined);
         }
       }
+      // Finalize recordings before marking assessment submitted (never block forever)
+      await finalizeRecordings();
+
       const res = await publicAssessmentsApi.submit(secureToken);
       setStatus(res.data.data);
       if (attempt) localStorage.removeItem(cacheKey(secureToken, attempt.attemptId));
@@ -436,14 +602,54 @@ export default function CandidateAssessmentTakePage() {
             <CheckRow icon={MonitorUp} label="Screen Sharing" state={screen} onRetry={requestScreen} />
             {mediaWarning && <p className="text-sm text-amber-700">{mediaWarning}</p>}
             {allReady ? (
-              <p className="text-sm text-green-700">All checks passed. You can now begin your assessment.</p>
+              <p className="text-sm text-green-700">All checks passed. Continue to recording consent.</p>
             ) : (
               <p className="text-sm text-muted-foreground">Grant camera, microphone, and screen sharing to continue.</p>
             )}
+            {browserUnsupported && (
+              <p className="text-sm text-amber-800">
+                Your browser does not support the required assessment recording features. Please use a supported desktop browser such as Chrome or Edge.
+              </p>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setPhase('intro')}>Back</Button>
-              <Button disabled={!allReady || starting} onClick={beginAssessment}>
-                {starting ? 'Starting...' : 'Begin Assessment'}
+              <Button disabled={!allReady || browserUnsupported} onClick={() => setPhase('consent')}>
+                Continue
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (phase === 'consent') {
+    return (
+      <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
+        <Card className="w-full max-w-lg">
+          <CardHeader>
+            <CardTitle>Recording & Privacy Notice</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              During this assessment, your camera, microphone and shared screen will be recorded for assessment
+              verification and recruitment review. Recordings are stored securely and may be reviewed by authorized
+              HR/recruitment personnel.
+            </p>
+            <label className="flex items-start gap-3 text-sm border rounded-md p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={recordingConsent}
+                onChange={(e) => setRecordingConsent(e.target.checked)}
+              />
+              <span>I understand and consent to recording.</span>
+            </label>
+            {mediaWarning && <p className="text-sm text-amber-700">{mediaWarning}</p>}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setPhase('device')}>Back</Button>
+              <Button disabled={!recordingConsent || starting} onClick={beginAssessment}>
+                {starting ? 'Starting...' : 'Continue'}
               </Button>
             </div>
           </CardContent>
@@ -462,15 +668,24 @@ export default function CandidateAssessmentTakePage() {
             Question {currentQ + 1} of {questions.length} · Answered {answeredCount}
           </p>
         </div>
-        <div className={`font-mono text-lg font-bold ${remaining <= 60 ? 'text-red-600' : 'text-slate-800'}`}>
-          {formatTime(remaining)}
+        <div className="flex items-center gap-4">
+          <div className="hidden sm:block text-[11px] text-muted-foreground leading-tight">
+            <p>Recording active</p>
+            <p>Camera: {cameraRecStatus === 'recording' ? '● Recording' : '⚠ Not recording'}</p>
+            <p>Screen: {screenRecStatus === 'recording' ? '● Recording' : '⚠ Not recording'}</p>
+          </div>
+          <div className={`font-mono text-lg font-bold ${remaining <= 60 ? 'text-red-600' : 'text-slate-800'}`}>
+            {formatTime(remaining)}
+          </div>
         </div>
       </header>
 
-      {(offline || syncWarning || mediaWarning) && (
+      {(offline || syncWarning || mediaWarning || uploadWarning) && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800 flex items-center gap-2">
           {offline && <WifiOff className="h-4 w-4" />}
-          {offline ? 'You are offline. Answers are saved locally.' : syncWarning || mediaWarning}
+          {offline
+            ? 'You are offline. Answers are saved locally.'
+            : mediaWarning || uploadWarning || syncWarning}
         </div>
       )}
 
@@ -565,7 +780,7 @@ export default function CandidateAssessmentTakePage() {
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setShowConfirm(false)} disabled={submitting}>Cancel</Button>
                 <Button onClick={() => doSubmit(false)} disabled={submitting}>
-                  {submitting ? 'Submitting...' : 'Submit Assessment'}
+                  {submitting ? 'Finalizing & submitting...' : 'Submit Assessment'}
                 </Button>
               </div>
             </CardContent>

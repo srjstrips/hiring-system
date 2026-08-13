@@ -1134,6 +1134,8 @@ model AssessmentAttempt {
   obtainedMarks Int?
   isPassed      Boolean?
   isTimedOut    Boolean   @default(false)
+  recordingConsent   Boolean   @default(false)
+  recordingConsentAt DateTime?
   createdAt     DateTime  @default(now())
 
   assessment        Assessment                 @relation(fields: [assessmentId], references: [id])
@@ -1142,11 +1144,90 @@ model AssessmentAttempt {
   application       Application                @relation(fields: [applicationId], references: [id])
   answers           AssessmentAnswer[]
   questionSnapshots AssessmentAttemptQuestion[]
+  recordings        AssessmentRecording[]
+  recordingEvents   AssessmentRecordingEvent[]
 
   @@index([applicationId])
   @@index([assignmentId])
   @@unique([assignmentId, attemptNumber])
   @@map("assessment_attempts")
+}
+
+enum RecordingType {
+  CAMERA
+  SCREEN
+}
+
+enum RecordingStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  FAILED
+  DELETED
+}
+
+model AssessmentRecording {
+  id              String          @id @default(uuid())
+  attemptId       String
+  assignmentId    String?
+  candidateId     String
+  assessmentId    String
+  recordingType   RecordingType
+  storageKey      String
+  mimeType        String?
+  fileSize        Int?
+  durationSeconds Int?
+  chunkCount      Int             @default(0)
+  status          RecordingStatus @default(UPLOADING)
+  startedAt       DateTime?
+  endedAt         DateTime?
+  expiresAt       DateTime?
+  failureReason   String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  attempt AssessmentAttempt          @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  chunks  AssessmentRecordingChunk[]
+  events  AssessmentRecordingEvent[]
+
+  @@unique([attemptId, recordingType])
+  @@index([attemptId])
+  @@index([assignmentId])
+  @@index([candidateId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("assessment_recordings")
+}
+
+model AssessmentRecordingChunk {
+  id          String   @id @default(uuid())
+  recordingId String
+  chunkIndex  Int
+  storageKey  String
+  byteSize    Int      @default(0)
+  uploadedAt  DateTime @default(now())
+
+  recording AssessmentRecording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+
+  @@unique([recordingId, chunkIndex])
+  @@index([recordingId])
+  @@map("assessment_recording_chunks")
+}
+
+model AssessmentRecordingEvent {
+  id          String   @id @default(uuid())
+  attemptId   String
+  recordingId String?
+  eventType   String
+  message     String?
+  createdAt   DateTime @default(now())
+
+  attempt   AssessmentAttempt    @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  recording AssessmentRecording? @relation(fields: [recordingId], references: [id], onDelete: SetNull)
+
+  @@index([attemptId])
+  @@index([recordingId])
+  @@map("assessment_recording_events")
 }
 
 model AssessmentAttemptQuestion {

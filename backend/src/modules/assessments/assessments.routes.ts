@@ -14,8 +14,12 @@ import {
   UpdateTemplateSchema,
 } from './assessments.validator';
 import assessmentsController from './assessments.controller';
+import recordingsController from './recordings.controller';
 
 const router = Router();
+
+// Short-lived signed stream (no HR session cookie required for <video src>)
+router.get('/recordings/:recordingId/stream', recordingsController.stream);
 
 router.use(authenticate);
 
@@ -41,6 +45,12 @@ router.get('/:id/results', authorize('assessments:read'), assessmentsController.
 router.get('/:id/assignments/:assignmentId/result', authorize('assessments:read'), assessmentsController.getAssignmentResultDetail);
 router.post('/:id/assignments/:assignmentId/resend', authorize('assessments:update'), assessmentsController.resendAssignmentInvite);
 router.post('/:id/assignments/:assignmentId/retake', authorize('assessments:update'), assessmentsController.allowRetake);
+
+router.get(
+  '/:id/recordings/:recordingId/view-url',
+  authorize('assessments:read'),
+  recordingsController.getViewUrl
+);
 
 // Legacy job-scoped routes (AssessmentBuilderPage + results)
 router.post('/templates', validateBody(CreateTemplateSchema), authorize('assessments:create'), assessmentsController.createTemplate);

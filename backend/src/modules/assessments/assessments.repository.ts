@@ -639,12 +639,50 @@ export class AssessmentsRepository {
         result: attempt.submittedAt == null ? null : attempt.isPassed ? 'PASSED' : 'FAILED',
         isLatest: false,
         questions: attempt.submittedAt ? questions : [],
+        recordings: [] as Array<{
+          id: string;
+          recordingType: string;
+          mimeType: string | null;
+          fileSize: number | null;
+          durationSeconds: number | null;
+          status: string;
+          startedAt: Date | null;
+          endedAt: Date | null;
+          failureReason: string | null;
+        }>,
       };
     });
 
     if (attempts.length) {
       const latestIdx = attempts.length - 1;
       attempts[latestIdx]!.isLatest = true;
+    }
+
+    try {
+      const recordingRows = await prisma.assessmentRecording.findMany({
+        where: {
+          attemptId: { in: assignment.attempts.map((a) => a.id) },
+          status: { not: 'DELETED' },
+        },
+        orderBy: { recordingType: 'asc' },
+      });
+      for (const attempt of attempts) {
+        attempt.recordings = recordingRows
+          .filter((r) => r.attemptId === attempt.id)
+          .map((r) => ({
+            id: r.id,
+            recordingType: r.recordingType,
+            mimeType: r.mimeType,
+            fileSize: r.fileSize,
+            durationSeconds: r.durationSeconds,
+            status: r.status,
+            startedAt: r.startedAt,
+            endedAt: r.endedAt,
+            failureReason: r.failureReason,
+          }));
+      }
+    } catch {
+      // Keep results available even if recordings query fails
     }
 
     const completedCount = attempts.filter((a) => a.completedAt).length;

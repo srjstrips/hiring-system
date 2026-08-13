@@ -53,6 +53,15 @@ export interface AttemptStatus {
   message: string | null;
 }
 
+export interface RecordingMeta {
+  id: string;
+  attemptId: string;
+  recordingType: 'CAMERA' | 'SCREEN';
+  mimeType?: string | null;
+  status: string;
+  nextChunkIndex?: number;
+}
+
 function gateMessage(err: any, fallback: string) {
   return err?.response?.data?.message || fallback;
 }
@@ -76,6 +85,50 @@ export const publicAssessmentsApi = {
     publicApi.post<{ success: boolean; data: AttemptStatus }>(`/public/assessments/t/${token}/submit`),
   getStatus: (token: string) =>
     publicApi.get<{ success: boolean; data: AttemptStatus }>(`/public/assessments/t/${token}/status`),
+
+  startRecordings: (
+    token: string,
+    payload: {
+      attemptId: string;
+      consent: true;
+      cameraMimeType?: string;
+      screenMimeType?: string;
+    }
+  ) =>
+    publicApi.post<{
+      success: boolean;
+      data: {
+        camera: RecordingMeta;
+        screen: RecordingMeta;
+        recordingConsent: boolean;
+      };
+    }>(`/public/assessments/t/${token}/recordings/start`, payload),
+
+  uploadRecordingChunk: async (token: string, recordingId: string, chunkIndex: number, blob: Blob) => {
+    const form = new FormData();
+    form.append('chunkIndex', String(chunkIndex));
+    form.append('chunk', blob, `chunk-${chunkIndex}.webm`);
+    return publicApi.post(`/public/assessments/t/${token}/recordings/${recordingId}/chunks`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 120_000,
+    });
+  },
+
+  completeRecording: (
+    token: string,
+    recordingId: string,
+    payload?: { durationSeconds?: number; failed?: boolean; failureReason?: string }
+  ) =>
+    publicApi.post<{ success: boolean; data: RecordingMeta }>(
+      `/public/assessments/t/${token}/recordings/${recordingId}/complete`,
+      payload ?? {}
+    ),
+
+  logRecordingEvent: (
+    token: string,
+    payload: { attemptId: string; recordingId?: string; eventType: string; message?: string }
+  ) => publicApi.post(`/public/assessments/t/${token}/recordings/events`, payload),
+
   gateMessage,
   gateCode,
 };

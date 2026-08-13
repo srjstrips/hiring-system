@@ -28,6 +28,112 @@ const OUTCOME_STYLES = {
   UNANSWERED: 'border-slate-200 bg-slate-50',
 } as const;
 
+function AssessmentRecordingsSection({
+  assessmentId,
+  attempt,
+}: {
+  assessmentId: string;
+  attempt: AssignmentResultAttempt;
+}) {
+  const [viewer, setViewer] = useState<{ title: string; url: string } | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  const recordings = attempt.recordings ?? [];
+  const camera = recordings.find((r) => r.recordingType === 'CAMERA');
+  const screen = recordings.find((r) => r.recordingType === 'SCREEN');
+
+  const openRecording = async (recordingId: string, title: string) => {
+    setLoadingId(recordingId);
+    try {
+      const res = await assessmentsApi.getRecordingViewUrl(assessmentId, recordingId);
+      setViewer({ title, url: res.data.data.url });
+    } catch (e: any) {
+      toast({
+        title: 'Unable to open recording',
+        description: e.response?.data?.message || 'Recording is not available yet.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  return (
+    <>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Assessment Recordings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {recordings.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No recordings available for this attempt.</p>
+          ) : (
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="border rounded-md p-3 space-y-2">
+                <p className="font-medium text-sm">Candidate Video + Audio</p>
+                <p className="text-xs text-muted-foreground">
+                  Status: {camera?.status ?? '—'}
+                  {camera?.durationSeconds != null ? ` · ${formatDuration(camera.durationSeconds)}` : ''}
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!camera || camera.status !== 'READY' || loadingId === camera.id}
+                  onClick={() => camera && openRecording(camera.id, 'Candidate Video + Audio')}
+                >
+                  {loadingId === camera?.id ? 'Loading...' : 'View Recording'}
+                </Button>
+              </div>
+              <div className="border rounded-md p-3 space-y-2">
+                <p className="font-medium text-sm">Screen Recording</p>
+                <p className="text-xs text-muted-foreground">
+                  Status: {screen?.status ?? '—'}
+                  {screen?.durationSeconds != null ? ` · ${formatDuration(screen.durationSeconds)}` : ''}
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!screen || screen.status !== 'READY' || loadingId === screen.id}
+                  onClick={() => screen && openRecording(screen.id, 'Screen Recording')}
+                >
+                  {loadingId === screen?.id ? 'Loading...' : 'View Recording'}
+                </Button>
+              </div>
+            </div>
+          )}
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p>Recording Status</p>
+            <p>Candidate Video: {camera?.status ?? 'Not recorded'}</p>
+            <p>Screen Recording: {screen?.status ?? 'Not recorded'}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {viewer && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <Card className="w-full max-w-3xl">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between gap-3">
+              <CardTitle className="text-base">{viewer.title} · Attempt {attempt.attemptNumber}</CardTitle>
+              <Button variant="outline" size="sm" onClick={() => setViewer(null)}>Close</Button>
+            </CardHeader>
+            <CardContent>
+              <video
+                key={viewer.url}
+                src={viewer.url}
+                controls
+                className="w-full rounded-md bg-black max-h-[70vh]"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                Playback uses a short-lived secure link. Refresh the viewer if the link expires.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function AssessmentResultDetailPage() {
   const { id, assignmentId } = useParams<{ id: string; assignmentId: string }>();
   const queryClient = useQueryClient();
@@ -245,6 +351,8 @@ export default function AssessmentResultDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          <AssessmentRecordingsSection assessmentId={id!} attempt={selectedAttempt} />
 
           <div className="space-y-3">
             <h2 className="text-lg font-semibold">Question Results</h2>

@@ -123,6 +123,17 @@ export const assessmentsApi = {
     api.get<{ success: boolean; data: AssignmentResultDetail }>(
       `/assessments/${id}/assignments/${assignmentId}/result`
     ),
+  getRecordingViewUrl: (assessmentId: string, recordingId: string) =>
+    api.get<{
+      success: boolean;
+      data: {
+        url: string;
+        expiresInSeconds: number;
+        mimeType?: string | null;
+        recordingType: string;
+        provider: string;
+      };
+    }>(`/assessments/${assessmentId}/recordings/${recordingId}/view-url`),
   resendInvite: (id: string, assignmentId: string) =>
     api.post<{ success: boolean; data: { assessmentUrl: string; email: string }; message?: string }>(
       `/assessments/${id}/assignments/${assignmentId}/resend`
@@ -224,6 +235,17 @@ export interface AssignmentResultAttempt {
   result: 'PASSED' | 'FAILED' | null;
   isLatest: boolean;
   questions: AssignmentResultQuestion[];
+  recordings?: Array<{
+    id: string;
+    recordingType: 'CAMERA' | 'SCREEN' | string;
+    mimeType?: string | null;
+    fileSize?: number | null;
+    durationSeconds?: number | null;
+    status: string;
+    startedAt?: string | null;
+    endedAt?: string | null;
+    failureReason?: string | null;
+  }>;
 }
 
 export interface AssignmentResultDetail {
