@@ -35,16 +35,24 @@ export class ChunkedRecorder {
   private startedAt: number | null = null;
   private queue: Promise<void> = Promise.resolve();
   private pendingUploads = 0;
+  private kind: RecorderKind;
+  private onChunk: ChunkHandler;
+  private onError: (message: string) => void;
+  private timesliceMs: number;
   status: RecordingStatusState = 'idle';
   mimeType = '';
 
   constructor(
-    private kind: RecorderKind,
-    private onChunk: ChunkHandler,
-    private onError: (message: string) => void,
-    private timesliceMs = 15_000,
+    kind: RecorderKind,
+    onChunk: ChunkHandler,
+    onError: (message: string) => void,
+    timesliceMs = 15_000,
     startChunkIndex = 0
   ) {
+    this.kind = kind;
+    this.onChunk = onChunk;
+    this.onError = onError;
+    this.timesliceMs = timesliceMs;
     this.chunkIndex = startChunkIndex;
   }
 

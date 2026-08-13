@@ -96,6 +96,47 @@ class EmailService {
       `,
     });
   }
+  async sendApplicationReceivedEmail(params: {
+    email: string;
+    candidateName: string;
+    jobTitle: string;
+    department?: string;
+    location?: string;
+  }): Promise<void> {
+    const { email, candidateName, jobTitle, department, location } = params;
+    const careersUrl = `${env.FRONTEND_URL.replace(/\/$/, '')}/careers/jobs`;
+    const details = [
+      `<strong>Role:</strong> ${jobTitle}`,
+      department ? `<strong>Department:</strong> ${department}` : '',
+      location ? `<strong>Location:</strong> ${location}` : '',
+    ].filter(Boolean).join('<br/>');
+
+    await this.send({
+      to: email,
+      subject: `Application received — ${jobTitle}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #ea580c;">Application submitted successfully</h2>
+          <p>Hello ${candidateName},</p>
+          <p>Thank you for applying. We have received your application.</p>
+          <p>${details}</p>
+          <p>Our HR team will review your profile first. If shortlisted, you will move through screening and interview rounds. We will email you at each step.</p>
+          <p style="margin: 30px 0;">
+            <a href="${careersUrl}"
+               style="background-color: #ea580c; color: white; padding: 12px 24px;
+                      text-decoration: none; border-radius: 6px; display: inline-block;">
+              Browse more jobs
+            </a>
+          </p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
+          <p style="color: #6b7280; font-size: 12px;">
+            SRJ Hiring | Do not reply to this email
+          </p>
+        </div>
+      `,
+    });
+  }
+
   async sendAssessmentInviteEmail(params: {
     email: string;
     candidateName: string;
