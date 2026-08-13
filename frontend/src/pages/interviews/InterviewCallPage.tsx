@@ -36,7 +36,9 @@ export default function InterviewCallPage() {
     interviewCallApi.getRoom(token).then(setRoom).catch((e) => {
       setError(e.response?.data?.message ?? 'Interview room not found');
     });
-    return () => cleanup();
+    return () => {
+      void cleanup();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
