@@ -32,6 +32,12 @@ function skillsKey(skills: SkillPick[]) {
     .join('|');
 }
 
+const fieldClass =
+  'h-10 w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[#111827] focus:border-[#FF6B00] focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/25 disabled:opacity-50';
+const textareaClass =
+  'w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[#111827] resize-none focus:border-[#FF6B00] focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/25';
+const cardClass = 'rounded-xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]';
+
 function toSnapshot(
   description: string,
   responsibilities: string,
@@ -286,36 +292,45 @@ export default function JobFormPage() {
     setForm((f) => ({ ...f, [key]: e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value }));
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/jobs')}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 rounded-xl text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#FF6B00]"
+          onClick={() => navigate('/jobs')}
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-2xl font-bold">{isEdit ? 'Edit Job' : 'Create Job'}</h1>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-[#111827]">{isEdit ? 'Edit Job' : 'Create Job'}</h1>
+          <p className="mt-0.5 text-sm text-[#64748B]">
+            {isEdit ? 'Update this job opening' : 'Create and publish a new job opening'}
+          </p>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Info */}
-        <Card>
-          <CardHeader><CardTitle>Basic Information</CardTitle></CardHeader>
+        <Card className={cardClass}>
+          <CardHeader><CardTitle className="text-lg text-[#111827]">Job Information</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Job Title *</Label>
-              <Input required value={form.title} onChange={set('title')} placeholder="e.g. Senior React Developer" />
+              <Label className="text-[#111827]">Job Title *</Label>
+              <Input required className={`${fieldClass} mt-1.5`} value={form.title} onChange={set('title')} placeholder="e.g. Senior React Developer" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div>
-                <Label>Department *</Label>
-                <select required className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.departmentId} onChange={set('departmentId')}>
+                <Label className="text-[#111827]">Department *</Label>
+                <select required className={`${fieldClass} mt-1.5`} value={form.departmentId} onChange={set('departmentId')}>
                   <option value="">Select department</option>
                   {masters?.depts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
               <div>
-                <Label>Designation *</Label>
+                <Label className="text-[#111827]">Designation *</Label>
                 <select
                   required
-                  className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                  className={`${fieldClass} mt-1.5`}
                   value={form.designationId}
                   onChange={(e) => handleDesignationChange(e.target.value)}
                   disabled={loadingTemplate}
@@ -324,82 +339,72 @@ export default function JobFormPage() {
                   {masters?.desigs.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
                 {loadingTemplate && (
-                  <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
+                  <p className="mt-1.5 flex items-center gap-1.5 text-xs text-[#64748B]">
                     <Loader2 className="h-3 w-3 animate-spin" /> Loading default job description...
                   </p>
                 )}
               </div>
               <div>
-                <Label>Location *</Label>
-                <select required className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.locationId} onChange={set('locationId')}>
+                <Label className="text-[#111827]">Location *</Label>
+                <select required className={`${fieldClass} mt-1.5`} value={form.locationId} onChange={set('locationId')}>
                   <option value="">Select location</option>
                   {masters?.locs.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                 </select>
               </div>
               <div>
-                <Label>Employment Type</Label>
-                <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.employmentTypeId} onChange={set('employmentTypeId')}>
+                <Label className="text-[#111827]">Employment Type</Label>
+                <select className={`${fieldClass} mt-1.5`} value={form.employmentTypeId} onChange={set('employmentTypeId')}>
                   <option value="">Select type</option>
                   {masters?.empTypes.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
                 </select>
               </div>
               <div>
-                <Label>Experience Level</Label>
-                <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.experienceLevelId} onChange={set('experienceLevelId')}>
+                <Label className="text-[#111827]">Experience Level</Label>
+                <select className={`${fieldClass} mt-1.5`} value={form.experienceLevelId} onChange={set('experienceLevelId')}>
                   <option value="">Select level</option>
                   {masters?.expLevels.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
                 </select>
               </div>
               <div>
-                <Label>Priority</Label>
-                <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.priority} onChange={set('priority')}>
+                <Label className="text-[#111827]">Priority</Label>
+                <select className={`${fieldClass} mt-1.5`} value={form.priority} onChange={set('priority')}>
                   {['LOW', 'MEDIUM', 'HIGH', 'URGENT'].map((p) => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
               <div>
-                <Label>Number of Positions</Label>
-                <Input type="number" min={1} value={form.numberOfPositions} onChange={set('numberOfPositions')} />
+                <Label className="text-[#111827]">Number of Positions</Label>
+                <Input type="number" min={1} className={`${fieldClass} mt-1.5`} value={form.numberOfPositions} onChange={set('numberOfPositions')} />
               </div>
               <div>
-                <Label>Closing Date</Label>
-                <Input type="date" value={form.closingDate} onChange={set('closingDate')} />
+                <Label className="text-[#111827]">Closing Date</Label>
+                <Input type="date" className={`${fieldClass} mt-1.5`} value={form.closingDate} onChange={set('closingDate')} />
+              </div>
+              <div>
+                <Label className="text-[#111827]">Min Salary (₹/year)</Label>
+                <Input type="number" className={`${fieldClass} mt-1.5`} placeholder="e.g. 600000" value={form.salaryMin} onChange={set('salaryMin')} />
+              </div>
+              <div>
+                <Label className="text-[#111827]">Max Salary (₹/year)</Label>
+                <Input type="number" className={`${fieldClass} mt-1.5`} placeholder="e.g. 1200000" value={form.salaryMax} onChange={set('salaryMax')} />
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Salary */}
-        <Card>
-          <CardHeader><CardTitle>Compensation</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Min Salary (₹/year)</Label>
-                <Input type="number" placeholder="e.g. 600000" value={form.salaryMin} onChange={set('salaryMin')} />
-              </div>
-              <div>
-                <Label>Max Salary (₹/year)</Label>
-                <Input type="number" placeholder="e.g. 1200000" value={form.salaryMax} onChange={set('salaryMax')} />
-              </div>
-            </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={form.showSalary} onChange={set('showSalary')} />
+            <label className="flex items-center gap-2 text-sm text-[#111827]">
+              <input type="checkbox" className="h-4 w-4 rounded border-[#E2E8F0] accent-[#FF6B00]" checked={form.showSalary} onChange={set('showSalary')} />
               Show salary range to candidates on career portal
             </label>
           </CardContent>
         </Card>
 
-        {/* JD */}
-        <Card>
+        <Card className={cardClass}>
           <CardHeader>
-            <CardTitle>Job Description</CardTitle>
+            <CardTitle className="text-lg text-[#111827]">Job Description</CardTitle>
             {!isEdit && templateHint === 'loaded' && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-[#64748B]">
                 Default content loaded from the selected designation. You can edit it for this job.
               </p>
             )}
             {!isEdit && templateHint === 'empty' && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-[#64748B]">
                 No default Job Description template is configured for this designation.
               </p>
             )}
@@ -412,11 +417,11 @@ export default function JobFormPage() {
               { key: 'benefits', label: 'Benefits & Perks', required: false, rows: 4, placeholder: '• Health insurance\n• Work from home 3 days a week...' },
             ].map(({ key, label, required, rows, placeholder }) => (
               <div key={key}>
-                <Label>{label}</Label>
+                <Label className="text-[#111827]">{label}</Label>
                 <textarea
                   required={required}
                   rows={rows}
-                  className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                  className={`${textareaClass} mt-1.5`}
                   placeholder={placeholder}
                   value={(form as any)[key]}
                   onChange={set(key)}
@@ -426,17 +431,16 @@ export default function JobFormPage() {
           </CardContent>
         </Card>
 
-        {/* Skills */}
-        <Card>
+        <Card className={cardClass}>
           <CardHeader>
-            <CardTitle>Required Skills</CardTitle>
-            <p className="text-sm text-muted-foreground">Click to add. Toggle * to mark as required.</p>
+            <CardTitle className="text-lg text-[#111827]">Required Skills</CardTitle>
+            <p className="text-sm text-[#64748B]">Click to add. Toggle * to mark as required.</p>
           </CardHeader>
           <CardContent className="space-y-4">
             {selectedSkills.length > 0 && (
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex flex-wrap gap-2">
                 {selectedSkills.map((s) => (
-                  <Badge key={s.skillId} variant="default" className="gap-1.5 cursor-pointer pr-1">
+                  <Badge key={s.skillId} className="cursor-pointer gap-1.5 rounded-full bg-[#FF6B00] pr-1 text-white hover:bg-[#e86000]">
                     <span onClick={() => setSelectedSkills(selectedSkills.map((sk) => sk.skillId === s.skillId ? { ...sk, isRequired: !sk.isRequired } : sk))}>
                       {s.name}{s.isRequired ? ' *' : ''}
                     </span>
@@ -445,43 +449,47 @@ export default function JobFormPage() {
                 ))}
               </div>
             )}
-            <div className="flex gap-2 flex-wrap max-h-48 overflow-y-auto">
+            <div className="flex max-h-48 flex-wrap gap-2 overflow-y-auto">
               {masters?.skills
                 .filter((sk) => !selectedSkills.find((s) => s.skillId === sk.id))
                 .map((skill) => (
-                  <Badge
+                  <button
                     key={skill.id}
-                    variant="outline"
-                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                    type="button"
+                    className="rounded-full border border-[#E2E8F0] bg-white px-3 py-1 text-xs text-[#111827] transition-colors hover:border-[#FF6B00] hover:bg-[#FFF7ED] hover:text-[#FF6B00]"
                     onClick={() => toggleSkill(skill)}
                   >
                     + {skill.name}
-                  </Badge>
+                  </button>
                 ))}
             </div>
           </CardContent>
         </Card>
 
         {!isEdit && (
-          <label className="flex items-start gap-3 rounded-lg border bg-muted/30 px-4 py-3 text-sm cursor-pointer">
+          <label className={`flex cursor-pointer items-start gap-3 px-4 py-3 text-sm ${cardClass}`}>
             <input
               type="checkbox"
-              className="mt-1"
+              className="mt-1 h-4 w-4 rounded border-[#E2E8F0] accent-[#FF6B00]"
               checked={form.publishToCareers}
               onChange={set('publishToCareers')}
             />
             <span>
-              <span className="font-medium">Publish on careers page</span>
-              <span className="block text-muted-foreground">
+              <span className="font-medium text-[#111827]">Publish on careers page</span>
+              <span className="mt-0.5 block text-[#64748B]">
                 If unchecked, the job stays a draft and candidates will not see it.
               </span>
             </span>
           </label>
         )}
 
-        <div className="flex gap-3 justify-end">
-          <Button type="button" variant="outline" onClick={() => navigate('/jobs')}>Cancel</Button>
-          <Button type="submit" disabled={mutation.isPending || loadingTemplate}>
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="outline" className="h-10 rounded-xl border-[#E2E8F0]" onClick={() => navigate('/jobs')}>Cancel</Button>
+          <Button
+            type="submit"
+            disabled={mutation.isPending || loadingTemplate}
+            className="h-10 rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000]"
+          >
             {mutation.isPending ? 'Saving...' : isEdit ? 'Update Job' : form.publishToCareers ? 'Create & Publish' : 'Save as Draft'}
           </Button>
         </div>

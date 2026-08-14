@@ -5,23 +5,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/useToast';
-import { Plus, CheckCircle2, XCircle, X, Search, Pencil } from 'lucide-react';
+import { Plus, CheckCircle2, XCircle, X, Search, Pencil, ClipboardList } from 'lucide-react';
 import { api } from '@/api/axios';
 
 const APPROVAL_COLORS: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-700',
-  APPROVED: 'bg-green-100 text-green-700',
-  REJECTED: 'bg-red-100 text-red-700',
-  ON_HOLD: 'bg-gray-100 text-gray-700',
-  DRAFT: 'bg-slate-100 text-slate-700',
+  PENDING: 'bg-[#FFF7ED] text-[#FF6B00]',
+  APPROVED: 'bg-[#F0FDF4] text-green-700',
+  REJECTED: 'bg-[#FFF1F2] text-rose-700',
+  ON_HOLD: 'bg-[#F1F5F9] text-[#64748B]',
+  DRAFT: 'bg-[#F1F5F9] text-[#64748B]',
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  LOW: 'bg-gray-100 text-gray-600',
-  MEDIUM: 'bg-blue-100 text-blue-700',
-  HIGH: 'bg-orange-100 text-orange-700',
-  URGENT: 'bg-red-100 text-red-700',
+  LOW: 'bg-[#F1F5F9] text-[#64748B]',
+  MEDIUM: 'bg-[#EFF6FF] text-blue-700',
+  HIGH: 'bg-[#FFF7ED] text-[#FF6B00]',
+  URGENT: 'bg-[#FFF1F2] text-rose-700',
 };
+
+const fieldClass =
+  'h-10 w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[#111827] focus:border-[#FF6B00] focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/25 disabled:opacity-50';
+const labelClass = 'mb-1 block text-xs font-medium text-[#64748B]';
+const cardClass = 'rounded-xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]';
 
 const RAISED_FROM_OPTIONS = [
   { value: 'DEPARTMENT', label: 'Department' },
@@ -226,37 +231,44 @@ export default function RequisitionsPage() {
   const canEdit = (status: string) => ['DRAFT', 'PENDING', 'ON_HOLD'].includes(status);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-7xl space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Manpower Requisitions</h1>
-          <p className="text-sm text-muted-foreground">{data?.total ?? 0} total requisitions</p>
+          <h1 className="text-2xl font-bold tracking-tight text-[#111827]">Manpower Requisitions</h1>
+          <p className="mt-1 text-sm text-[#64748B]">{data?.total ?? 0} total requisitions</p>
         </div>
-        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> New Requisition</Button>
+        <Button
+          onClick={openCreate}
+          className="h-10 rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000]"
+        >
+          <Plus className="mr-2 h-4 w-4" /> New Requisition
+        </Button>
       </div>
 
       {formOpen && (
-        <Card>
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-base">
+        <Card className={cardClass}>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardTitle className="text-base text-[#111827]">
               {editingId ? 'Edit Manpower Requisition' : 'New Manpower Requisition'}
             </CardTitle>
-            <Button variant="ghost" size="icon" onClick={closeForm}><X className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" className="text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#FF6B00]" onClick={closeForm}>
+              <X className="h-4 w-4" />
+            </Button>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Department *</label>
-                  <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.departmentId} onChange={set('departmentId')} required>
+                  <label className={labelClass}>Department *</label>
+                  <select className={fieldClass} value={form.departmentId} onChange={set('departmentId')} required>
                     <option value="">Select...</option>
                     {departments?.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Sub Department *</label>
+                  <label className={labelClass}>Sub Department *</label>
                   <select
-                    className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                    className={fieldClass}
                     value={form.subDepartmentId}
                     onChange={set('subDepartmentId')}
                     required
@@ -267,29 +279,29 @@ export default function RequisitionsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Designation *</label>
-                  <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.designationId} onChange={set('designationId')} required>
+                  <label className={labelClass}>Designation *</label>
+                  <select className={fieldClass} value={form.designationId} onChange={set('designationId')} required>
                     <option value="">Select...</option>
                     {designations?.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Location *</label>
-                  <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.locationId} onChange={set('locationId')} required>
+                  <label className={labelClass}>Location *</label>
+                  <select className={fieldClass} value={form.locationId} onChange={set('locationId')} required>
                     <option value="">Select...</option>
                     {locations?.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">No. of Positions *</label>
-                  <Input type="number" min="1" value={form.numberOfPositions} onChange={set('numberOfPositions')} required />
+                  <label className={labelClass}>No. of Positions *</label>
+                  <Input type="number" min="1" className={fieldClass} value={form.numberOfPositions} onChange={set('numberOfPositions')} required />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Replacement Available</label>
-                  <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.replacementAvailable} onChange={set('replacementAvailable')}>
+                  <label className={labelClass}>Replacement Available</label>
+                  <select className={fieldClass} value={form.replacementAvailable} onChange={set('replacementAvailable')}>
                     <option value="NO">No</option>
                     <option value="YES">Yes</option>
                   </select>
@@ -297,67 +309,67 @@ export default function RequisitionsPage() {
               </div>
 
               {form.replacementAvailable === 'YES' && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Replacement Employee Name</label>
-                    <Input value={form.replacementEmployeeName} onChange={set('replacementEmployeeName')} placeholder="Employee name" />
+                    <label className={labelClass}>Replacement Employee Name</label>
+                    <Input className={fieldClass} value={form.replacementEmployeeName} onChange={set('replacementEmployeeName')} placeholder="Employee name" />
                   </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">HOD Name</label>
-                  <Input value={form.hodName} onChange={set('hodName')} placeholder="Head of Department" />
+                  <label className={labelClass}>HOD Name</label>
+                  <Input className={fieldClass} value={form.hodName} onChange={set('hodName')} placeholder="Head of Department" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Requisition Raised From</label>
-                  <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.raisedFrom} onChange={set('raisedFrom')}>
+                  <label className={labelClass}>Requisition Raised From</label>
+                  <select className={fieldClass} value={form.raisedFrom} onChange={set('raisedFrom')}>
                     <option value="">Select...</option>
                     {RAISED_FROM_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Priority</label>
-                  <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.priority} onChange={set('priority')}>
+                  <label className={labelClass}>Priority</label>
+                  <select className={fieldClass} value={form.priority} onChange={set('priority')}>
                     {['LOW', 'MEDIUM', 'HIGH', 'URGENT'].map((p) => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Salary Min (₹)</label>
-                  <Input type="number" value={form.salaryMin} onChange={set('salaryMin')} placeholder="800000" />
+                  <label className={labelClass}>Salary Min (₹)</label>
+                  <Input type="number" className={fieldClass} value={form.salaryMin} onChange={set('salaryMin')} placeholder="800000" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Salary Max (₹)</label>
-                  <Input type="number" value={form.salaryMax} onChange={set('salaryMax')} placeholder="1500000" />
+                  <label className={labelClass}>Salary Max (₹)</label>
+                  <Input type="number" className={fieldClass} value={form.salaryMax} onChange={set('salaryMax')} placeholder="1500000" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Experience Level</label>
-                  <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.experienceLevelId} onChange={set('experienceLevelId')}>
+                  <label className={labelClass}>Experience Level</label>
+                  <select className={fieldClass} value={form.experienceLevelId} onChange={set('experienceLevelId')}>
                     <option value="">Any</option>
                     {expLevels?.map((e: any) => <option key={e.id} value={e.id}>{e.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Target Date</label>
-                  <Input type="date" value={form.targetDate} onChange={set('targetDate')} />
+                  <label className={labelClass}>Target Date</label>
+                  <Input type="date" className={fieldClass} value={form.targetDate} onChange={set('targetDate')} />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Job Description / Notes</label>
-                <textarea rows={3} className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none" value={form.jobDescription} onChange={set('jobDescription')} placeholder="Describe the role and requirements..." />
+                <label className={labelClass}>Job Description / Notes</label>
+                <textarea rows={3} className={`${fieldClass} h-auto resize-none`} value={form.jobDescription} onChange={set('jobDescription')} placeholder="Describe the role and requirements..." />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Remark</label>
-                <textarea rows={2} className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none" value={form.remark} onChange={set('remark')} placeholder="Additional remarks or comments..." />
+                <label className={labelClass}>Remark</label>
+                <textarea rows={2} className={`${fieldClass} h-auto resize-none`} value={form.remark} onChange={set('remark')} placeholder="Additional remarks or comments..." />
               </div>
-              <div className="flex gap-2 justify-end">
-                <Button type="button" variant="outline" onClick={closeForm}>Cancel</Button>
-                <Button type="submit" disabled={saving}>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" className="rounded-xl border-[#E2E8F0]" onClick={closeForm}>Cancel</Button>
+                <Button type="submit" disabled={saving} className="rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000]">
                   {saving ? 'Saving...' : editingId ? 'Update Requisition' : 'Submit Requisition'}
                 </Button>
               </div>
@@ -368,16 +380,16 @@ export default function RequisitionsPage() {
 
       {rejectId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader className="pb-3"><CardTitle className="text-base">Reject Requisition</CardTitle></CardHeader>
+          <Card className={`w-full max-w-md ${cardClass}`}>
+            <CardHeader className="pb-3"><CardTitle className="text-base text-[#111827]">Reject Requisition</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Reason for rejection</label>
-                <textarea rows={3} className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Why is this being rejected?" />
+                <label className={labelClass}>Reason for rejection</label>
+                <textarea rows={3} className={`${fieldClass} h-auto resize-none`} value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Why is this being rejected?" />
               </div>
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setRejectId(null)}>Cancel</Button>
-                <Button variant="destructive" onClick={() => rejectMutation.mutate({ id: rejectId, reason: rejectReason })} disabled={rejectMutation.isPending}>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" className="rounded-xl border-[#E2E8F0]" onClick={() => setRejectId(null)}>Cancel</Button>
+                <Button variant="destructive" className="rounded-xl" onClick={() => rejectMutation.mutate({ id: rejectId, reason: rejectReason })} disabled={rejectMutation.isPending}>
                   Reject
                 </Button>
               </div>
@@ -386,79 +398,102 @@ export default function RequisitionsPage() {
         </div>
       )}
 
-      <div className="flex gap-3">
-        <div className="relative max-w-xs flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative max-w-full flex-1 sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
+          <Input
+            placeholder="Search..."
+            className="h-10 rounded-xl border-[#E2E8F0] bg-white pl-9 text-[#111827] placeholder:text-[#94A3B8] focus-visible:border-[#FF6B00] focus-visible:ring-[#FF6B00]/25 focus-visible:ring-offset-0"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-        <select className="border rounded-md px-3 py-2 text-sm bg-background" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <select
+          className="h-10 rounded-xl border border-[#E2E8F0] bg-white px-3 text-sm text-[#111827] focus:border-[#FF6B00] focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/25"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
           <option value="">All Status</option>
           {['PENDING', 'APPROVED', 'REJECTED', 'ON_HOLD'].map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12 text-muted-foreground">Loading...</div>
+        <div className="py-12 text-center text-sm text-[#64748B]">Loading...</div>
       ) : requisitions.length === 0 ? (
-        <Card><CardContent className="py-16 text-center text-muted-foreground">
-          <p className="text-4xl mb-3">📋</p>
-          <p className="font-medium">No requisitions yet</p>
-          <p className="text-sm mt-1">Submit a new manpower requisition to start hiring.</p>
-        </CardContent></Card>
+        <Card className={cardClass}>
+          <CardContent className="py-16 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF7ED]">
+              <ClipboardList className="h-5 w-5 text-[#FF6B00]" />
+            </div>
+            <p className="font-semibold text-[#111827]">No requisitions yet</p>
+            <p className="mt-1 text-sm text-[#64748B]">Submit a new manpower requisition to start hiring.</p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-3">
           {requisitions.map((r) => (
-            <Card key={r.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="pt-4 pb-4">
+            <Card key={r.id} className={`${cardClass} transition-shadow hover:shadow-md`}>
+              <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold">{r.designation.name}</h3>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${APPROVAL_COLORS[r.approvalStatus]}`}>{r.approvalStatus}</span>
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${PRIORITY_COLORS[r.priority]}`}>{r.priority}</span>
-                      <span className="text-xs text-muted-foreground font-mono">{r.requisitionNumber}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-semibold text-[#111827]">{r.designation.name}</h3>
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${APPROVAL_COLORS[r.approvalStatus]}`}>{r.approvalStatus}</span>
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${PRIORITY_COLORS[r.priority]}`}>{r.priority}</span>
+                      <span className="font-mono text-xs text-[#64748B]">{r.requisitionNumber}</span>
                     </div>
-                    <div className="flex gap-3 mt-1 text-sm text-muted-foreground flex-wrap">
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#64748B]">
                       <span>{r.department.name}</span>
-                      {r.subDepartment?.name && (<><span>·</span><span>{r.subDepartment.name}</span></>)}
-                      <span>·</span>
+                      {r.subDepartment?.name && <span>{r.subDepartment.name}</span>}
                       <span>{r.location.name}</span>
-                      <span>·</span>
                       <span>{r.numberOfPositions} position{r.numberOfPositions !== 1 ? 's' : ''}</span>
+                      {r.experienceLevel?.name && <span>{r.experienceLevel.name}</span>}
+                      {r.targetDate && <span>Target {new Date(r.targetDate).toLocaleDateString()}</span>}
                       {r.salaryMin && r.salaryMax && (
-                        <><span>·</span><span>₹{(Number(r.salaryMin) / 100000).toFixed(1)}L – ₹{(Number(r.salaryMax) / 100000).toFixed(1)}L</span></>
+                        <span>₹{(Number(r.salaryMin) / 100000).toFixed(1)}L – ₹{(Number(r.salaryMax) / 100000).toFixed(1)}L</span>
                       )}
-                      {r._count.jobs > 0 && <><span>·</span><span className="text-blue-600">{r._count.jobs} job{r._count.jobs !== 1 ? 's' : ''} linked</span></>}
+                      {r._count.jobs > 0 && (
+                        <span className="font-medium text-[#FF6B00]">{r._count.jobs} job{r._count.jobs !== 1 ? 's' : ''} linked</span>
+                      )}
                     </div>
-                    <div className="flex gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#64748B]">
                       {r.hodName && <span>HOD: {r.hodName}</span>}
                       {r.raisedFrom && <span>Raised from: {RAISED_FROM_LABELS[r.raisedFrom] ?? r.raisedFrom}</span>}
                       {r.replacementAvailable && (
-                        <span>
-                          Replacement: {r.replacementEmployeeName || 'Yes'}
-                        </span>
+                        <span>Replacement: {r.replacementEmployeeName || 'Yes'}</span>
                       )}
                     </div>
-                    {r.remark && <p className="text-xs text-muted-foreground mt-0.5">Remark: {r.remark}</p>}
-                    {r.targetDate && <p className="text-xs text-muted-foreground mt-0.5">Target: {new Date(r.targetDate).toLocaleDateString()}</p>}
-                    {r.rejectionReason && <p className="text-xs text-red-600 mt-1">Rejection reason: {r.rejectionReason}</p>}
-                    <p className="text-xs text-muted-foreground mt-1">By {r.createdBy.firstName} {r.createdBy.lastName} · {new Date(r.createdAt).toLocaleDateString()}</p>
+                    {r.remark && <p className="mt-0.5 text-xs text-[#64748B]">Remark: {r.remark}</p>}
+                    {r.rejectionReason && <p className="mt-1 text-xs text-rose-600">Rejection reason: {r.rejectionReason}</p>}
+                    <p className="mt-1 text-xs text-[#64748B]">By {r.createdBy.firstName} {r.createdBy.lastName} · {new Date(r.createdAt).toLocaleDateString()}</p>
                   </div>
-                  <div className="flex gap-2 shrink-0">
+                  <div className="flex shrink-0 items-center gap-1">
                     {canEdit(r.approvalStatus) && (
-                      <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
-                        <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit
+                      <Button size="icon" variant="ghost" title="Edit" className="h-9 w-9 text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#FF6B00]" onClick={() => openEdit(r)}>
+                        <Pencil className="h-4 w-4" />
                       </Button>
                     )}
                     {r.approvalStatus === 'PENDING' && (
                       <>
-                        <Button size="sm" variant="outline" className="text-green-700 border-green-300 hover:bg-green-50"
-                          onClick={() => approveMutation.mutate(r.id)} disabled={approveMutation.isPending}>
-                          <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" /> Approve
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Approve"
+                          className="h-9 w-9 text-green-700 hover:bg-[#F0FDF4]"
+                          onClick={() => approveMutation.mutate(r.id)}
+                          disabled={approveMutation.isPending}
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="outline" className="text-red-700 border-red-300 hover:bg-red-50"
-                          onClick={() => setRejectId(r.id)}>
-                          <XCircle className="h-3.5 w-3.5 mr-1.5" /> Reject
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Reject"
+                          className="h-9 w-9 text-rose-700 hover:bg-[#FFF1F2]"
+                          onClick={() => setRejectId(r.id)}
+                        >
+                          <XCircle className="h-4 w-4" />
                         </Button>
                       </>
                     )}

@@ -32,12 +32,12 @@ export function SearchInput({
 
   return (
     <div className={cn('relative', className)}>
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
       <Input
         value={local}
         onChange={(e) => setLocal(e.target.value)}
         placeholder={placeholder}
-        className="pl-9 pr-8"
+        className="h-10 rounded-xl border-[#E2E8F0] pl-9 pr-8 text-[#111827] focus-visible:ring-[#FF6B00]"
       />
       {local && (
         <Button

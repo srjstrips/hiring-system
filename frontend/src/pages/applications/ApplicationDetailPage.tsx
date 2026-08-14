@@ -45,20 +45,26 @@ function interviewRoundFromStatus(status: string) {
 }
 
 const stageColor: Record<string, string> = {
-  APPLIED: 'bg-blue-100 text-blue-700',
-  SCREENING: 'bg-yellow-100 text-yellow-700',
-  SHORTLISTED: 'bg-purple-100 text-purple-700',
-  INTERVIEW_ROUND_1: 'bg-orange-100 text-orange-700',
-  INTERVIEW_ROUND_2: 'bg-orange-100 text-orange-700',
-  HR_ROUND: 'bg-orange-100 text-orange-700',
-  SELECTED: 'bg-green-100 text-green-700',
-  OFFER_SENT: 'bg-green-100 text-green-700',
-  OFFER_ACCEPTED: 'bg-green-100 text-green-700',
-  JOINED: 'bg-green-100 text-green-700',
-  REJECTED: 'bg-red-100 text-red-700',
-  WITHDRAWN: 'bg-gray-100 text-gray-700',
-  ON_HOLD: 'bg-gray-100 text-gray-700',
+  APPLIED: 'bg-[#EFF6FF] text-blue-700',
+  SCREENING: 'bg-[#FFF7ED] text-[#FF6B00]',
+  SHORTLISTED: 'bg-[#F5F3FF] text-violet-700',
+  INTERVIEW_ROUND_1: 'bg-[#FFF7ED] text-[#FF6B00]',
+  INTERVIEW_ROUND_2: 'bg-[#FFF7ED] text-[#FF6B00]',
+  HR_ROUND: 'bg-[#EFF6FF] text-blue-700',
+  SELECTED: 'bg-[#F0FDF4] text-green-700',
+  OFFER_SENT: 'bg-[#F0FDF4] text-green-700',
+  OFFER_ACCEPTED: 'bg-[#F0FDF4] text-green-700',
+  JOINED: 'bg-[#F0FDFA] text-teal-700',
+  REJECTED: 'bg-[#FFF1F2] text-rose-700',
+  WITHDRAWN: 'bg-[#F1F5F9] text-[#64748B]',
+  ON_HOLD: 'bg-[#FFF7ED] text-amber-700',
 };
+
+const cardClass = 'rounded-xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]';
+const fieldClass =
+  'h-10 w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[#111827] focus:border-[#FF6B00] focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/25';
+const textareaClass =
+  'w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[#111827] resize-none focus:border-[#FF6B00] focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/25';
 
 const stageIcon: Record<string, ComponentType<{ className?: string }>> = {
   APPLIED: Send,
@@ -108,10 +114,11 @@ export default function ApplicationDetailPage() {
   const [interviewMode, setInterviewMode] = useState<'VIDEO' | 'IN_PERSON'>('VIDEO');
   const [interviewLocation, setInterviewLocation] = useState('');
 
-  const { data: app, isLoading } = useQuery({
+  const { data: app, isLoading, isError } = useQuery({
     queryKey: ['application', id],
     queryFn: () => applicationsApi.getById(id!).then((r) => r.data.data),
     enabled: !!id,
+    retry: 1,
   });
 
   const invalidateApplication = () => {
@@ -194,8 +201,19 @@ export default function ApplicationDetailPage() {
     });
   };
 
-  if (isLoading) return <div className="text-center py-20 text-muted-foreground">Loading...</div>;
-  if (!app) return <div className="text-center py-20 text-muted-foreground">Application not found</div>;
+  if (isLoading) return <div className="py-20 text-center text-sm text-[#64748B]">Loading...</div>;
+  if (isError) {
+    return (
+      <div className="py-20 text-center">
+        <p className="font-semibold text-[#111827]">Could not load this application</p>
+        <p className="mt-1 text-sm text-[#64748B]">Please try again, or go back to the applications list.</p>
+        <Button className="mt-4 rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000]" onClick={() => navigate('/applications')}>
+          Back to Applications
+        </Button>
+      </div>
+    );
+  }
+  if (!app) return <div className="py-20 text-center text-sm text-[#64748B]">Application not found</div>;
 
   const currentStageIdx = PIPELINE.indexOf(app.status);
   const isFinalOutcome = FINAL_OUTCOMES.includes(app.status);
@@ -205,27 +223,37 @@ export default function ApplicationDetailPage() {
     : (stageIcon[app.status] ?? Clock);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate(filterJobId ? `/applications?jobId=${encodeURIComponent(filterJobId)}` : '/applications')}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">
-            {app.candidate.firstName} {app.candidate.lastName}
-          </h1>
-          <p className="text-sm text-muted-foreground">{app.job.title} · {app.job.department.name}</p>
+    <div className="mx-auto max-w-6xl space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 shrink-0 rounded-xl text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#FF6B00]"
+            aria-label="Back to applications"
+            onClick={() => navigate(filterJobId ? `/applications?jobId=${encodeURIComponent(filterJobId)}` : '/applications')}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-bold tracking-tight text-[#111827]">
+              {app.candidate.firstName} {app.candidate.lastName}
+            </h1>
+            <p className="text-sm text-[#64748B]">{app.job.title} · {app.job.department.name}</p>
+          </div>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setShowEmailModal(true)}>
-          <Send className="h-3.5 w-3.5 mr-1.5" /> Send Email
-        </Button>
-        <div className={`px-4 py-1.5 rounded-full text-sm font-semibold ${stageColor[app.status] ?? 'bg-gray-100 text-gray-700'}`}>
-          {stageLabel(app.status)}
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 rounded-xl border-[#E2E8F0]"
+            onClick={() => setShowEmailModal(true)}
+          >
+            <Send className="mr-1.5 h-3.5 w-3.5" /> Send Email
+          </Button>
+          <div className={`rounded-full px-4 py-1.5 text-sm font-semibold ${stageColor[app.status] ?? 'bg-[#F1F5F9] text-[#64748B]'}`}>
+            {stageLabel(app.status)}
+          </div>
         </div>
       </div>
 
@@ -239,30 +267,29 @@ export default function ApplicationDetailPage() {
         />
       )}
 
-      {/* Pipeline Progress */}
       {!isFinalOutcome && !isOnHold && (
-        <Card>
-          <CardContent className="pt-5 pb-5">
+        <Card className={cardClass}>
+          <CardContent className="px-4 py-5 sm:px-6">
             <div className="flex items-center gap-0 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {PIPELINE.map((stage, idx) => {
                 const done = idx < currentStageIdx;
                 const active = idx === currentStageIdx;
                 return (
-                  <div key={stage} className="flex items-center flex-shrink-0">
-                    <div className={`flex flex-col items-center gap-1 px-1 ${active ? 'scale-105' : ''}`}>
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                        done ? 'bg-primary text-primary-foreground' :
-                        active ? 'bg-primary text-primary-foreground ring-4 ring-primary/20' :
-                        'bg-muted text-muted-foreground'
+                  <div key={stage} className="flex shrink-0 items-center">
+                    <div className="flex flex-col items-center gap-1 px-1">
+                      <div className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+                        done ? 'bg-[#FF6B00] text-white' :
+                        active ? 'bg-[#FF6B00] text-white ring-4 ring-[#FF6B00]/20' :
+                        'bg-[#F1F5F9] text-[#94A3B8]'
                       }`}>
                         {done ? <CheckCircle2 className="h-4 w-4" /> : idx + 1}
                       </div>
-                      <span className={`text-[10px] text-center max-w-[60px] leading-tight ${active ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
+                      <span className={`max-w-[60px] text-center text-[10px] leading-tight ${active ? 'font-semibold text-[#FF6B00]' : 'text-[#64748B]'}`}>
                         {stageLabel(stage)}
                       </span>
                     </div>
                     {idx < PIPELINE.length - 1 && (
-                      <div className={`h-0.5 w-6 flex-shrink-0 mb-4 ${done ? 'bg-primary' : 'bg-muted'}`} />
+                      <div className={`mb-4 h-0.5 w-6 shrink-0 ${done ? 'bg-[#FF6B00]' : 'bg-[#E2E8F0]'}`} />
                     )}
                   </div>
                 );
@@ -273,11 +300,11 @@ export default function ApplicationDetailPage() {
       )}
 
       {isOnHold && (
-        <div className="rounded-lg px-4 py-3 flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-800">
+        <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-[#FFF7ED] px-4 py-3 text-amber-800">
           <PauseCircle className="h-5 w-5 shrink-0" />
           <div>
             <p className="font-medium">Application On Hold</p>
-            <p className="text-sm opacity-80 mt-0.5">
+            <p className="mt-0.5 text-sm opacity-80">
               Use Change Stage to resume this candidate into an active recruitment stage.
             </p>
           </div>
@@ -285,29 +312,27 @@ export default function ApplicationDetailPage() {
       )}
 
       {isFinalOutcome && (
-        <div className={`rounded-lg px-4 py-3 flex items-center gap-3 ${
-          app.status === 'REJECTED' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-gray-50 border border-gray-200 text-gray-700'
+        <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${
+          app.status === 'REJECTED' ? 'border-rose-200 bg-[#FFF1F2] text-rose-700' : 'border-[#E2E8F0] bg-[#F8FAFC] text-[#64748B]'
         }`}>
           <XCircle className="h-5 w-5 shrink-0" />
           <div>
             <p className="font-medium">Application {stageLabel(app.status)}</p>
-            {app.rejectionReason && <p className="text-sm opacity-80 mt-0.5">Reason: {app.rejectionReason}</p>}
+            {app.rejectionReason && <p className="mt-0.5 text-sm opacity-80">Reason: {app.rejectionReason}</p>}
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-6">
-        {/* Left: Candidate Info */}
-        <div className="col-span-2 space-y-4">
-          {/* Candidate Card */}
-          <Card>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-2">
+          <Card className={cardClass}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <User className="h-4 w-4" /> Candidate Profile
+              <CardTitle className="flex items-center gap-2 text-base text-[#111827]">
+                <User className="h-4 w-4 text-[#FF6B00]" /> Candidate Profile
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {[
                   { icon: Mail, label: 'Email', value: app.candidate.email },
                   { icon: Phone, label: 'Phone', value: app.candidate.phone ?? '—' },
@@ -318,103 +343,101 @@ export default function ApplicationDetailPage() {
                   { icon: DollarSign, label: 'Expected Salary', value: app.candidate.expectedSalary ? `₹${(Number(app.candidate.expectedSalary) / 100000).toFixed(1)}L` : '—' },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="flex items-start gap-2">
-                    <Icon className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                    <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#FF6B00]" />
                     <div>
-                      <div className="text-muted-foreground text-xs">{label}</div>
-                      <div className="font-medium">{value}</div>
+                      <div className="text-xs text-[#64748B]">{label}</div>
+                      <div className="font-medium text-[#111827]">{value}</div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="flex gap-3 pt-2 border-t">
+              <div className="flex flex-wrap gap-3 border-t border-[#E2E8F0] pt-3">
                 {app.candidate.resumeUrl && (
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" className="rounded-xl border-[#E2E8F0]" asChild>
                     <a href={app.candidate.resumeUrl} target="_blank" rel="noreferrer">
-                      <FileText className="h-3.5 w-3.5 mr-1.5" /> View Resume
+                      <FileText className="mr-1.5 h-3.5 w-3.5" /> View Resume
                     </a>
                   </Button>
                 )}
                 {app.candidate.linkedinUrl && (
-                  <Button variant="outline" size="sm" asChild>
+                  <Button variant="outline" size="sm" className="rounded-xl border-[#E2E8F0]" asChild>
                     <a href={app.candidate.linkedinUrl} target="_blank" rel="noreferrer">
-                      <Link2 className="h-3.5 w-3.5 mr-1.5" /> LinkedIn
+                      <Link2 className="mr-1.5 h-3.5 w-3.5" /> LinkedIn
                     </a>
                   </Button>
                 )}
               </div>
 
               {app.coverLetter && (
-                <div className="pt-2 border-t">
-                  <p className="text-xs text-muted-foreground mb-1">Cover Letter</p>
-                  <p className="text-sm whitespace-pre-wrap bg-muted/40 rounded p-3 leading-relaxed">{app.coverLetter}</p>
+                <div className="border-t border-[#E2E8F0] pt-3">
+                  <p className="mb-1 text-xs text-[#64748B]">Cover Letter</p>
+                  <p className="whitespace-pre-wrap rounded-xl bg-[#F8FAFC] p-3 text-sm leading-relaxed text-[#111827]">{app.coverLetter}</p>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Assessment Result */}
-          {app.assessmentAttempt && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Star className="h-4 w-4" /> Assessment Result
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {app.assessmentAttempt.submittedAt ? (
-                  <div className="flex items-center gap-6">
-                    <div className={`w-20 h-20 rounded-full flex flex-col items-center justify-center text-white font-bold ${
-                      app.assessmentAttempt.isPassed ? 'bg-green-500' : 'bg-red-500'
-                    }`}>
-                      <span className="text-2xl">{app.assessmentAttempt.score}%</span>
-                    </div>
-                    <div className="space-y-1">
-                      <p className={`font-semibold text-lg ${app.assessmentAttempt.isPassed ? 'text-green-600' : 'text-red-600'}`}>
-                        {app.assessmentAttempt.isPassed ? '✓ Passed' : '✗ Did not pass'}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Submitted {new Date(app.assessmentAttempt.submittedAt).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Assessment started but not yet submitted.</p>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Stage Timeline */}
-          <Card>
+          <Card className={cardClass}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Activity Timeline</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-base text-[#111827]">
+                <Star className="h-4 w-4 text-[#FF6B00]" /> Assessment Result
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {app.assessmentAttempt?.submittedAt ? (
+                <div className="flex items-center gap-6">
+                  <div className={`flex h-20 w-20 flex-col items-center justify-center rounded-full font-bold text-white ${
+                    app.assessmentAttempt.isPassed ? 'bg-green-500' : 'bg-rose-500'
+                  }`}>
+                    <span className="text-2xl">{app.assessmentAttempt.score}%</span>
+                  </div>
+                  <div className="space-y-1">
+                    <p className={`text-lg font-semibold ${app.assessmentAttempt.isPassed ? 'text-green-600' : 'text-rose-600'}`}>
+                      {app.assessmentAttempt.isPassed ? '✓ Passed' : '✕ Failed'}
+                    </p>
+                    <p className="text-sm text-[#64748B]">
+                      Submitted {new Date(app.assessmentAttempt.submittedAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              ) : app.assessmentAttempt ? (
+                <p className="text-sm text-[#64748B]">Assessment started but not yet submitted.</p>
+              ) : (
+                <p className="text-sm text-[#64748B]">No assessment result for this application yet.</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className={cardClass}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base text-[#111827]">Activity Timeline</CardTitle>
             </CardHeader>
             <CardContent>
               {app.timeline.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No activity yet</p>
+                <p className="text-sm text-[#64748B]">No activity yet</p>
               ) : (
                 <div className="space-y-3">
                   {app.timeline.map((t: any, i: number) => (
                     <div key={t.id ?? i} className="flex gap-3 text-sm">
                       <div className="flex flex-col items-center">
-                        <div className="w-2 h-2 rounded-full bg-primary mt-1.5 shrink-0" />
-                        {i < app.timeline.length - 1 && <div className="w-0.5 flex-1 bg-border mt-1" />}
+                        <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#FF6B00]" />
+                        {i < app.timeline.length - 1 && <div className="mt-1 w-0.5 flex-1 bg-[#E2E8F0]" />}
                       </div>
-                      <div className="pb-3 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex-1 pb-3">
+                        <div className="flex flex-wrap items-center gap-2">
                           {t.fromStatus && (
                             <>
-                              <span className="text-muted-foreground">{stageLabel(t.fromStatus)}</span>
-                              <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-[#64748B]">{stageLabel(t.fromStatus)}</span>
+                              <ChevronRight className="h-3 w-3 text-[#64748B]" />
                             </>
                           )}
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${stageColor[t.toStatus] ?? 'bg-gray-100 text-gray-700'}`}>
+                          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${stageColor[t.toStatus] ?? 'bg-[#F1F5F9] text-[#64748B]'}`}>
                             {stageLabel(t.toStatus)}
                           </span>
                         </div>
-                        {t.notes && <p className="text-muted-foreground mt-0.5 text-xs">{t.notes}</p>}
-                        <p className="text-xs text-muted-foreground mt-0.5">
+                        {t.notes && <p className="mt-0.5 text-xs text-[#64748B]">{t.notes}</p>}
+                        <p className="mt-0.5 text-xs text-[#64748B]">
                           {new Date(t.createdAt).toLocaleString()}
                         </p>
                       </div>
@@ -426,25 +449,23 @@ export default function ApplicationDetailPage() {
           </Card>
         </div>
 
-        {/* Right: Actions */}
         <div className="space-y-4">
-          {/* Move Stage */}
-          <Card>
+          <Card className={cardClass}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Change Stage</CardTitle>
+              <CardTitle className="text-base text-[#111827]">Change Stage</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">Current Stage</label>
-                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${stageColor[app.status] ?? 'bg-gray-100 text-gray-700'}`}>
+                <label className="mb-1.5 block text-xs text-[#64748B]">Current Stage</label>
+                <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${stageColor[app.status] ?? 'bg-[#F1F5F9] text-[#64748B]'}`}>
                   <CurrentStageIcon className="h-3.5 w-3.5" />
                   {stageLabel(app.status).toUpperCase()}
                 </div>
               </div>
 
               <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">Select Next Stage</label>
-                <div className="max-h-56 overflow-y-auto rounded-lg border bg-white divide-y divide-border">
+                <label className="mb-1.5 block text-xs text-[#64748B]">Select Next Stage</label>
+                <div className="max-h-56 divide-y divide-[#E2E8F0] overflow-y-auto rounded-xl border border-[#E2E8F0] bg-white">
                   {[...PIPELINE, ...OUTCOME_STATUSES].map((s) => {
                     const isCurrent = s === app.status;
                     const isSelected = newStatus === s;
@@ -455,34 +476,30 @@ export default function ApplicationDetailPage() {
                         type="button"
                         disabled={isCurrent}
                         onClick={() => setNewStatus(s)}
-                        className={`w-full text-left px-3 py-2.5 transition-colors ${
+                        className={`w-full px-3 py-2.5 text-left transition-colors ${
                           isCurrent
-                            ? 'cursor-not-allowed bg-muted/30'
+                            ? 'cursor-not-allowed bg-[#F8FAFC]'
                             : isSelected
-                              ? 'bg-blue-50'
-                              : 'hover:bg-muted/40'
+                              ? 'bg-[#FFF7ED]'
+                              : 'hover:bg-[#FFF7ED]/60'
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
                           <span
-                            className={`h-4 w-4 shrink-0 rounded-full border-2 flex items-center justify-center ${
-                              isSelected
-                                ? 'border-primary'
-                                : 'border-muted-foreground/35'
+                            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
+                              isSelected ? 'border-[#FF6B00]' : 'border-[#CBD5E1]'
                             }`}
                           >
-                            {isSelected && (
-                              <span className="h-2 w-2 rounded-full bg-primary" />
-                            )}
+                            {isSelected && <span className="h-2 w-2 rounded-full bg-[#FF6B00]" />}
                           </span>
-                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${stageIconTone[s] ?? 'bg-gray-50 text-gray-600'}`}>
+                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${stageIconTone[s] ?? 'bg-[#F1F5F9] text-[#64748B]'}`}>
                             <Icon className="h-4 w-4" />
                           </span>
-                          <span className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                          <span className="text-xs font-semibold uppercase tracking-wide text-[#111827]">
                             {stageLabel(s)}
                           </span>
                           {isCurrent && (
-                            <span className="text-xs font-medium text-emerald-600">(current)</span>
+                            <span className="text-xs font-medium text-[#FF6B00]">(current)</span>
                           )}
                         </div>
                       </button>
@@ -493,10 +510,10 @@ export default function ApplicationDetailPage() {
 
               {newStatus === 'REJECTED' && (
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Rejection Reason</label>
+                  <label className="mb-1 block text-xs text-[#64748B]">Rejection Reason</label>
                   <textarea
                     rows={2}
-                    className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none"
+                    className={textareaClass}
                     placeholder="Why is this candidate being rejected?"
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
@@ -505,34 +522,36 @@ export default function ApplicationDetailPage() {
               )}
 
               {isInterviewStage && (
-                <div className="rounded-lg border bg-orange-50/60 p-3 space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-medium text-orange-800">
+                <div className="space-y-3 rounded-xl border border-[#FF6B00]/20 bg-[#FFF7ED] p-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-[#FF6B00]">
                     <Video className="h-4 w-4" />
                     Schedule {interviewMode === 'VIDEO' ? 'video call' : 'interview'}
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Date & time</label>
+                    <label className="mb-1 block text-xs text-[#64748B]">Date & time</label>
                     <Input
                       type="datetime-local"
+                      className={fieldClass}
                       value={interviewAt}
                       onChange={(e) => setInterviewAt(e.target.value)}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">Duration (mins)</label>
+                      <label className="mb-1 block text-xs text-[#64748B]">Duration (mins)</label>
                       <Input
                         type="number"
                         min={15}
                         max={480}
+                        className={fieldClass}
                         value={interviewDuration}
                         onChange={(e) => setInterviewDuration(e.target.value)}
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">Mode</label>
+                      <label className="mb-1 block text-xs text-[#64748B]">Mode</label>
                       <select
-                        className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                        className={fieldClass}
                         value={interviewMode}
                         onChange={(e) => setInterviewMode(e.target.value as 'VIDEO' | 'IN_PERSON')}
                       >
@@ -542,13 +561,14 @@ export default function ApplicationDetailPage() {
                     </div>
                   </div>
                   {interviewMode === 'VIDEO' ? (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-[#64748B]">
                       A HireFlow video room is created automatically. The candidate gets a join link by email. You can join from this page — no Google Meet or Zoom needed.
                     </p>
                   ) : (
                     <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">Location</label>
+                      <label className="mb-1 block text-xs text-[#64748B]">Location</label>
                       <Input
+                        className={fieldClass}
                         placeholder="Office / conference room"
                         value={interviewLocation}
                         onChange={(e) => setInterviewLocation(e.target.value)}
@@ -559,10 +579,10 @@ export default function ApplicationDetailPage() {
               )}
 
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Comments</label>
+                <label className="mb-1 block text-xs text-[#64748B]">Comments</label>
                 <textarea
                   rows={2}
-                  className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none"
+                  className={textareaClass}
                   placeholder="Add a note about this stage change..."
                   value={stageNotes}
                   onChange={(e) => setStageNotes(e.target.value)}
@@ -570,7 +590,7 @@ export default function ApplicationDetailPage() {
               </div>
 
               <Button
-                className="w-full"
+                className="h-10 w-full rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000]"
                 disabled={!newStatus || isSaving}
                 onClick={handleMoveStage}
               >
@@ -579,72 +599,70 @@ export default function ApplicationDetailPage() {
                   : isInterviewStage
                     ? 'Schedule Interview & Update Stage'
                     : 'Update Stage'}
-                {!isSaving && <ChevronRight className="h-4 w-4 ml-1" />}
+                {!isSaving && <ChevronRight className="ml-1 h-4 w-4" />}
               </Button>
             </CardContent>
           </Card>
 
-          {/* Job Info */}
-          <Card>
+          <Card className={cardClass}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Applied For</CardTitle>
+              <CardTitle className="text-base text-[#111827]">Applied For</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm space-y-2">
-              <p className="font-semibold">{app.job.title}</p>
-              <p className="text-muted-foreground">{app.job.department.name}</p>
-              <div className="flex items-center gap-2 text-muted-foreground">
+            <CardContent className="space-y-2 text-sm">
+              <p className="font-semibold text-[#111827]">{app.job.title}</p>
+              <p className="text-[#64748B]">{app.job.department.name}</p>
+              <div className="flex items-center gap-2 text-[#64748B]">
                 <Calendar className="h-3.5 w-3.5" />
                 Applied {new Date(app.appliedAt).toLocaleDateString()}
               </div>
               {app.source && (
-                <p className="text-xs text-muted-foreground">Source: {app.source.name}</p>
+                <p className="text-xs text-[#64748B]">Source: {app.source.name}</p>
               )}
-              <Button variant="outline" size="sm" className="w-full mt-2" asChild>
+              <Button variant="outline" size="sm" className="mt-2 w-full rounded-xl border-[#E2E8F0]" asChild>
                 <Link to={`/jobs/${app.job.id}`}>View Job Posting</Link>
               </Button>
             </CardContent>
           </Card>
 
-          {/* Interviews */}
-          <Card>
+          <Card className={cardClass}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Interviews</CardTitle>
+              <CardTitle className="text-base text-[#111827]">Interviews</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {(app.interviews ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-[#64748B]">
                   No interview scheduled yet. Move to Round 1 / Round 2 / HR Round to create a HireFlow video room.
                 </p>
               ) : (
                 (app.interviews ?? []).map((interview) => (
-                  <div key={interview.id} className="rounded-lg border p-3 space-y-1.5">
+                  <div key={interview.id} className="space-y-1.5 rounded-xl border border-[#E2E8F0] p-3">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-medium">{interview.title}</p>
-                      <span className="text-[10px] font-semibold uppercase text-muted-foreground">
+                      <p className="text-sm font-medium text-[#111827]">{interview.title}</p>
+                      <span className="text-[10px] font-semibold uppercase text-[#64748B]">
                         {interview.mode === 'VIDEO' ? 'Video' : 'In person'}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-[#64748B]">
                       {new Date(interview.scheduledAt).toLocaleString()} · {interview.durationMinutes} min · {interview.status.replace(/_/g, ' ')}
                     </p>
                     {interview.mode === 'VIDEO' && (interview.meetingToken || interview.meetingLink) ? (
-                      <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Button variant="outline" size="sm" className="w-full rounded-xl border-[#E2E8F0]" asChild>
                         <a
                           href={interview.meetingToken ? `/interview/call/${interview.meetingToken}?as=hr` : interview.meetingLink!}
                           target="_blank"
                           rel="noreferrer"
                         >
-                          <Video className="h-3.5 w-3.5 mr-1.5" />
+                          <Video className="mr-1.5 h-3.5 w-3.5" />
                           Join video call
                         </a>
                       </Button>
                     ) : interview.location ? (
-                      <p className="text-xs text-muted-foreground">Location: {interview.location}</p>
+                      <p className="text-xs text-[#64748B]">Location: {interview.location}</p>
                     ) : null}
                   </div>
                 ))
               )}
-              <Button variant="outline" size="sm" className="w-full" asChild>
+              <Button variant="outline" size="sm" className="w-full rounded-xl border-[#E2E8F0]" asChild>
                 <Link to="/interviews">All Interviews</Link>
               </Button>
             </CardContent>

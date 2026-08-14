@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, Briefcase, FileText,
   UserCheck, Calendar, Gift, UserPlus, BarChart3, Settings,
-  ChevronDown, X, Layers, Menu, ClipboardList,
+  ChevronDown, Layers, ClipboardList, ChevronsLeft, ChevronsRight,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { useAuth } from '@/contexts/AuthContext';
@@ -60,6 +60,11 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
+const navIdle =
+  'text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#111827]';
+const navActive =
+  'bg-[#FFF7ED] text-[#FF6B00] hover:bg-[#FFF7ED] hover:text-[#FF6B00]';
+
 export function Sidebar({ open, onToggle }: SidebarProps) {
   const { hasPermission } = useAuth();
   const location = useLocation();
@@ -78,32 +83,31 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 z-30 flex h-full flex-col bg-slate-900 text-white transition-all duration-300',
+        'fixed left-0 top-0 z-30 flex h-full flex-col border-r border-[#E2E8F0] bg-white text-[#111827] transition-all duration-300',
         open ? 'w-[260px]' : 'w-[72px]'
       )}
     >
-      {/* Logo + toggle */}
       <div
         className={cn(
-          'flex h-16 items-center border-b border-slate-700',
+          'flex h-16 items-center border-b border-[#E2E8F0]',
           open ? 'justify-between px-4' : 'justify-center px-2'
         )}
       >
         {open ? (
           <>
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FF6B00]">
                 <UserCheck className="h-4 w-4 text-white" />
               </div>
-              <span className="font-bold text-lg tracking-tight truncate">HireFlow</span>
+              <span className="truncate text-lg font-bold tracking-tight text-[#111827]">HireFlow</span>
             </div>
             <button
               type="button"
               onClick={onToggle}
               title="Close sidebar"
-              className="rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+              className="rounded-full border border-[#E2E8F0] p-1.5 text-[#64748B] transition-colors hover:bg-[#FFF7ED] hover:text-[#FF6B00]"
             >
-              <X className="h-5 w-5" />
+              <ChevronsLeft className="h-4 w-4" />
             </button>
           </>
         ) : (
@@ -111,15 +115,14 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
             type="button"
             onClick={onToggle}
             title="Open sidebar"
-            className="rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+            className="rounded-full border border-[#E2E8F0] p-1.5 text-[#64748B] transition-colors hover:bg-[#FFF7ED] hover:text-[#FF6B00]"
           >
-            <Menu className="h-5 w-5" />
+            <ChevronsRight className="h-4 w-4" />
           </button>
         )}
       </div>
 
-      {/* Navigation */}
-      <nav className={cn('flex-1 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-4', open ? 'px-3' : 'px-2')}>
+      <nav className={cn('flex-1 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] py-4 [&::-webkit-scrollbar]:hidden', open ? 'px-3' : 'px-2')}>
         {NAV_ITEMS.filter(canShow).map((item) => {
           if (item.children) {
             const isExpanded = expandedItems.has(item.label);
@@ -136,8 +139,9 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
                     setExpandedItems((prev) => new Set(prev).add(item.label));
                   }}
                   className={cn(
-                    'mb-0.5 flex w-full items-center justify-center rounded-lg py-2.5 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors',
-                    isActive && 'bg-blue-600 text-white hover:bg-blue-700'
+                    'mb-0.5 flex w-full items-center justify-center rounded-lg py-2.5 transition-colors',
+                    navIdle,
+                    isActive && navActive
                   )}
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
@@ -151,8 +155,9 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
                   type="button"
                   onClick={() => toggleExpand(item.label)}
                   className={cn(
-                    'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors mb-0.5',
-                    isActive && 'text-white'
+                    'mb-0.5 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                    navIdle,
+                    isActive && 'text-[#FF6B00]'
                   )}
                 >
                   <item.icon className="h-4 w-4 shrink-0" />
@@ -162,15 +167,15 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
                   />
                 </button>
                 {isExpanded && (
-                  <div className="ml-7 mb-1 border-l border-slate-700 pl-3">
+                  <div className="mb-1 ml-7 border-l border-[#E2E8F0] pl-3">
                     {item.children.map((child) => (
                       <NavLink
                         key={child.to}
                         to={child.to}
-                        className={({ isActive }) =>
+                        className={({ isActive: childActive }) =>
                           cn(
-                            'flex items-center py-2 px-2 text-sm rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors mb-0.5',
-                            isActive && 'text-white bg-slate-800'
+                            'mb-0.5 flex items-center rounded-md px-2 py-2 text-sm text-[#64748B] transition-colors hover:bg-[#FFF7ED] hover:text-[#111827]',
+                            childActive && 'bg-[#FFF7ED] font-medium text-[#FF6B00]'
                           )
                         }
                       >
@@ -190,9 +195,10 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
               title={item.label}
               className={({ isActive }) =>
                 cn(
-                  'mb-0.5 flex items-center rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors',
+                  'mb-0.5 flex items-center rounded-lg text-sm font-medium transition-colors',
                   open ? 'gap-3 px-3 py-2.5' : 'justify-center py-2.5',
-                  isActive && 'bg-blue-600 text-white hover:bg-blue-700'
+                  navIdle,
+                  isActive && navActive
                 )
               }
             >
@@ -203,16 +209,15 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-slate-700 p-3">
+      <div className="border-t border-[#E2E8F0] p-3">
         <div
           className={cn(
-            'flex items-center py-2 text-xs text-slate-500',
+            'flex items-center py-2 text-xs text-[#64748B]',
             open ? 'gap-2 px-3' : 'justify-center'
           )}
           title="HireFlow ATS v1.0"
         >
-          <Building2 className="h-3 w-3 shrink-0" />
+          <Building2 className="h-3.5 w-3.5 shrink-0 text-[#FF6B00]" />
           {open && <span>HireFlow ATS v1.0</span>}
         </div>
       </div>

@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { applicationsApi } from '@/api/applications';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from '@/hooks/useToast';
-import { Eye, Search, FileText, Star } from 'lucide-react';
+import { Eye, Search, FileText, Star, Mail, Briefcase, Clock, Calendar, Users } from 'lucide-react';
 
 const STAGES = [
   'APPLIED', 'SCREENING', 'SHORTLISTED',
@@ -16,12 +15,23 @@ const STAGES = [
   'REJECTED', 'WITHDRAWN', 'ON_HOLD',
 ];
 
-const stageColors: Record<string, string> = {
-  APPLIED: 'secondary', SCREENING: 'secondary', SHORTLISTED: 'default',
-  INTERVIEW_ROUND_1: 'default', INTERVIEW_ROUND_2: 'default', HR_ROUND: 'default',
-  SELECTED: 'default', OFFER_SENT: 'default', OFFER_ACCEPTED: 'default', JOINED: 'default',
-  REJECTED: 'destructive', WITHDRAWN: 'destructive', ON_HOLD: 'secondary',
+const STAGE_BADGE: Record<string, string> = {
+  APPLIED: 'bg-[#EFF6FF] text-blue-700',
+  SCREENING: 'bg-[#FFF7ED] text-[#FF6B00]',
+  SHORTLISTED: 'bg-[#F5F3FF] text-violet-700',
+  INTERVIEW_ROUND_1: 'bg-[#FFF7ED] text-[#FF6B00]',
+  INTERVIEW_ROUND_2: 'bg-[#FFF7ED] text-[#FF6B00]',
+  HR_ROUND: 'bg-[#EFF6FF] text-blue-700',
+  SELECTED: 'bg-[#F0FDF4] text-green-700',
+  OFFER_SENT: 'bg-[#F0FDF4] text-green-700',
+  OFFER_ACCEPTED: 'bg-[#F0FDF4] text-green-700',
+  JOINED: 'bg-[#F0FDFA] text-teal-700',
+  REJECTED: 'bg-[#FFF1F2] text-rose-700',
+  WITHDRAWN: 'bg-[#F1F5F9] text-[#64748B]',
+  ON_HOLD: 'bg-[#F1F5F9] text-[#64748B]',
 };
+
+const cardClass = 'rounded-xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]';
 
 export default function ApplicationsPage() {
   const [searchParams] = useSearchParams();
@@ -73,48 +83,26 @@ export default function ApplicationsPage() {
 
   const SUMMARY_STAGES = ['APPLIED', 'SCREENING', 'SHORTLISTED', 'INTERVIEW_ROUND_1', 'SELECTED', 'REJECTED'] as const;
 
-  const stageAccent: Record<string, { border: string; count: string; active: string }> = {
-    APPLIED: {
-      border: 'border-blue-200 hover:border-blue-300',
-      count: 'text-blue-700',
-      active: 'border-blue-500 bg-blue-50 ring-2 ring-blue-200',
-    },
-    SCREENING: {
-      border: 'border-amber-200 hover:border-amber-300',
-      count: 'text-amber-700',
-      active: 'border-amber-500 bg-amber-50 ring-2 ring-amber-200',
-    },
-    SHORTLISTED: {
-      border: 'border-purple-200 hover:border-purple-300',
-      count: 'text-purple-700',
-      active: 'border-purple-500 bg-purple-50 ring-2 ring-purple-200',
-    },
-    INTERVIEW_ROUND_1: {
-      border: 'border-orange-200 hover:border-orange-300',
-      count: 'text-orange-700',
-      active: 'border-orange-500 bg-orange-50 ring-2 ring-orange-200',
-    },
-    SELECTED: {
-      border: 'border-green-200 hover:border-green-300',
-      count: 'text-green-700',
-      active: 'border-green-500 bg-green-50 ring-2 ring-green-200',
-    },
-    REJECTED: {
-      border: 'border-red-200 hover:border-red-300',
-      count: 'text-red-700',
-      active: 'border-red-500 bg-red-50 ring-2 ring-red-200',
-    },
+  const stageAccent: Record<string, { count: string; active: string }> = {
+    APPLIED: { count: 'text-blue-700', active: 'border-blue-200 bg-[#EFF6FF]' },
+    SCREENING: { count: 'text-[#FF6B00]', active: 'border-[#FF6B00]/30 bg-[#FFF7ED]' },
+    SHORTLISTED: { count: 'text-violet-700', active: 'border-violet-200 bg-[#F5F3FF]' },
+    INTERVIEW_ROUND_1: { count: 'text-[#FF6B00]', active: 'border-[#FF6B00]/30 bg-[#FFF7ED]' },
+    SELECTED: { count: 'text-green-700', active: 'border-green-200 bg-[#F0FDF4]' },
+    REJECTED: { count: 'text-rose-700', active: 'border-rose-200 bg-[#FFF1F2]' },
   };
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Applications</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-[#111827]">Applications</h1>
+        <p className="mt-1 text-sm text-[#64748B]">
+          {data?.total ?? 0} total application{(data?.total ?? 0) === 1 ? '' : 's'}
+        </p>
       </div>
 
-      {/* Pipeline Stats */}
       {statsData && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {SUMMARY_STAGES.map((s) => {
             const count = statsData.find((x) => x.status === s)?.count ?? 0;
             const accent = stageAccent[s];
@@ -124,17 +112,17 @@ export default function ApplicationsPage() {
                 key={s}
                 type="button"
                 onClick={() => setStatus(status === s ? '' : s)}
-                className={`rounded-xl border bg-card px-3 py-4 text-center shadow-sm transition-all ${
+                className={`rounded-xl border bg-white px-3 py-4 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all ${
                   isActive
                     ? accent.active
-                    : `${accent.border} hover:shadow-md hover:bg-muted/40`
+                    : 'border-[#E2E8F0] hover:border-[#FF6B00]/25 hover:shadow-md'
                 }`}
               >
-                <div className={`text-2xl font-bold leading-none ${isActive ? accent.count : 'text-foreground'}`}>
+                <div className={`text-2xl font-bold leading-none ${isActive ? accent.count : 'text-[#111827]'}`}>
                   {count}
                 </div>
                 <div className={`mt-2 text-[11px] font-medium uppercase tracking-wide leading-tight ${
-                  isActive ? accent.count : 'text-muted-foreground'
+                  isActive ? accent.count : 'text-[#64748B]'
                 }`}>
                   {s === 'INTERVIEW_ROUND_1' ? 'Interview R1' : s.replace(/_/g, ' ')}
                 </div>
@@ -144,21 +132,19 @@ export default function ApplicationsPage() {
         </div>
       )}
 
-      {/* Search + Stage filter */}
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
-        <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
           <Input
             placeholder="Search candidates..."
-            className="pl-9 h-10"
+            className="h-10 rounded-xl border-[#E2E8F0] bg-white pl-9 text-[#111827] placeholder:text-[#94A3B8] focus-visible:border-[#FF6B00] focus-visible:ring-[#FF6B00]/25 focus-visible:ring-offset-0"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="w-full sm:w-56 shrink-0">
-          <label className="text-xs text-muted-foreground mb-1 block">Stage</label>
+        <div className="w-full shrink-0 sm:w-56">
           <select
-            className="h-10 w-full border border-input rounded-md px-3 text-sm bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-10 w-full rounded-xl border border-[#E2E8F0] bg-white px-3 text-sm text-[#111827] focus:border-[#FF6B00] focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/25"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
           >
@@ -168,11 +154,18 @@ export default function ApplicationsPage() {
         </div>
       </div>
 
-      {/* Applications List */}
       {isLoading ? (
-        <div className="text-center py-12 text-muted-foreground">Loading...</div>
+        <div className="py-12 text-center text-sm text-[#64748B]">Loading...</div>
       ) : apps.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-muted-foreground">No applications found</CardContent></Card>
+        <Card className={cardClass}>
+          <CardContent className="py-16 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF7ED]">
+              <Users className="h-5 w-5 text-[#FF6B00]" />
+            </div>
+            <p className="font-semibold text-[#111827]">No applications found</p>
+            <p className="mt-1 text-sm text-[#64748B]">Try a different search or stage filter.</p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-3">
           {apps.map((app) => (
@@ -187,61 +180,70 @@ export default function ApplicationsPage() {
                   navigate(`/applications/${app.id}`, { state: { filterJobId: jobId } });
                 }
               }}
-              className="hover:shadow-md hover:bg-muted/30 transition-all cursor-pointer"
+              className={`${cardClass} cursor-pointer transition-shadow hover:shadow-md`}
             >
-              <CardContent className="pt-4 pb-4">
+              <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-semibold text-[#111827]">
                         {app.candidate.firstName} {app.candidate.lastName}
                       </h3>
-                      <Badge variant={stageColors[app.status] as any}>{app.status.replace(/_/g, ' ')}</Badge>
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STAGE_BADGE[app.status] ?? 'bg-[#F1F5F9] text-[#64748B]'}`}>
+                        {app.status.replace(/_/g, ' ')}
+                      </span>
                       {app.assessmentAttempt?.submittedAt && (
-                        <Badge variant="outline" className="gap-1">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-[#FF6B00]/30 bg-[#FFF7ED] px-2.5 py-0.5 text-xs font-medium text-[#FF6B00]">
                           <Star className="h-3 w-3" />
                           Score: {app.assessmentAttempt.score}%
                           {app.assessmentAttempt.isPassed ? ' ✓' : ' ✗'}
-                        </Badge>
+                        </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground flex-wrap">
-                      <span>{app.candidate.email}</span>
-                      {app.candidate.currentCompany && <span>@ {app.candidate.currentCompany}</span>}
-                      {app.candidate.totalExperience !== undefined && <span>{app.candidate.totalExperience}y exp</span>}
+                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[#64748B]">
+                      <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" /> {app.candidate.email}</span>
+                      {app.candidate.currentCompany && (
+                        <span className="flex items-center gap-1"><Briefcase className="h-3.5 w-3.5" /> {app.candidate.currentCompany}</span>
+                      )}
+                      {app.source?.name && <span>{app.source.name}</span>}
+                      {app.candidate.totalExperience !== undefined && (
+                        <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {app.candidate.totalExperience}y experience</span>
+                      )}
                       {app.candidate.noticePeriodDays !== undefined && <span>{app.candidate.noticePeriodDays}d notice</span>}
-                      <span className="text-xs">Applied {new Date(app.appliedAt).toLocaleDateString()}</span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5" /> Applied {new Date(app.appliedAt).toLocaleDateString()}
+                      </span>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-0.5">{app.job.title} · {app.job.department.name}</p>
+                    <p className="mt-1 text-sm text-[#64748B]">{app.job.title} · {app.job.department.name}</p>
                   </div>
                   <div
-                    className="flex items-center gap-2 shrink-0"
+                    className="flex shrink-0 items-center gap-1"
                     onClick={(e) => e.stopPropagation()}
                     onKeyDown={(e) => e.stopPropagation()}
                   >
                     {app.candidate.resumeUrl && (
-                      <Button variant="ghost" size="icon" title="View Resume" asChild>
+                      <Button variant="ghost" size="icon" title="View Resume" className="h-9 w-9 text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#FF6B00]" asChild>
                         <a href={app.candidate.resumeUrl} target="_blank" rel="noreferrer">
                           <FileText className="h-4 w-4" />
                         </a>
                       </Button>
                     )}
-                    <Button variant="ghost" size="icon" asChild>
+                    <Button variant="ghost" size="icon" title="View" className="h-9 w-9 text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#FF6B00]" asChild>
                       <Link to={`/applications/${app.id}`} state={{ filterJobId: jobId }}><Eye className="h-4 w-4" /></Link>
                     </Button>
                     {movingId === app.id ? (
                       <div className="flex items-center gap-1">
                         <select
-                          className="border rounded px-2 py-1 text-xs bg-background"
+                          className="h-9 rounded-xl border border-[#E2E8F0] bg-white px-2 text-xs text-[#111827]"
                           defaultValue={app.status}
                           onChange={(e) => statusMutation.mutate({ id: app.id, newStatus: e.target.value })}
                         >
                           {STAGES.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
                         </select>
-                        <Button variant="ghost" size="sm" onClick={() => setMovingId(null)}>✕</Button>
+                        <Button variant="ghost" size="sm" className="text-[#64748B]" onClick={() => setMovingId(null)}>✕</Button>
                       </div>
                     ) : (
-                      <Button variant="outline" size="sm" onClick={() => setMovingId(app.id)}>
+                      <Button variant="outline" size="sm" className="h-9 rounded-xl border-[#E2E8F0]" onClick={() => setMovingId(app.id)}>
                         Move Stage
                       </Button>
                     )}

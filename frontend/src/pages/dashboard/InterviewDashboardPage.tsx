@@ -74,30 +74,30 @@ export default function InterviewDashboardPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
       <div>
-        <p className="text-sm text-muted-foreground mb-1">
-          <Link to="/dashboard" className="text-blue-600 hover:underline">Dashboard</Link> / Interviews
+        <p className="mb-1 text-sm text-[#64748B]">
+          <Link to="/dashboard" className="text-[#FF6B00] hover:underline">Dashboard</Link> / Interviews
         </p>
-        <h1 className="text-2xl font-bold">Interview Management</h1>
-        <p className="text-muted-foreground mt-1">Track interview lifecycle across rounds and panels.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-[#111827]">Interview Management</h1>
+        <p className="mt-1 text-sm text-[#64748B]">Track interview lifecycle across rounds and panels.</p>
       </div>
 
       <SummaryCards
-        columns="sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
+        columns="grid-cols-2 sm:grid-cols-3 xl:grid-cols-6"
         items={[
-          { label: 'Scheduled', value: summary.SCHEDULED ?? 0, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Completed', value: summary.COMPLETED ?? 0, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
-          { label: 'Shortlisted', value: summary.SHORTLISTED ?? 0, icon: CheckCircle2, color: 'text-violet-600', bg: 'bg-violet-50' },
-          { label: 'Rejected', value: summary.REJECTED ?? 0, icon: XCircle, color: 'text-red-600', bg: 'bg-red-50' },
-          { label: 'Backout', value: summary.BACKOUT ?? 0, icon: UserX, color: 'text-rose-600', bg: 'bg-rose-50' },
-          { label: 'On Hold', value: summary.ON_HOLD ?? 0, icon: PauseCircle, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { label: 'Scheduled', value: summary.SCHEDULED ?? 0, icon: Calendar, color: 'text-blue-600', bg: 'bg-[#EFF6FF]' },
+          { label: 'Completed', value: summary.COMPLETED ?? 0, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-[#F0FDF4]' },
+          { label: 'Shortlisted', value: summary.SHORTLISTED ?? 0, icon: CheckCircle2, color: 'text-violet-600', bg: 'bg-[#F5F3FF]' },
+          { label: 'Rejected', value: summary.REJECTED ?? 0, icon: XCircle, color: 'text-rose-600', bg: 'bg-[#FFF1F2]' },
+          { label: 'Backout', value: summary.BACKOUT ?? 0, icon: UserX, color: 'text-rose-600', bg: 'bg-[#FFF1F2]' },
+          { label: 'On Hold', value: summary.ON_HOLD ?? 0, icon: PauseCircle, color: 'text-[#FF6B00]', bg: 'bg-[#FFF7ED]' },
         ]}
       />
 
-      <Card>
+      <Card className="rounded-xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
         <CardHeader>
-          <CardTitle className="text-base">Interview Records</CardTitle>
+          <CardTitle className="text-base text-[#111827]">Interview Records</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <FilterBar
@@ -134,66 +134,76 @@ export default function InterviewDashboardPage() {
             ]}
           />
 
-          <div className="rounded-md border overflow-x-auto">
+          <div className="overflow-x-auto rounded-xl border border-[#E2E8F0]">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Candidate</TableHead>
-                  <TableHead>Position</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Round</TableHead>
-                  <TableHead>Mode</TableHead>
-                  <TableHead>Interviewer</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Remarks</TableHead>
-                  <TableHead>Actions</TableHead>
+                <TableRow className="border-[#E2E8F0] bg-[#F8FAFC] hover:bg-[#F8FAFC]">
+                  <TableHead className="font-medium text-[#64748B]">Candidate</TableHead>
+                  <TableHead className="font-medium text-[#64748B]">Position</TableHead>
+                  <TableHead className="font-medium text-[#64748B]">Department</TableHead>
+                  <TableHead className="font-medium text-[#64748B]">Type</TableHead>
+                  <TableHead className="font-medium text-[#64748B]">Round</TableHead>
+                  <TableHead className="font-medium text-[#64748B]">Mode</TableHead>
+                  <TableHead className="font-medium text-[#64748B]">Interviewer</TableHead>
+                  <TableHead className="font-medium text-[#64748B]">Date</TableHead>
+                  <TableHead className="font-medium text-[#64748B]">Status</TableHead>
+                  <TableHead className="font-medium text-[#64748B]">Remarks</TableHead>
+                  <TableHead className="font-medium text-[#64748B]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={11} className="py-10 text-center text-sm text-[#64748B]">Loading...</TableCell></TableRow>
                 ) : rows.length === 0 ? (
-                  <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">No interviews found</TableCell></TableRow>
+                  <TableRow>
+                    <TableCell colSpan={11} className="py-16 text-center">
+                      <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF7ED]">
+                        <Calendar className="h-5 w-5 text-[#FF6B00]" />
+                      </div>
+                      <p className="font-semibold text-[#111827]">No interviews found</p>
+                      <p className="mt-1 text-sm text-[#64748B]">Try adjusting search or filters.</p>
+                    </TableCell>
+                  </TableRow>
                 ) : rows.map((row: any) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-medium">
+                  <TableRow key={row.id} className="border-[#E2E8F0] hover:bg-[#FFF7ED]/40">
+                    <TableCell className="font-medium text-[#111827]">
                       {row.application?.candidate?.firstName} {row.application?.candidate?.lastName}
                     </TableCell>
-                    <TableCell>{row.application?.job?.title}</TableCell>
-                    <TableCell>{row.application?.job?.department?.name}</TableCell>
-                    <TableCell>{row.interviewType?.name ?? row.title}</TableCell>
-                    <TableCell>{row.round}</TableCell>
-                    <TableCell className="text-xs">
+                    <TableCell className="text-[#111827]">{row.application?.job?.title}</TableCell>
+                    <TableCell className="text-[#64748B]">{row.application?.job?.department?.name}</TableCell>
+                    <TableCell className="text-[#64748B]">{row.interviewType?.name ?? row.title}</TableCell>
+                    <TableCell className="text-[#111827]">{row.round}</TableCell>
+                    <TableCell className="text-xs text-[#64748B]">
                       {row.mode === 'IN_PERSON' ? 'In person' : 'Video'}
                     </TableCell>
-                    <TableCell className="text-xs">
+                    <TableCell className="text-xs text-[#64748B]">
                       {row.interviewersList?.length
                         ? row.interviewersList.map((i: any) => `${i.user.firstName} ${i.user.lastName}`).join(', ')
                         : '—'}
                     </TableCell>
-                    <TableCell className="text-xs">{row.scheduledAt ? format(new Date(row.scheduledAt), 'PPp') : '—'}</TableCell>
-                    <TableCell><StatusBadge status={row.status} /></TableCell>
-                    <TableCell className="max-w-[160px] truncate text-xs">{row.notes ?? '—'}</TableCell>
+                    <TableCell className="text-xs text-[#64748B]">{row.scheduledAt ? format(new Date(row.scheduledAt), 'PPp') : '—'}</TableCell>
+                    <TableCell><StatusBadge status={row.status} className="rounded-full" /></TableCell>
+                    <TableCell className="max-w-[160px] truncate text-xs text-[#64748B]">{row.notes ?? '—'}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         {row.mode !== 'IN_PERSON' && (row.meetingToken || row.meetingLink) && (
-                          <Button size="sm" variant="outline" asChild>
+                          <Button size="icon" variant="ghost" title="Join video call" aria-label="Join video call" className="h-8 w-8 text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#FF6B00]" asChild>
                             <a
                               href={row.meetingToken ? `/interview/call/${row.meetingToken}?as=hr` : row.meetingLink}
                               target="_blank"
                               rel="noreferrer"
                             >
-                              <Video className="h-3 w-3 mr-1" /> Join
+                              <Video className="h-4 w-4" />
                             </a>
                           </Button>
                         )}
                         {row.status === 'SCHEDULED' && (
                           <>
-                            <Button size="sm" variant="outline" onClick={() => statusMutation.mutate({ id: row.id, status: 'COMPLETED' })}>Complete</Button>
-                            <Button size="sm" variant="ghost" onClick={() => statusMutation.mutate({ id: row.id, status: 'RESCHEDULED' })}>
-                              <RotateCcw className="h-3 w-3" />
+                            <Button size="icon" variant="ghost" title="Complete" aria-label="Mark interview complete" className="h-8 w-8 text-[#64748B] hover:bg-[#F0FDF4] hover:text-green-700" onClick={() => statusMutation.mutate({ id: row.id, status: 'COMPLETED' })}>
+                              <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" title="Reschedule" aria-label="Mark interview rescheduled" className="h-8 w-8 text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#FF6B00]" onClick={() => statusMutation.mutate({ id: row.id, status: 'RESCHEDULED' })}>
+                              <RotateCcw className="h-4 w-4" />
                             </Button>
                           </>
                         )}

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Eye, FileText, Briefcase, Clock, Mail, Filter, X } from 'lucide-react';
+import { Search, Eye, FileText, Briefcase, Clock, Mail, Filter, X, Users } from 'lucide-react';
 
 type DraftFilters = {
   experienceRange: string;
@@ -219,44 +219,46 @@ export default function CandidatesPage() {
     }));
   };
 
-  const selectClass = 'h-9 w-full rounded-md border border-input bg-background px-3 text-sm';
-  const labelClass = 'text-xs text-muted-foreground mb-1 block';
+  const selectClass = 'h-10 w-full rounded-xl border border-[#E2E8F0] bg-white px-3 text-sm text-[#111827] focus:border-[#FF6B00] focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/25';
+  const labelClass = 'mb-1 block text-xs font-medium text-[#64748B]';
+  const fieldClass = 'h-10 rounded-xl border-[#E2E8F0] bg-white text-[#111827] placeholder:text-[#94A3B8] focus-visible:border-[#FF6B00] focus-visible:ring-[#FF6B00]/25 focus-visible:ring-offset-0';
+  const cardClass = 'rounded-xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]';
 
   const skillName = (id: string) => skills.find((s) => s.id === id)?.name ?? id;
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Candidates</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="text-2xl font-bold tracking-tight text-[#111827]">Candidates</h1>
+        <p className="mt-1 text-sm text-[#64748B]">
           {hasFilters
             ? `${data?.total ?? 0} candidate${(data?.total ?? 0) === 1 ? '' : 's'} found`
             : `${data?.total ?? 0} total candidates`}
         </p>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="relative max-w-full sm:max-w-sm">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748B]" />
         <Input
           placeholder="Search by name, email, company..."
-          className="pl-9"
+          className={`pl-9 ${fieldClass}`}
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
         />
       </div>
 
-      <Card>
+      <Card className={cardClass}>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Filter className="h-4 w-4" />
+          <CardTitle className="flex items-center gap-2 text-base text-[#111827]">
+            <Filter className="h-4 w-4 text-[#FF6B00]" />
             Filters
             {activeFilterCount > 0 && (
-              <Badge variant="secondary">{activeFilterCount}</Badge>
+              <span className="rounded-full bg-[#FFF7ED] px-2 py-0.5 text-xs font-medium text-[#FF6B00]">{activeFilterCount}</span>
             )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <label className={labelClass}>Experience</label>
               <select
@@ -291,6 +293,7 @@ export default function CandidatesPage() {
                 type="number"
                 min={0}
                 placeholder="e.g. 500000"
+                className={fieldClass}
                 value={draft.salaryMin}
                 onChange={(e) => updateDraft('salaryMin', e.target.value)}
               />
@@ -302,6 +305,7 @@ export default function CandidatesPage() {
                 type="number"
                 min={0}
                 placeholder="e.g. 1000000"
+                className={fieldClass}
                 value={draft.salaryMax}
                 onChange={(e) => updateDraft('salaryMax', e.target.value)}
               />
@@ -325,6 +329,7 @@ export default function CandidatesPage() {
               <label className={labelClass}>Application From</label>
               <Input
                 type="date"
+                className={fieldClass}
                 value={draft.applicationFrom}
                 onChange={(e) => updateDraft('applicationFrom', e.target.value)}
               />
@@ -334,6 +339,7 @@ export default function CandidatesPage() {
               <label className={labelClass}>Application To</label>
               <Input
                 type="date"
+                className={fieldClass}
                 value={draft.applicationTo}
                 onChange={(e) => updateDraft('applicationTo', e.target.value)}
               />
@@ -343,6 +349,7 @@ export default function CandidatesPage() {
               <label className={labelClass}>Past Company</label>
               <Input
                 placeholder="e.g. IBM"
+                className={fieldClass}
                 value={draft.pastCompany}
                 onChange={(e) => updateDraft('pastCompany', e.target.value)}
               />
@@ -352,20 +359,22 @@ export default function CandidatesPage() {
           <div className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <label className={labelClass + ' mb-0'}>Skills</label>
-              <div className="flex items-center gap-3 text-xs">
-                <label className="flex items-center gap-1.5 cursor-pointer">
+              <div className="flex items-center gap-3 text-xs text-[#111827]">
+                <label className="flex cursor-pointer items-center gap-1.5">
                   <input
                     type="radio"
                     name="skillMatchMode"
+                    className="accent-[#FF6B00]"
                     checked={draft.skillMatchMode === 'ALL'}
                     onChange={() => updateDraft('skillMatchMode', 'ALL')}
                   />
                   Match ALL selected skills
                 </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
+                <label className="flex cursor-pointer items-center gap-1.5">
                   <input
                     type="radio"
                     name="skillMatchMode"
+                    className="accent-[#FF6B00]"
                     checked={draft.skillMatchMode === 'ANY'}
                     onChange={() => updateDraft('skillMatchMode', 'ANY')}
                   />
@@ -373,9 +382,9 @@ export default function CandidatesPage() {
                 </label>
               </div>
             </div>
-            <div className="max-h-32 overflow-y-auto rounded-md border p-2 flex flex-wrap gap-2">
+            <div className="flex max-h-32 flex-wrap gap-2 overflow-y-auto rounded-xl border border-[#E2E8F0] p-2">
               {skills.length === 0 ? (
-                <p className="text-xs text-muted-foreground px-1 py-1">No skills available in master data.</p>
+                <p className="px-1 py-1 text-xs text-[#64748B]">No skills available in master data.</p>
               ) : (
                 skills.map((s) => {
                   const selected = draft.skillIds.includes(s.id);
@@ -384,10 +393,10 @@ export default function CandidatesPage() {
                       key={s.id}
                       type="button"
                       onClick={() => toggleSkill(s.id)}
-                      className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                      className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${
                         selected
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-background text-muted-foreground hover:bg-muted'
+                          ? 'border-[#FF6B00] bg-[#FF6B00] text-white'
+                          : 'border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#FF6B00] hover:bg-[#FFF7ED] hover:text-[#FF6B00]'
                       }`}
                     >
                       {s.name}
@@ -401,7 +410,7 @@ export default function CandidatesPage() {
           {hasFilters && (
             <div className="flex flex-wrap gap-2">
               {applied.experienceRange && (
-                <Badge variant="secondary" className="gap-1">
+                <Badge variant="secondary" className="gap-1 rounded-full bg-[#FFF7ED] text-[#FF6B00] hover:bg-[#FFF7ED]">
                   Experience: {EXPERIENCE_OPTIONS.find((o) => o.value === applied.experienceRange)?.label}
                   <button type="button" onClick={() => removeChip('experienceRange')} aria-label="Remove experience filter">
                     <X className="h-3 w-3" />
@@ -409,7 +418,7 @@ export default function CandidatesPage() {
                 </Badge>
               )}
               {applied.noticeRange && (
-                <Badge variant="secondary" className="gap-1">
+                <Badge variant="secondary" className="gap-1 rounded-full bg-[#FFF7ED] text-[#FF6B00] hover:bg-[#FFF7ED]">
                   Notice: {NOTICE_OPTIONS.find((o) => o.value === applied.noticeRange)?.label}
                   <button type="button" onClick={() => removeChip('noticeRange')} aria-label="Remove notice filter">
                     <X className="h-3 w-3" />
@@ -417,7 +426,7 @@ export default function CandidatesPage() {
                 </Badge>
               )}
               {(applied.salaryMin || applied.salaryMax) && (
-                <Badge variant="secondary" className="gap-1">
+                <Badge variant="secondary" className="gap-1 rounded-full bg-[#FFF7ED] text-[#FF6B00] hover:bg-[#FFF7ED]">
                   Salary: {applied.salaryMin ? `₹${Number(applied.salaryMin).toLocaleString('en-IN')}` : '—'}
                   {' – '}
                   {applied.salaryMax ? `₹${Number(applied.salaryMax).toLocaleString('en-IN')}` : '—'}
@@ -427,7 +436,7 @@ export default function CandidatesPage() {
                 </Badge>
               )}
               {applied.designation && (
-                <Badge variant="secondary" className="gap-1">
+                <Badge variant="secondary" className="gap-1 rounded-full bg-[#FFF7ED] text-[#FF6B00] hover:bg-[#FFF7ED]">
                   Designation: {applied.designation}
                   <button type="button" onClick={() => removeChip('designation')} aria-label="Remove designation filter">
                     <X className="h-3 w-3" />
@@ -435,7 +444,7 @@ export default function CandidatesPage() {
                 </Badge>
               )}
               {(applied.applicationFrom || applied.applicationTo) && (
-                <Badge variant="secondary" className="gap-1">
+                <Badge variant="secondary" className="gap-1 rounded-full bg-[#FFF7ED] text-[#FF6B00] hover:bg-[#FFF7ED]">
                   Applied: {applied.applicationFrom || '…'} → {applied.applicationTo || '…'}
                   <button type="button" onClick={() => removeChip('applicationDate')} aria-label="Remove date filter">
                     <X className="h-3 w-3" />
@@ -443,7 +452,7 @@ export default function CandidatesPage() {
                 </Badge>
               )}
               {applied.pastCompany && (
-                <Badge variant="secondary" className="gap-1">
+                <Badge variant="secondary" className="gap-1 rounded-full bg-[#FFF7ED] text-[#FF6B00] hover:bg-[#FFF7ED]">
                   Past Company: {applied.pastCompany}
                   <button type="button" onClick={() => removeChip('pastCompany')} aria-label="Remove company filter">
                     <X className="h-3 w-3" />
@@ -451,7 +460,7 @@ export default function CandidatesPage() {
                 </Badge>
               )}
               {applied.skillIds.length > 0 && (
-                <Badge variant="secondary" className="gap-1">
+                <Badge variant="secondary" className="gap-1 rounded-full bg-[#FFF7ED] text-[#FF6B00] hover:bg-[#FFF7ED]">
                   Skills ({applied.skillMatchMode}): {applied.skillIds.map(skillName).join(', ')}
                   <button type="button" onClick={() => removeChip('skills')} aria-label="Remove skills filter">
                     <X className="h-3 w-3" />
@@ -462,10 +471,10 @@ export default function CandidatesPage() {
           )}
 
           <div className="flex flex-wrap gap-2">
-            <Button type="button" onClick={applyFilters}>
+            <Button type="button" className="h-10 rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000]" onClick={applyFilters}>
               Apply Filters
             </Button>
-            <Button type="button" variant="outline" onClick={clearFilters} disabled={!hasFilters && !draft.experienceRange && !draft.noticeRange && !draft.salaryMin && !draft.salaryMax && !draft.designation && !draft.applicationFrom && !draft.applicationTo && !draft.pastCompany && draft.skillIds.length === 0}>
+            <Button type="button" variant="outline" className="h-10 rounded-xl border-[#E2E8F0]" onClick={clearFilters} disabled={!hasFilters && !draft.experienceRange && !draft.noticeRange && !draft.salaryMin && !draft.salaryMax && !draft.designation && !draft.applicationFrom && !draft.applicationTo && !draft.pastCompany && draft.skillIds.length === 0}>
               Clear Filters
             </Button>
           </div>
@@ -473,21 +482,23 @@ export default function CandidatesPage() {
       </Card>
 
       {isLoading ? (
-        <div className="text-center py-12 text-muted-foreground">Loading...</div>
+        <div className="py-12 text-center text-sm text-[#64748B]">Loading...</div>
       ) : candidates.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center text-muted-foreground">
-            <p className="text-4xl mb-3">👤</p>
-            <p className="font-medium">
+        <Card className={cardClass}>
+          <CardContent className="py-16 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#FFF7ED]">
+              <Users className="h-5 w-5 text-[#FF6B00]" />
+            </div>
+            <p className="font-semibold text-[#111827]">
               {hasFilters ? 'No candidates match the selected filters.' : 'No candidates found'}
             </p>
-            <p className="text-sm mt-1">
+            <p className="mt-1 text-sm text-[#64748B]">
               {hasFilters
                 ? 'Try adjusting or clearing filters to see more results.'
                 : 'Candidates appear here when they apply through the career portal.'}
             </p>
             {hasFilters && (
-              <Button type="button" variant="outline" className="mt-4" onClick={clearFilters}>
+              <Button type="button" variant="outline" className="mt-4 rounded-xl border-[#E2E8F0]" onClick={clearFilters}>
                 Clear Filters
               </Button>
             )}
@@ -497,21 +508,23 @@ export default function CandidatesPage() {
         <>
           <div className="space-y-3">
             {candidates.map((c) => (
-              <Card key={c.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="pt-4 pb-4">
+              <Card key={c.id} className={`${cardClass} transition-shadow hover:shadow-md`}>
+                <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold">{c.firstName} {c.lastName}</h3>
-                        <Badge variant="outline">{c._count.applications} application{c._count.applications !== 1 ? 's' : ''}</Badge>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-semibold text-[#111827]">{c.firstName} {c.lastName}</h3>
+                        <span className="rounded-full border border-[#E2E8F0] bg-white px-2.5 py-0.5 text-xs text-[#64748B]">
+                          {c._count.applications} application{c._count.applications !== 1 ? 's' : ''}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-4 mt-1.5 text-sm text-muted-foreground flex-wrap">
-                        <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {c.email}</span>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[#64748B]">
+                        <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" /> {c.email}</span>
                         {c.currentCompany && (
-                          <span className="flex items-center gap-1"><Briefcase className="h-3 w-3" /> {c.currentDesignation ? `${c.currentDesignation} @ ` : ''}{c.currentCompany}</span>
+                          <span className="flex items-center gap-1"><Briefcase className="h-3.5 w-3.5" /> {c.currentDesignation ? `${c.currentDesignation} @ ` : ''}{c.currentCompany}</span>
                         )}
                         {c.totalExperience != null && (
-                          <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {c.totalExperience}y exp</span>
+                          <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {c.totalExperience}y exp</span>
                         )}
                         {c.noticePeriodDays != null && (
                           <span>{c.noticePeriodDays}d notice</span>
@@ -519,15 +532,15 @@ export default function CandidatesPage() {
                         {c.source && <span>via {c.source.name}</span>}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex shrink-0 items-center gap-1">
                       {c.resumeUrl && (
-                        <Button variant="ghost" size="icon" title="View Resume" asChild>
+                        <Button variant="ghost" size="icon" title="View Resume" className="h-9 w-9 text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#FF6B00]" asChild>
                           <a href={c.resumeUrl} target="_blank" rel="noreferrer">
                             <FileText className="h-4 w-4" />
                           </a>
                         </Button>
                       )}
-                      <Button variant="ghost" size="icon" asChild>
+                      <Button variant="ghost" size="icon" title="View" className="h-9 w-9 text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#FF6B00]" asChild>
                         <Link to={`/candidates/${c.id}`}><Eye className="h-4 w-4" /></Link>
                       </Button>
                     </div>
@@ -539,9 +552,9 @@ export default function CandidatesPage() {
 
           {data && data.totalPages > 1 && (
             <div className="flex items-center justify-center gap-2">
-              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-              <span className="text-sm text-muted-foreground">Page {page} of {data.totalPages}</span>
-              <Button variant="outline" size="sm" disabled={page === data.totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
+              <Button variant="outline" size="sm" className="rounded-xl border-[#E2E8F0]" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+              <span className="text-sm text-[#64748B]">Page {page} of {data.totalPages}</span>
+              <Button variant="outline" size="sm" className="rounded-xl border-[#E2E8F0]" disabled={page === data.totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
             </div>
           )}
         </>
