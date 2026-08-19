@@ -1,6 +1,5 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { LogOut, Menu, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useCandidateAuth } from '@/contexts/CandidateAuthContext';
 
 export default function CareerLayout() {
@@ -14,49 +13,55 @@ export default function CareerLayout() {
 
   return (
     <div className="career-theme dark min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#090909]/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-5 lg:px-8">
-          <Link to="/careers" className="block" aria-label="SRJ Careers home">
+      {/* WHITE navigation bar */}
+      <header className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+        <div className="mx-auto flex h-[84px] max-w-7xl items-center justify-between px-5 lg:px-8">
+          {/* Logo */}
+          <Link to="/careers" className="block shrink-0" aria-label="SRJ Careers home">
             <img
-              src="/career-assets/srj-logo.png"
-              alt="SRJ — TMT, HR Coil and Pipes"
+              src="/career-assets/srj-logo-dark.png"
+              alt="SRJ — World of Steel"
               className="h-14 w-auto object-contain"
             />
           </Link>
-          <nav className="hidden items-center gap-5 sm:flex">
-            <Link to="/careers/jobs" className="text-sm font-medium text-zinc-300 transition-colors hover:text-[#f97316]">
+
+          {/* Desktop nav */}
+          <nav className="hidden items-center gap-6 sm:flex">
+            <Link
+              to="/careers/jobs"
+              className="text-[15px] font-medium text-[#111827] transition-colors duration-150 hover:text-[#F97316]"
+            >
               Browse Jobs
             </Link>
+
             {isAuthenticated ? (
               <>
-                <span className="flex items-center gap-1.5 text-sm text-zinc-400">
+                <span className="flex items-center gap-1.5 text-[15px] font-medium text-[#475569]">
                   <User className="h-4 w-4" />
                   {candidate?.firstName}
                 </span>
-                <Button variant="outline" size="sm" className="border-[#f97316]/50 bg-transparent hover:bg-[#f97316]/10" onClick={handleLogout}>
-                  <LogOut className="h-4 w-4 mr-1" />
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="inline-flex h-[42px] items-center gap-1.5 rounded-[8px] border border-[#F97316] bg-white px-5 text-[15px] font-medium text-[#111827] transition-colors duration-150 hover:bg-[#FFF7ED] hover:text-[#F97316]"
+                >
+                  <LogOut className="h-4 w-4" />
                   Log out
-                </Button>
+                </button>
               </>
             ) : (
-              <>
-                <Link to="/careers/login">
-                  <Button variant="ghost" size="sm" className="text-zinc-300 hover:bg-white/5 hover:text-white">Candidate Login</Button>
-                </Link>
-                <Link to="/careers/signup">
-                  <Button size="sm" className="bg-[#f97316] text-white hover:bg-[#ea580c]">Join Us</Button>
-                </Link>
-              </>
+              <Link
+                to="/careers/signup"
+                className="inline-flex h-[42px] items-center rounded-[8px] bg-[#F97316] px-5 text-[15px] font-semibold text-white transition-colors duration-150 hover:bg-[#EA580C]"
+              >
+                Join Us
+              </Link>
             )}
-            <Link to="/login">
-              <Button variant="outline" size="sm" className="border-[#f97316]/60 bg-transparent text-white hover:bg-[#f97316]">
-                <User className="mr-1.5 h-3.5 w-3.5" />
-                HR Login
-              </Button>
-            </Link>
           </nav>
+
+          {/* Mobile: show menu icon */}
           <Link to="/careers/jobs" className="sm:hidden" aria-label="Browse jobs">
-            <Menu className="h-6 w-6 text-zinc-200" />
+            <Menu className="h-6 w-6 text-[#111827]" />
           </Link>
         </div>
       </header>

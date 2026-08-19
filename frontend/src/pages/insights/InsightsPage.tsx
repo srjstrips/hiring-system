@@ -23,6 +23,11 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id'];
 
+const cardClass = 'rounded-xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]';
+const tableWrapClass = 'overflow-x-auto rounded-xl border border-[#E2E8F0]';
+const tableHeadClass = 'font-medium text-[#64748B]';
+const tableRowClass = 'border-[#E2E8F0] hover:bg-[#FFF7ED]/40';
+
 function asRows(value: unknown): any[] {
   if (Array.isArray(value)) return value;
   if (value && typeof value === 'object' && Array.isArray((value as any).data)) {
@@ -161,29 +166,33 @@ export default function InsightsPage() {
   const openApplication = (id: string) => navigate(`/applications/${id}`);
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Insights</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-2xl font-bold tracking-tight text-[#111827]">Insights</h1>
+        <p className="mt-1 text-sm text-[#64748B]">
           HR management analytics across hiring, onboarding, retention, and recruitment status.
         </p>
       </div>
 
-      <div className="border-b pb-2 -mx-1 px-1 overflow-x-auto">
-        <div className="flex gap-2 min-w-max">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className={cn(
-                'px-4 py-2 text-sm rounded-md font-medium transition-colors whitespace-nowrap',
-                tab === t.id ? 'bg-blue-600 text-white' : 'text-muted-foreground hover:bg-muted'
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
+      <div className="relative border-b border-[#E2E8F0] pb-0.5">
+        <div className="overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#E2E8F0]">
+          <div className="flex min-w-max gap-1 pb-2">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                className={cn(
+                  'whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+                  tab === t.id
+                    ? 'bg-[#FF6B00] text-white shadow-sm'
+                    : 'text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#111827]'
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -204,25 +213,27 @@ export default function InsightsPage() {
 
       {tab === 'hiring' && (
         <div className="space-y-6">
-          <Card>
+          <Card className={cardClass}>
             <CardHeader>
-              <CardTitle className="text-base">Month-wise Hiring</CardTitle>
+              <CardTitle className="text-base text-[#111827]">Month-wise Hiring</CardTitle>
             </CardHeader>
             <CardContent>
-              <SimpleTable
-                loading={hiring.isLoading}
-                rows={hiringRows}
-                columns={[
-                  { key: 'month', label: 'Month' },
-                  { key: 'applications', label: 'Applications' },
-                  { key: 'interviews', label: 'Interviews' },
-                  { key: 'offers', label: 'Offers' },
-                  { key: 'joining', label: 'Joining' },
-                ]}
-              />
+              <div className={tableWrapClass}>
+                <SimpleTable
+                  loading={hiring.isLoading}
+                  rows={hiringRows}
+                  columns={[
+                    { key: 'month', label: 'Month' },
+                    { key: 'applications', label: 'Applications' },
+                    { key: 'interviews', label: 'Interviews' },
+                    { key: 'offers', label: 'Offers' },
+                    { key: 'joining', label: 'Joining' },
+                  ]}
+                />
+              </div>
             </CardContent>
           </Card>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
             <BreakdownCard title="Department-wise" loading={byDept.isLoading} rows={deptRows} />
             <BreakdownCard title="Position-wise" loading={byPos.isLoading} rows={posRows} />
             <BreakdownCard title="Recruiter-wise" loading={byRec.isLoading} rows={recRows} />
@@ -231,35 +242,37 @@ export default function InsightsPage() {
       )}
 
       {tab === 'onboarding' && (
-        <Card>
+        <Card className={cardClass}>
           <CardHeader>
-            <CardTitle className="text-base">Onboarding Analytics</CardTitle>
+            <CardTitle className="text-base text-[#111827]">Onboarding Analytics</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <SummaryCards summary={onboardingSummary} />
-            <SimpleTable
-              loading={onboarding.isLoading}
-              rows={onboardingRows}
-              columns={[
-                { key: 'month', label: 'Month' },
-                { key: 'offerAccepted', label: 'Offer Accepted' },
-                { key: 'offerDeclined', label: 'Offer Declined' },
-                { key: 'joined', label: 'Joined' },
-                { key: 'notJoined', label: 'Not Joined' },
-              ]}
-            />
+            <div className={tableWrapClass}>
+              <SimpleTable
+                loading={onboarding.isLoading}
+                rows={onboardingRows}
+                columns={[
+                  { key: 'month', label: 'Month' },
+                  { key: 'offerAccepted', label: 'Offer Accepted' },
+                  { key: 'offerDeclined', label: 'Offer Declined' },
+                  { key: 'joined', label: 'Joined' },
+                  { key: 'notJoined', label: 'Not Joined' },
+                ]}
+              />
+            </div>
           </CardContent>
         </Card>
       )}
 
       {tab === 'retention' && (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Retention Overview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SummaryCards summary={retentionSummary} className="mb-4" />
+        <Card className={cardClass}>
+          <CardHeader>
+            <CardTitle className="text-base text-[#111827]">Retention Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SummaryCards summary={retentionSummary} className="mb-4" />
+            <div className={tableWrapClass}>
               <SimpleTable
                 loading={retention.isLoading}
                 rows={retentionRows}
@@ -271,76 +284,78 @@ export default function InsightsPage() {
                   { key: 'retentionPct', label: 'Retention %' },
                 ]}
               />
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {tab === 'notice' && (
-        <Card>
+        <Card className={cardClass}>
           <CardHeader>
-            <CardTitle className="text-base">Notice Period Analytics</CardTitle>
+            <CardTitle className="text-base text-[#111827]">Notice Period Analytics</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <SummaryCards summary={noticeSummary} cols={3} />
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Designation</TableHead>
-                  <TableHead>Notice Start</TableHead>
-                  <TableHead>Notice End</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Reason</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {notice.isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      Loading...
-                    </TableCell>
+            <div className={tableWrapClass}>
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-[#E2E8F0] bg-[#F8FAFC] hover:bg-[#F8FAFC]">
+                    <TableHead className={tableHeadClass}>Employee</TableHead>
+                    <TableHead className={tableHeadClass}>Department</TableHead>
+                    <TableHead className={tableHeadClass}>Designation</TableHead>
+                    <TableHead className={tableHeadClass}>Notice Start</TableHead>
+                    <TableHead className={tableHeadClass}>Notice End</TableHead>
+                    <TableHead className={tableHeadClass}>Status</TableHead>
+                    <TableHead className={tableHeadClass}>Reason</TableHead>
                   </TableRow>
-                ) : noticeRows.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No records found for the selected filters.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  noticeRows.map((row: any) => (
-                    <TableRow key={row.id}>
-                      <TableCell>
-                        {row.candidate
-                          ? `${row.candidate.firstName} ${row.candidate.lastName}`
-                          : row.employeeCode ?? '—'}
+                </TableHeader>
+                <TableBody>
+                  {notice.isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-10 text-center text-sm text-[#64748B]">
+                        Loading...
                       </TableCell>
-                      <TableCell>{row.department?.name}</TableCell>
-                      <TableCell>{row.designation?.name}</TableCell>
-                      <TableCell className="text-xs">
-                        {row.noticeStartDate?.slice?.(0, 10) ?? '—'}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {row.noticeEndDate?.slice?.(0, 10) ?? '—'}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={row.noticeStatus ?? row.status} />
-                      </TableCell>
-                      <TableCell className="text-xs">{row.exitReason ?? '—'}</TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : noticeRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-10 text-center text-sm text-[#64748B]">
+                        No records found for the selected filters.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    noticeRows.map((row: any) => (
+                      <TableRow key={row.id} className={tableRowClass}>
+                        <TableCell className="text-[#111827]">
+                          {row.candidate
+                            ? `${row.candidate.firstName} ${row.candidate.lastName}`
+                            : row.employeeCode ?? '—'}
+                        </TableCell>
+                        <TableCell className="text-[#64748B]">{row.department?.name}</TableCell>
+                        <TableCell className="text-[#64748B]">{row.designation?.name}</TableCell>
+                        <TableCell className="text-xs text-[#64748B]">
+                          {row.noticeStartDate?.slice?.(0, 10) ?? '—'}
+                        </TableCell>
+                        <TableCell className="text-xs text-[#64748B]">
+                          {row.noticeEndDate?.slice?.(0, 10) ?? '—'}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={row.noticeStatus ?? row.status} className="rounded-full" />
+                        </TableCell>
+                        <TableCell className="text-xs text-[#64748B]">{row.exitReason ?? '—'}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}
 
       {tab === 'inProgress' && (
-        <Card>
+        <Card className={cardClass}>
           <CardHeader>
-            <CardTitle className="text-base">In Progress Analytics</CardTitle>
+            <CardTitle className="text-base text-[#111827]">In Progress Analytics</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <SummaryCards
@@ -355,28 +370,30 @@ export default function InsightsPage() {
               }}
               cols={6}
             />
-            <InsightTable
-              loading={inProgress.isLoading}
-              rows={asRows(inProgressPayload.data)}
-              columns={[
-                { key: 'candidate', label: 'Candidate' },
-                { key: 'department', label: 'Department' },
-                { key: 'designation', label: 'Designation' },
-                { key: 'currentStage', label: 'Current Stage' },
-                { key: 'appliedDate', label: 'Applied Date', format: 'date' },
-                { key: 'daysInProcess', label: 'Days in Process', format: 'days' },
-                { key: 'assignedHr', label: 'Assigned HR / Recruiter' },
-              ]}
-              onRowClick={(row) => openApplication(row.id)}
-            />
+            <div className={tableWrapClass}>
+              <InsightTable
+                loading={inProgress.isLoading}
+                rows={asRows(inProgressPayload.data)}
+                columns={[
+                  { key: 'candidate', label: 'Candidate' },
+                  { key: 'department', label: 'Department' },
+                  { key: 'designation', label: 'Designation' },
+                  { key: 'currentStage', label: 'Current Stage' },
+                  { key: 'appliedDate', label: 'Applied Date', format: 'date' },
+                  { key: 'daysInProcess', label: 'Days in Process', format: 'days' },
+                  { key: 'assignedHr', label: 'Assigned HR / Recruiter' },
+                ]}
+                onRowClick={(row) => openApplication(row.id)}
+              />
+            </div>
           </CardContent>
         </Card>
       )}
 
       {tab === 'backedOut' && (
-        <Card>
+        <Card className={cardClass}>
           <CardHeader>
-            <CardTitle className="text-base">Backed Out Analytics</CardTitle>
+            <CardTitle className="text-base text-[#111827]">Backed Out Analytics</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <SummaryCards
@@ -389,27 +406,29 @@ export default function InsightsPage() {
               }}
               cols={4}
             />
-            <InsightTable
-              loading={backedOut.isLoading}
-              rows={asRows(backedOutPayload.data)}
-              columns={[
-                { key: 'candidate', label: 'Candidate' },
-                { key: 'department', label: 'Department' },
-                { key: 'designation', label: 'Designation' },
-                { key: 'lastStage', label: 'Last Stage' },
-                { key: 'backedOutDate', label: 'Backed Out Date', format: 'date' },
-                { key: 'reason', label: 'Reason' },
-              ]}
-              onRowClick={(row) => openApplication(row.id)}
-            />
+            <div className={tableWrapClass}>
+              <InsightTable
+                loading={backedOut.isLoading}
+                rows={asRows(backedOutPayload.data)}
+                columns={[
+                  { key: 'candidate', label: 'Candidate' },
+                  { key: 'department', label: 'Department' },
+                  { key: 'designation', label: 'Designation' },
+                  { key: 'lastStage', label: 'Last Stage' },
+                  { key: 'backedOutDate', label: 'Backed Out Date', format: 'date' },
+                  { key: 'reason', label: 'Reason' },
+                ]}
+                onRowClick={(row) => openApplication(row.id)}
+              />
+            </div>
           </CardContent>
         </Card>
       )}
 
       {tab === 'rejected' && (
-        <Card>
+        <Card className={cardClass}>
           <CardHeader>
-            <CardTitle className="text-base">Rejected Analytics</CardTitle>
+            <CardTitle className="text-base text-[#111827]">Rejected Analytics</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <SummaryCards
@@ -423,28 +442,30 @@ export default function InsightsPage() {
               }}
               cols={6}
             />
-            <InsightTable
-              loading={rejected.isLoading}
-              rows={asRows(rejectedPayload.data)}
-              columns={[
-                { key: 'candidate', label: 'Candidate' },
-                { key: 'department', label: 'Department' },
-                { key: 'designation', label: 'Designation' },
-                { key: 'rejectedAtStage', label: 'Rejected At Stage' },
-                { key: 'rejectedDate', label: 'Rejected Date', format: 'date' },
-                { key: 'rejectedBy', label: 'Rejected By' },
-                { key: 'reason', label: 'Reason' },
-              ]}
-              onRowClick={(row) => openApplication(row.id)}
-            />
+            <div className={tableWrapClass}>
+              <InsightTable
+                loading={rejected.isLoading}
+                rows={asRows(rejectedPayload.data)}
+                columns={[
+                  { key: 'candidate', label: 'Candidate' },
+                  { key: 'department', label: 'Department' },
+                  { key: 'designation', label: 'Designation' },
+                  { key: 'rejectedAtStage', label: 'Rejected At Stage' },
+                  { key: 'rejectedDate', label: 'Rejected Date', format: 'date' },
+                  { key: 'rejectedBy', label: 'Rejected By' },
+                  { key: 'reason', label: 'Reason' },
+                ]}
+                onRowClick={(row) => openApplication(row.id)}
+              />
+            </div>
           </CardContent>
         </Card>
       )}
 
       {tab === 'onHold' && (
-        <Card>
+        <Card className={cardClass}>
           <CardHeader>
-            <CardTitle className="text-base">On Hold Analytics</CardTitle>
+            <CardTitle className="text-base text-[#111827]">On Hold Analytics</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <SummaryCards
@@ -452,28 +473,30 @@ export default function InsightsPage() {
               labels={{ totalOnHold: 'Total On Hold' }}
               cols={1}
             />
-            <InsightTable
-              loading={onHold.isLoading}
-              rows={asRows(onHoldPayload.data)}
-              columns={[
-                { key: 'candidate', label: 'Candidate' },
-                { key: 'department', label: 'Department' },
-                { key: 'designation', label: 'Designation' },
-                { key: 'previousStage', label: 'Current/Previous Stage' },
-                { key: 'holdDate', label: 'Hold Date', format: 'date' },
-                { key: 'daysOnHold', label: 'Days On Hold', format: 'days' },
-                { key: 'holdReason', label: 'Hold Reason' },
-              ]}
-              onRowClick={(row) => openApplication(row.id)}
-            />
+            <div className={tableWrapClass}>
+              <InsightTable
+                loading={onHold.isLoading}
+                rows={asRows(onHoldPayload.data)}
+                columns={[
+                  { key: 'candidate', label: 'Candidate' },
+                  { key: 'department', label: 'Department' },
+                  { key: 'designation', label: 'Designation' },
+                  { key: 'previousStage', label: 'Current/Previous Stage' },
+                  { key: 'holdDate', label: 'Hold Date', format: 'date' },
+                  { key: 'daysOnHold', label: 'Days On Hold', format: 'days' },
+                  { key: 'holdReason', label: 'Hold Reason' },
+                ]}
+                onRowClick={(row) => openApplication(row.id)}
+              />
+            </div>
           </CardContent>
         </Card>
       )}
 
       {tab === 'companyLeft' && (
-        <Card>
+        <Card className={cardClass}>
           <CardHeader>
-            <CardTitle className="text-base">Company Left Analytics</CardTitle>
+            <CardTitle className="text-base text-[#111827]">Company Left Analytics</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <SummaryCards
@@ -485,20 +508,22 @@ export default function InsightsPage() {
               }}
               cols={3}
             />
-            <InsightTable
-              loading={companyLeft.isLoading}
-              rows={asRows(companyLeftPayload.data)}
-              columns={[
-                { key: 'employee', label: 'Employee' },
-                { key: 'department', label: 'Department' },
-                { key: 'designation', label: 'Designation' },
-                { key: 'joiningDate', label: 'Joining Date', format: 'date' },
-                { key: 'leavingDate', label: 'Leaving Date', format: 'date' },
-                { key: 'tenure', label: 'Tenure' },
-                { key: 'exitType', label: 'Exit Type' },
-                { key: 'reason', label: 'Reason' },
-              ]}
-            />
+            <div className={tableWrapClass}>
+              <InsightTable
+                loading={companyLeft.isLoading}
+                rows={asRows(companyLeftPayload.data)}
+                columns={[
+                  { key: 'employee', label: 'Employee' },
+                  { key: 'department', label: 'Department' },
+                  { key: 'designation', label: 'Designation' },
+                  { key: 'joiningDate', label: 'Joining Date', format: 'date' },
+                  { key: 'leavingDate', label: 'Leaving Date', format: 'date' },
+                  { key: 'tenure', label: 'Tenure' },
+                  { key: 'exitType', label: 'Exit Type' },
+                  { key: 'reason', label: 'Reason' },
+                ]}
+              />
+            </div>
           </CardContent>
         </Card>
       )}
@@ -534,9 +559,9 @@ function SummaryCards({
   return (
     <div className={cn('grid gap-3', grid, className)}>
       {entries.map(([k, v]) => (
-        <div key={k} className="rounded-lg border p-3">
-          <p className="text-xs text-muted-foreground">{labels?.[k] ?? summaryLabel(k)}</p>
-          <p className="text-xl font-bold">{String(v)}</p>
+        <div key={k} className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+          <p className="text-xs font-medium text-[#64748B]">{labels?.[k] ?? summaryLabel(k)}</p>
+          <p className="mt-1 text-2xl font-bold tracking-tight text-[#111827]">{String(v)}</p>
         </div>
       ))}
     </div>
@@ -569,22 +594,22 @@ function InsightTable({
   return (
     <Table>
       <TableHeader>
-        <TableRow>
+        <TableRow className="border-[#E2E8F0] bg-[#F8FAFC] hover:bg-[#F8FAFC]">
           {columns.map((c) => (
-            <TableHead key={c.key}>{c.label}</TableHead>
+            <TableHead key={c.key} className={tableHeadClass}>{c.label}</TableHead>
           ))}
         </TableRow>
       </TableHeader>
       <TableBody>
         {loading ? (
           <TableRow>
-            <TableCell colSpan={columns.length} className="text-center py-8 text-muted-foreground">
+            <TableCell colSpan={columns.length} className="py-10 text-center text-sm text-[#64748B]">
               Loading...
             </TableCell>
           </TableRow>
         ) : safeRows.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={columns.length} className="text-center py-8 text-muted-foreground">
+            <TableCell colSpan={columns.length} className="py-10 text-center text-sm text-[#64748B]">
               No records found for the selected filters.
             </TableCell>
           </TableRow>
@@ -592,11 +617,11 @@ function InsightTable({
           safeRows.map((row, idx) => (
             <TableRow
               key={row.id ?? idx}
-              className={onRowClick ? 'cursor-pointer hover:bg-muted/50' : undefined}
+              className={cn(tableRowClass, onRowClick && 'cursor-pointer')}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
             >
               {columns.map((c) => (
-                <TableCell key={c.key}>{renderCell(row, c)}</TableCell>
+                <TableCell key={c.key} className="text-sm text-[#111827]">{renderCell(row, c)}</TableCell>
               ))}
             </TableRow>
           ))
@@ -616,9 +641,9 @@ function BreakdownCard({
   rows: any[];
 }) {
   return (
-    <Card>
+    <Card className={cardClass}>
       <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
+        <CardTitle className="text-base text-[#111827]">{title}</CardTitle>
       </CardHeader>
       <CardContent>
         <SimpleTable
@@ -648,30 +673,30 @@ function SimpleTable({
   return (
     <Table>
       <TableHeader>
-        <TableRow>
+        <TableRow className="border-[#E2E8F0] bg-[#F8FAFC] hover:bg-[#F8FAFC]">
           {columns.map((c) => (
-            <TableHead key={c.key}>{c.label}</TableHead>
+            <TableHead key={c.key} className={tableHeadClass}>{c.label}</TableHead>
           ))}
         </TableRow>
       </TableHeader>
       <TableBody>
         {loading ? (
           <TableRow>
-            <TableCell colSpan={columns.length} className="text-center py-8 text-muted-foreground">
+            <TableCell colSpan={columns.length} className="py-10 text-center text-sm text-[#64748B]">
               Loading...
             </TableCell>
           </TableRow>
         ) : safeRows.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={columns.length} className="text-center py-8 text-muted-foreground">
+            <TableCell colSpan={columns.length} className="py-10 text-center text-sm text-[#64748B]">
               No records found for the selected filters.
             </TableCell>
           </TableRow>
         ) : (
           safeRows.map((row, idx) => (
-            <TableRow key={row.id ?? row.key ?? row.month ?? row.name ?? idx}>
+            <TableRow key={row.id ?? row.key ?? row.month ?? row.name ?? idx} className={tableRowClass}>
               {columns.map((c) => (
-                <TableCell key={c.key}>
+                <TableCell key={c.key} className="text-sm text-[#111827]">
                   {row[c.key] ?? (c.key === 'name' ? row.key : undefined) ?? '—'}
                 </TableCell>
               ))}

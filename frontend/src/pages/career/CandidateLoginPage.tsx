@@ -8,7 +8,7 @@ import { useCandidateAuth } from '@/contexts/CandidateAuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from '@/hooks/useToast';
 
 const schema = z.object({
@@ -35,23 +35,21 @@ export default function CandidateLoginPage() {
     try {
       await login(values.email, values.password);
       navigate(redirect);
-    } catch (err: any) {
+    } catch {
       toast({
         title: 'Login failed',
-        description: err.response?.data?.message ?? 'Invalid email or password',
+        description: 'Invalid email or password',
         variant: 'destructive',
       });
     }
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-16">
-      <Card>
-        <CardHeader className="space-y-1 pb-4">
-          <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
-          <CardDescription className="text-center">
-            Log in to apply for jobs and track your applications
-          </CardDescription>
+    <div className="flex min-h-[calc(100vh-180px)] items-center justify-center bg-[#F7F9FC] px-4 py-16">
+      <Card className="w-full max-w-[420px] border border-[#E5E7EB] shadow-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">Candidate Login</CardTitle>
+          <CardDescription>Sign in to your candidate account</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -75,6 +73,7 @@ export default function CandidateLoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   autoComplete="current-password"
+                  className="pr-10"
                   {...register('password')}
                 />
                 <button
@@ -88,16 +87,20 @@ export default function CandidateLoginPage() {
               {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
             </div>
 
-            <Button type="submit" className="w-full" loading={isSubmitting}>
-              Log In
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-[#F97316] text-white hover:bg-[#EA580C]"
+            >
+              {isSubmitting ? 'Logging in...' : 'Log In'}
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
+          <p className="mt-4 text-center text-sm text-muted-foreground">
             Don't have an account?{' '}
             <Link
               to={`/careers/signup?redirect=${encodeURIComponent(redirect)}`}
-              className="text-primary font-medium hover:underline"
+              className="font-medium text-[#F97316] hover:underline"
             >
               Sign up
             </Link>

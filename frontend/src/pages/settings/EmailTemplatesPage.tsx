@@ -1,10 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { emailTemplatesApi, type EmailTemplate } from '@/api/email-templates';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/useToast';
 import { Plus, Pencil, Trash2, X, Info } from 'lucide-react';
 
@@ -18,6 +14,12 @@ const PLACEHOLDERS = [
 const CATEGORIES = ['GENERAL', 'SHORTLISTED', 'INTERVIEW', 'OFFER', 'REJECTED', 'ONBOARDING'];
 
 const emptyForm = { name: '', subject: '', body: '', category: '', description: '' };
+
+const inputCls =
+  'h-[44px] w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-sm text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20';
+const selectCls =
+  'h-[44px] w-full rounded-[8px] border border-[#E5E7EB] bg-white px-3 text-sm text-[#0F172A] outline-none focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20';
+const labelCls = 'mb-2 block text-sm font-medium text-[#334155]';
 
 export default function EmailTemplatesPage() {
   const queryClient = useQueryClient();
@@ -33,40 +35,22 @@ export default function EmailTemplatesPage() {
 
   const createMutation = useMutation({
     mutationFn: emailTemplatesApi.create,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['email-templates'] });
-      toast({ title: 'Template created', variant: 'success' });
-      setShowForm(false);
-      setForm(emptyForm);
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['email-templates'] }); toast({ title: 'Template created', variant: 'success' }); setShowForm(false); setForm(emptyForm); },
     onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => emailTemplatesApi.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['email-templates'] });
-      toast({ title: 'Template updated', variant: 'success' });
-      setEditing(null);
-      setForm(emptyForm);
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['email-templates'] }); toast({ title: 'Template updated', variant: 'success' }); setEditing(null); setShowForm(false); setForm(emptyForm); },
     onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: emailTemplatesApi.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['email-templates'] });
-      toast({ title: 'Template deleted' });
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['email-templates'] }); toast({ title: 'Template deleted' }); },
   });
 
-  const openCreate = () => {
-    setEditing(null);
-    setForm(emptyForm);
-    setShowForm(true);
-  };
-
+  const openCreate = () => { setEditing(null); setForm(emptyForm); setShowForm(true); };
   const openEdit = (t: EmailTemplate) => {
     setEditing(t);
     setForm({ name: t.name, subject: t.subject, body: t.body, category: t.category ?? '', description: t.description ?? '' });
@@ -76,11 +60,8 @@ export default function EmailTemplatesPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const payload = { ...form, category: form.category || undefined, description: form.description || undefined };
-    if (editing) {
-      updateMutation.mutate({ id: editing.id, data: payload });
-    } else {
-      createMutation.mutate(payload as any);
-    }
+    if (editing) updateMutation.mutate({ id: editing.id, data: payload });
+    else createMutation.mutate(payload as any);
   };
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
@@ -88,132 +69,170 @@ export default function EmailTemplatesPage() {
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
-  return (
-    <div className="space-y-6 max-w-5xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Email Templates</h1>
-          <p className="text-sm text-muted-foreground">Reusable templates for candidate communication</p>
-        </div>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4 mr-2" /> New Template
-        </Button>
-      </div>
+  // scroll lock for form panel
+  useEffect(() => {
+    if (!showForm) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [showForm]);
 
-      {/* Form */}
-      {showForm && (
-        <Card>
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-base">{editing ? 'Edit Template' : 'New Template'}</CardTitle>
-            <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}><X className="h-4 w-4" /></Button>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Template Name *</label>
-                  <Input value={form.name} onChange={set('name')} placeholder="e.g. Shortlisting Email" required />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Category</label>
-                  <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.category} onChange={set('category')}>
-                    <option value="">None</option>
-                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Description</label>
-                <Input value={form.description} onChange={set('description')} placeholder="What is this template used for?" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Subject *</label>
-                <Input value={form.subject} onChange={set('subject')} placeholder="e.g. Congratulations {{candidate_name}} — Next Steps" required />
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs text-muted-foreground">Body *</label>
-                  <button type="button" className="text-xs text-blue-600 flex items-center gap-1" onClick={() => setShowPlaceholders(!showPlaceholders)}>
-                    <Info className="h-3 w-3" /> Available placeholders
-                  </button>
-                </div>
-                {showPlaceholders && (
-                  <div className="mb-2 p-3 bg-muted/50 rounded-md">
-                    <p className="text-xs text-muted-foreground mb-2">Click to copy. Paste into subject or body:</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {PLACEHOLDERS.map((p) => (
-                        <button
-                          key={p}
-                          type="button"
-                          onClick={() => { navigator.clipboard.writeText(p); toast({ title: `Copied ${p}` }); }}
-                          className="px-2 py-0.5 bg-background border rounded text-xs font-mono hover:bg-muted transition-colors"
-                        >
-                          {p}
-                        </button>
-                      ))}
-                    </div>
+  return (
+    <div className="relative bg-[#F7F9FC] px-4 pb-6 pt-6 sm:px-6 sm:pb-8 sm:pt-8 lg:px-8">
+      <div className="mx-auto w-full max-w-[1280px] space-y-6">
+
+        {/* Header */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
+            <h1 className="text-[22px] font-bold leading-tight text-[#0F172A]">Email Templates</h1>
+            <p className="text-sm text-[#64748B]">Reusable templates for candidate communication</p>
+          </div>
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex h-[44px] items-center gap-2 rounded-[8px] bg-[#F97316] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#EA580C]"
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.25} />
+            New Template
+          </button>
+        </div>
+
+        {/* Inline form card */}
+        {showForm && (
+          <div className="w-full rounded-[12px] border border-[#E5E7EB] bg-white shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] px-7 py-5">
+              <h2 className="text-[17px] font-semibold text-[#0F172A]">{editing ? 'Edit Template' : 'New Template'}</h2>
+              <button type="button" aria-label="Close" onClick={() => setShowForm(false)} className="flex h-9 w-9 items-center justify-center rounded-[8px] text-[#64748B] hover:bg-[#F1F5F9]">
+                <X className="h-[18px] w-[18px]" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="flex flex-col">
+              <div className="space-y-5 px-7 py-6">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <div>
+                    <label className={labelCls}>Template Name <span className="text-[#EF4444]">*</span></label>
+                    <input type="text" required value={form.name} onChange={set('name')} placeholder="e.g. Shortlisting Email" className={inputCls} />
                   </div>
-                )}
-                <textarea
-                  rows={10}
-                  className="w-full border rounded-md px-3 py-2 text-sm bg-background font-mono resize-y"
-                  value={form.body}
-                  onChange={set('body')}
-                  placeholder={`Dear {{candidate_name}},\n\nThank you for applying for the {{job_title}} position at {{company_name}}.\n\n...`}
-                  required
-                />
+                  <div>
+                    <label className={labelCls}>Category</label>
+                    <select value={form.category} onChange={set('category')} className={selectCls}>
+                      <option value="">None</option>
+                      {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className={labelCls}>Description</label>
+                  <input type="text" value={form.description} onChange={set('description')} placeholder="What is this template used for?" className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Subject <span className="text-[#EF4444]">*</span></label>
+                  <input type="text" required value={form.subject} onChange={set('subject')} placeholder="e.g. Congratulations {{candidate_name}} — Next Steps" className={inputCls} />
+                </div>
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <label className={labelCls + ' mb-0'}>Body <span className="text-[#EF4444]">*</span></label>
+                    <button type="button" onClick={() => setShowPlaceholders(!showPlaceholders)} className="flex items-center gap-1 text-xs font-medium text-[#F97316] hover:text-[#EA580C]">
+                      <Info className="h-3 w-3" /> Available placeholders
+                    </button>
+                  </div>
+                  {showPlaceholders && (
+                    <div className="mb-3 rounded-[8px] border border-[#E5E7EB] bg-[#F8FAFC] p-3">
+                      <p className="mb-2 text-xs text-[#64748B]">Click to copy. Paste into subject or body:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {PLACEHOLDERS.map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => { navigator.clipboard.writeText(p); toast({ title: `Copied ${p}` }); }}
+                            className="rounded-[6px] border border-[#E5E7EB] bg-white px-2 py-0.5 font-mono text-xs text-[#334155] transition-colors hover:border-[#F97316] hover:bg-[#FFF7ED] hover:text-[#EA580C]"
+                          >
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <textarea
+                    rows={10}
+                    required
+                    value={form.body}
+                    onChange={set('body')}
+                    placeholder={`Dear {{candidate_name}},\n\nThank you for applying for the {{job_title}} position at {{company_name}}.\n\n...`}
+                    className="w-full resize-y rounded-[8px] border border-[#E5E7EB] bg-white px-3 py-2.5 font-mono text-sm text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20"
+                  />
+                </div>
               </div>
-              <div className="flex gap-2 justify-end">
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-                <Button type="submit" disabled={isPending}>{isPending ? 'Saving...' : editing ? 'Update' : 'Create'}</Button>
+              <div className="flex items-center justify-between gap-4 border-t border-[#E5E7EB] px-7 py-5">
+                <button type="button" onClick={() => setShowForm(false)} className="inline-flex h-[44px] items-center justify-center rounded-[8px] border border-[#E5E7EB] bg-white px-5 text-sm font-medium text-[#111827] hover:bg-[#F8FAFC]">
+                  Cancel
+                </button>
+                <button type="submit" disabled={isPending} className="inline-flex h-[44px] items-center justify-center rounded-[8px] bg-[#F97316] px-5 text-sm font-semibold text-white hover:bg-[#EA580C] disabled:opacity-60">
+                  {isPending ? 'Saving...' : editing ? 'Update' : 'Create'}
+                </button>
               </div>
             </form>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
 
-      {/* Templates List */}
-      {isLoading ? (
-        <div className="text-center py-12 text-muted-foreground">Loading...</div>
-      ) : !data?.length ? (
-        <Card>
-          <CardContent className="py-16 text-center text-muted-foreground">
+        {/* Templates list */}
+        {isLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-[80px] animate-pulse rounded-[12px] border border-[#E5E7EB] bg-white" />
+            ))}
+          </div>
+        ) : !data?.length ? (
+          <div className="rounded-[12px] border border-[#E5E7EB] bg-white px-6 py-16 text-center shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
             <p className="text-4xl mb-3">✉️</p>
-            <p className="font-medium">No templates yet</p>
-            <p className="text-sm mt-1">Create your first email template to start communicating with candidates.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {data.map((t) => (
-            <Card key={t.id}>
-              <CardContent className="pt-4 pb-4">
+            <p className="text-sm font-semibold text-[#0F172A]">No templates yet</p>
+            <p className="mt-1 text-sm text-[#64748B]">Create your first email template to start communicating with candidates.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {data.map((t) => (
+              <div key={t.id} className="rounded-[12px] border border-[#E5E7EB] bg-white px-6 py-5 shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold">{t.name}</h3>
-                      {t.category && <Badge variant="outline">{t.category}</Badge>}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-sm font-semibold text-[#0F172A]">{t.name}</h3>
+                      {t.category && (
+                        <span className="inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-2.5 py-0.5 text-xs font-medium uppercase text-[#64748B]">
+                          {t.category}
+                        </span>
+                      )}
                     </div>
-                    {t.description && <p className="text-sm text-muted-foreground mt-0.5">{t.description}</p>}
-                    <p className="text-sm text-muted-foreground mt-1">
-                      <span className="font-medium text-foreground">Subject:</span> {t.subject}
+                    {t.description && <p className="mt-0.5 text-sm text-[#64748B]">{t.description}</p>}
+                    <p className="mt-1 text-sm text-[#64748B]">
+                      <span className="font-medium text-[#0F172A]">Subject:</span> {t.subject}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2 font-mono">{t.body}</p>
+                    <p className="mt-1 line-clamp-2 font-mono text-xs text-[#94A3B8]">{t.body}</p>
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(t)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(t.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      type="button"
+                      title="Edit"
+                      onClick={() => openEdit(t)}
+                      className="flex h-[36px] w-[36px] items-center justify-center rounded-[8px] border border-[#E5E7EB] bg-white text-[#334155] transition-colors hover:bg-[#F8FAFC]"
+                    >
+                      <Pencil className="h-[16px] w-[16px]" />
+                    </button>
+                    <button
+                      type="button"
+                      title="Delete"
+                      onClick={() => deleteMutation.mutate(t.id)}
+                      className="flex h-[36px] w-[36px] items-center justify-center rounded-[8px] border border-[#E5E7EB] bg-white text-[#EF4444] transition-colors hover:bg-[#FEF2F2] hover:text-[#DC2626]"
+                    >
+                      <Trash2 className="h-[16px] w-[16px]" />
+                    </button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+              </div>
+            ))}
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }

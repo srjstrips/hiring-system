@@ -293,6 +293,31 @@ export async function updateStatus(req: AuthRequest, res: Response, next: NextFu
       include: interviewInclude,
     });
 
+    // Add an activity timeline entry for completion/cancellation so HR can see the interview lifecycle.
+    if (body.status === 'COMPLETED' || body.status === 'CANCELLED' || body.status === 'NO_SHOW') {
+      const app = await prisma.application.findUnique({
+        where: { id: interview.applicationId },
+        select: { status: true },
+      });
+
+      if (app) {
+        await prisma.applicationTimeline.create({
+          data: {
+            applicationId: interview.applicationId,
+            fromStatus: app.status,
+            toStatus: app.status,
+            notes:
+              body.status === 'COMPLETED'
+                ? `Interview completed — ${interview.title}`
+                : body.status === 'CANCELLED'
+                  ? `Interview cancelled — ${interview.title}`
+                  : `Interview marked as no-show — ${interview.title}`,
+            createdById: req.user!.id,
+          },
+        });
+      }
+    }
+
     return ApiResponse.success(res, interview, 'Status updated');
   } catch (err) {
     next(err);

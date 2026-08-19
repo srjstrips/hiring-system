@@ -1,8 +1,24 @@
 import axios from 'axios';
 
+function getAuthToken() {
+  // Candidate tokens are stored under separate keys in the career portal.
+  // Prefer candidate token when available, otherwise fall back to staff token.
+  const candidate = localStorage.getItem('candidateAccessToken');
+  if (candidate) return candidate;
+  return localStorage.getItem('accessToken');
+}
+
 const http = axios.create({
   baseURL: (import.meta.env.VITE_API_URL ?? '/api/v1') + '/public/interviews',
   headers: { 'Content-Type': 'application/json' },
+});
+
+http.interceptors.request.use((config) => {
+  const token = getAuthToken();
+  if (token && config.headers) {
+    (config.headers as any).Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 export const interviewCallApi = {

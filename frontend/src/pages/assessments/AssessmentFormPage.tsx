@@ -22,6 +22,15 @@ const emptyForm = {
   status: 'DRAFT',
 };
 
+const cardClass = 'rounded-xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]';
+const fieldClass =
+  'h-10 w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[#111827] focus:border-[#FF6B00] focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/25';
+const textareaClass =
+  'w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[#111827] resize-none focus:border-[#FF6B00] focus:outline-none focus:ring-2 focus:ring-[#FF6B00]/25';
+const selectClass = fieldClass;
+const labelClass = 'mb-1.5 block text-xs font-medium text-[#64748B]';
+const errorClass = 'mt-1 text-xs text-rose-600';
+
 function toLocalInput(value?: string | null) {
   if (!value) return '';
   const d = new Date(value);
@@ -161,92 +170,128 @@ export default function AssessmentFormPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" asChild>
-          <Link to={isEdit ? `/assessments/${id}` : '/assessments'}><ArrowLeft className="h-4 w-4" /></Link>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 shrink-0 rounded-xl text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#FF6B00]"
+          asChild
+        >
+          <Link to={isEdit ? `/assessments/${id}` : '/assessments'} aria-label="Go back">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">{isEdit ? 'Edit Assessment' : 'Create Assessment'}</h1>
-          <p className="text-sm text-muted-foreground">Basic information and scheduling</p>
+          <h1 className="text-2xl font-bold tracking-tight text-[#111827]">
+            {isEdit ? 'Edit Assessment' : 'Create Assessment'}
+          </h1>
+          <p className="mt-1 text-sm text-[#64748B]">Basic information and scheduling</p>
         </div>
       </div>
 
-      <Card>
+      <Card className={cardClass}>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Basic Information</CardTitle>
+          <CardTitle className="text-base text-[#111827]">Basic Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Assessment Name *</label>
-              <Input value={form.name} onChange={set('name')} placeholder="e.g. Senior Software Engineer Assessment" />
-              {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name}</p>}
+              <label className={labelClass}>Assessment Name *</label>
+              <Input
+                className={fieldClass}
+                value={form.name}
+                onChange={set('name')}
+                placeholder="e.g. Senior Software Engineer Assessment"
+              />
+              {errors.name && <p className={errorClass}>{errors.name}</p>}
             </div>
+
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Description / Instructions</label>
+              <label className={labelClass}>Description / Instructions</label>
               <textarea
                 rows={3}
-                className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none"
+                className={textareaClass}
                 value={form.description}
                 onChange={set('description')}
                 placeholder="Instructions shown to candidates..."
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Job *</label>
-                <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.jobId} onChange={set('jobId')} required>
+                <label className={labelClass}>Job *</label>
+                <select className={selectClass} value={form.jobId} onChange={set('jobId')} required>
                   <option value="">Select job...</option>
                   {jobs?.map((j: any) => <option key={j.id} value={j.id}>{j.title}</option>)}
                 </select>
-                {errors.jobId && <p className="text-xs text-red-600 mt-1">{errors.jobId}</p>}
+                {errors.jobId && <p className={errorClass}>{errors.jobId}</p>}
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Designation</label>
-                <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.designationId} onChange={set('designationId')}>
+                <label className={labelClass}>Designation</label>
+                <select className={selectClass} value={form.designationId} onChange={set('designationId')}>
                   <option value="">Select...</option>
                   {designations?.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Duration (minutes) *</label>
-                <Input type="number" min="1" value={form.durationMins} onChange={set('durationMins')} />
-                {errors.durationMins && <p className="text-xs text-red-600 mt-1">{errors.durationMins}</p>}
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Passing Score (%) *</label>
-                <Input type="number" min="0" max="100" value={form.passingScore} onChange={set('passingScore')} />
-                {errors.passingScore && <p className="text-xs text-red-600 mt-1">{errors.passingScore}</p>}
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Maximum Attempts</label>
-                <Input type="number" min="1" value={form.maxAttempts} onChange={set('maxAttempts')} />
-                {errors.maxAttempts && <p className="text-xs text-red-600 mt-1">{errors.maxAttempts}</p>}
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Start Date</label>
-                <Input type="datetime-local" value={form.startAt} onChange={set('startAt')} />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">End Date</label>
-                <Input type="datetime-local" value={form.endAt} onChange={set('endAt')} />
-                {errors.endAt && <p className="text-xs text-red-600 mt-1">{errors.endAt}</p>}
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Status</label>
-                <select className="w-full border rounded-md px-3 py-2 text-sm bg-background" value={form.status} onChange={set('status')}>
-                  {['DRAFT', 'ACTIVE', 'CLOSED'].map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
+
+            <div>
+              <p className="mb-3 text-sm font-medium text-[#111827]">Assessment Settings</p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                  <label className={labelClass}>Duration (minutes) *</label>
+                  <Input type="number" min="1" className={fieldClass} value={form.durationMins} onChange={set('durationMins')} />
+                  {errors.durationMins && <p className={errorClass}>{errors.durationMins}</p>}
+                </div>
+                <div>
+                  <label className={labelClass}>Passing Score (%) *</label>
+                  <Input type="number" min="0" max="100" className={fieldClass} value={form.passingScore} onChange={set('passingScore')} />
+                  {errors.passingScore && <p className={errorClass}>{errors.passingScore}</p>}
+                </div>
+                <div>
+                  <label className={labelClass}>Maximum Attempts</label>
+                  <Input type="number" min="1" className={fieldClass} value={form.maxAttempts} onChange={set('maxAttempts')} />
+                  {errors.maxAttempts && <p className={errorClass}>{errors.maxAttempts}</p>}
+                </div>
               </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
-              <Button type="submit" disabled={saveMutation.isPending}>
+
+            <div>
+              <p className="mb-3 text-sm font-medium text-[#111827]">Schedule & Status</p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                  <label className={labelClass}>Start Date</label>
+                  <Input type="datetime-local" className={fieldClass} value={form.startAt} onChange={set('startAt')} />
+                </div>
+                <div>
+                  <label className={labelClass}>End Date</label>
+                  <Input type="datetime-local" className={fieldClass} value={form.endAt} onChange={set('endAt')} />
+                  {errors.endAt && <p className={errorClass}>{errors.endAt}</p>}
+                </div>
+                <div>
+                  <label className={labelClass}>Status</label>
+                  <select className={selectClass} value={form.status} onChange={set('status')}>
+                    {['DRAFT', 'ACTIVE', 'CLOSED'].map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse gap-2 border-t border-[#E2E8F0] pt-4 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 rounded-xl border-[#E2E8F0] text-[#111827] hover:bg-[#F8FAFC]"
+                onClick={() => navigate(-1)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="h-10 rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000]"
+                disabled={saveMutation.isPending}
+              >
                 {saveMutation.isPending ? 'Saving...' : isEdit ? 'Update Assessment' : 'Create Assessment'}
               </Button>
             </div>

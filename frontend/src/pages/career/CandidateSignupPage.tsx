@@ -134,7 +134,7 @@ export default function CandidateSignupPage() {
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Already have an account?{' '}
             <Link
-              to={`/careers/login?redirect=${encodeURIComponent(redirect)}`}
+              to={`/careers/choose-login?redirect=${encodeURIComponent(redirect)}`}
               className="text-primary font-medium hover:underline"
             >
               Log in

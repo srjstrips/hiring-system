@@ -42,7 +42,7 @@ export function Pagination({ pagination, onPageChange }: PaginationProps) {
               key={p}
               variant={p === page ? 'default' : 'outline'}
               size="icon"
-              className="h-8 w-8 text-sm"
+              className={`h-8 w-8 text-sm ${p === page ? 'bg-[#F97316] hover:bg-[#EA580C] border-[#F97316] text-white' : ''}`}
               onClick={() => onPageChange(p as number)}
             >
               {p}
