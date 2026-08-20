@@ -16,7 +16,7 @@ export function Header() {
   const handleLogout = async () => {
     await logout();
     toast({ title: 'Logged out', description: 'See you next time!', variant: 'default' });
-    navigate('/login');
+    navigate('/careers/login');
   };
 
   const initials = user

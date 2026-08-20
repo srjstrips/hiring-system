@@ -1,8 +1,8 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Building2, Briefcase, FileText,
-  UserCheck, Calendar, Gift, UserPlus, BarChart3, Settings,
-  ChevronDown, Layers, ClipboardList, ChevronsLeft, ChevronsRight,
+  Calendar, Gift, UserPlus, BarChart3, Settings,
+  ChevronDown, Layers, ClipboardList, ChevronsLeft,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { useAuth } from '@/contexts/AuthContext';
@@ -89,23 +89,28 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
     >
       <div
         className={cn(
-          'flex h-16 items-center border-b border-[#E2E8F0]',
-          open ? 'justify-between px-4' : 'justify-center px-2'
+          'flex h-[72px] items-center border-b border-[#E2E8F0]',
+          open ? 'justify-between gap-2 px-3' : 'justify-center px-2'
         )}
       >
         {open ? (
           <>
-            <div className="flex min-w-0 items-center gap-2">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FF6B00]">
-                <UserCheck className="h-4 w-4 text-white" />
-              </div>
-              <span className="truncate text-lg font-bold tracking-tight text-[#111827]">HireFlow</span>
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <img
+                src="/career-assets/srj-logo-dark.png"
+                alt="SRJ — World of Steel"
+                className="h-11 w-auto max-w-[88px] shrink-0 object-contain object-left"
+              />
+              <span className="h-8 w-px shrink-0 bg-[#E2E8F0]" aria-hidden />
+              <span className="truncate text-[13px] font-bold uppercase tracking-[0.06em] text-[#111827]">
+                SRJ Group
+              </span>
             </div>
             <button
               type="button"
               onClick={onToggle}
               title="Close sidebar"
-              className="rounded-full border border-[#E2E8F0] p-1.5 text-[#64748B] transition-colors hover:bg-[#FFF7ED] hover:text-[#FF6B00]"
+              className="shrink-0 rounded-full border border-[#E2E8F0] p-1.5 text-[#64748B] transition-colors hover:bg-[#FFF7ED] hover:text-[#FF6B00]"
             >
               <ChevronsLeft className="h-4 w-4" />
             </button>
@@ -115,9 +120,13 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
             type="button"
             onClick={onToggle}
             title="Open sidebar"
-            className="rounded-full border border-[#E2E8F0] p-1.5 text-[#64748B] transition-colors hover:bg-[#FFF7ED] hover:text-[#FF6B00]"
+            className="flex items-center justify-center rounded-lg p-1 transition-colors hover:bg-[#FFF7ED]"
           >
-            <ChevronsRight className="h-4 w-4" />
+            <img
+              src="/career-assets/srj-logo-dark.png"
+              alt="SRJ"
+              className="h-9 w-9 object-contain"
+            />
           </button>
         )}
       </div>
@@ -212,13 +221,18 @@ export function Sidebar({ open, onToggle }: SidebarProps) {
       <div className="border-t border-[#E2E8F0] p-3">
         <div
           className={cn(
-            'flex items-center py-2 text-xs text-[#64748B]',
+            'flex items-start py-2 text-xs text-[#64748B]',
             open ? 'gap-2 px-3' : 'justify-center'
           )}
-          title="HireFlow ATS v1.0"
+          title="SRJ Group ATS"
         >
-          <Building2 className="h-3.5 w-3.5 shrink-0 text-[#FF6B00]" />
-          {open && <span>HireFlow ATS v1.0</span>}
+          <Building2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#FF6B00]" />
+          {open && (
+            <div className="min-w-0 leading-tight">
+              <p className="font-medium text-[#475569]">SRJ Group ATS</p>
+              <p className="mt-0.5 text-[10px] text-[#94A3B8]">Powered by SRJ Group</p>
+            </div>
+          )}
         </div>
       </div>
     </aside>

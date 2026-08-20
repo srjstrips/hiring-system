@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
@@ -6,8 +6,9 @@ interface ProtectedRouteProps {
   redirectTo?: string;
 }
 
-export function ProtectedRoute({ permission, redirectTo = '/login' }: ProtectedRouteProps) {
+export function ProtectedRoute({ permission, redirectTo }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading, hasPermission } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -21,7 +22,8 @@ export function ProtectedRoute({ permission, redirectTo = '/login' }: ProtectedR
   }
 
   if (!isAuthenticated) {
-    return <Navigate to={redirectTo} replace />;
+    const redirect = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={redirectTo ?? `/careers/login?redirect=${redirect}`} replace />;
   }
 
   if (permission && !hasPermission(permission)) {

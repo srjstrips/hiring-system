@@ -1,21 +1,14 @@
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Eye, EyeOff, Lock, Mail, Briefcase } from 'lucide-react';
-import { useState } from 'react';
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useCandidateAuth } from '@/contexts/CandidateAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from '@/hooks/useToast';
 import { DoodleBackdrop } from '@/components/common/DoodleBackdrop';
 
-const schema = z.object({
-  email: z.string().email('Enter a valid email'),
-  password: z.string().min(1, 'Password is required'),
-});
-type FormValues = z.infer<typeof schema>;
+const REMEMBERED_EMAIL_KEY = 'hr_login_email';
 
 function SrjWordmark() {
   return (
@@ -28,35 +21,102 @@ function SrjWordmark() {
   );
 }
 
+function safeInternalPath(raw: string | null): string | null {
+  if (!raw) return null;
+  const path = raw.trim();
+  if (!path.startsWith('/') || path.startsWith('//') || path.includes('://')) return null;
+  return path;
+}
+
+function candidateDestination(redirect: string | null) {
+  const path = safeInternalPath(redirect);
+  if (path && path.startsWith('/careers')) return path;
+  return '/careers/jobs';
+}
+
+function hrDestination(redirect: string | null) {
+  const path = safeInternalPath(redirect);
+  if (path && !path.startsWith('/careers')) return path;
+  return '/dashboard';
+}
+
+function readRememberedEmail() {
+  try {
+    return localStorage.getItem(REMEMBERED_EMAIL_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+const inputClass =
+  'h-11 rounded-xl border-[#E2E8F0] bg-white pl-10 text-[#111827] placeholder:text-slate-400 focus-visible:border-[#FF6B00] focus-visible:ring-[#FF6B00]/25 focus-visible:ring-offset-0';
+
+/** Canonical login UI for both candidates and HR/staff. */
 export default function CandidateLoginPage() {
-  const { login } = useCandidateAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [showPassword, setShowPassword] = useState(false);
+  const redirect = searchParams.get('redirect');
 
+  const { login: hrLogin, isAuthenticated: hrAuthenticated, isLoading: hrLoading } = useAuth();
   const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+    login: candidateLogin,
+    isAuthenticated: candidateAuthenticated,
+    isLoading: candidateLoading,
+  } = useCandidateAuth();
 
-  const redirect = searchParams.get('redirect') || '/careers/jobs';
+  const rememberedEmail = readRememberedEmail();
+  const [email, setEmail] = useState(rememberedEmail);
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(Boolean(rememberedEmail));
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const onSubmit = async (values: FormValues) => {
-    try {
-      await login(values.email, values.password);
-      navigate(redirect);
-    } catch {
-      toast({
-        title: 'Login failed',
-        description: 'Invalid email or password',
-        variant: 'destructive',
-      });
+  useEffect(() => {
+    if (candidateLoading || hrLoading) return;
+    if (candidateAuthenticated) {
+      navigate(candidateDestination(redirect), { replace: true });
+      return;
     }
-  };
+    if (hrAuthenticated) {
+      navigate(hrDestination(redirect), { replace: true });
+    }
+  }, [candidateAuthenticated, candidateLoading, hrAuthenticated, hrLoading, navigate, redirect]);
 
-  const inputClass =
-    'h-11 rounded-xl border-[#E2E8F0] bg-white pl-10 text-[#111827] placeholder:text-slate-400 focus-visible:border-[#FF6B00] focus-visible:ring-[#FF6B00]/25 focus-visible:ring-offset-0';
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError('Please enter your email and password.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+
+    try {
+      if (rememberMe) localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+      else localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+    } catch {
+      /* ignore */
+    }
+
+    try {
+      await candidateLogin(email, password);
+      navigate(candidateDestination(redirect), { replace: true });
+      return;
+    } catch {
+      // not a candidate — try HR
+    }
+
+    try {
+      await hrLogin(email, password);
+      navigate(hrDestination(redirect), { replace: true });
+      return;
+    } catch {
+      setError('Invalid email or password.');
+    }
+
+    setLoading(false);
+  };
 
   return (
     <div className="relative overflow-x-hidden bg-white text-[#111827]">
@@ -72,18 +132,24 @@ export default function CandidateLoginPage() {
               Welcome <span className="text-[#FF6B00]">Back!</span>
             </h1>
             <p className="mt-3 max-w-sm rounded-lg bg-white/70 px-3 py-1 text-sm leading-relaxed text-[#64748B] backdrop-blur-[2px]">
-              Sign in to your candidate account to explore openings and track your applications.
+              Sign in to continue to your account.
             </p>
           </section>
 
           <section className="w-full">
             <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.06)] sm:p-8">
               <div className="mb-6">
-                <h2 className="text-2xl font-bold text-[#111827]">Candidate Login</h2>
+                <h2 className="text-2xl font-bold text-[#111827]">Login</h2>
                 <p className="mt-1 text-sm text-[#64748B]">Enter your credentials to access your account</p>
               </div>
 
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+              {error && (
+                <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {error}
+                </p>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-[#111827]">
                     Email Address
@@ -96,10 +162,11 @@ export default function CandidateLoginPage() {
                       placeholder="Enter your email"
                       autoComplete="email"
                       className={inputClass}
-                      {...register('email')}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
                     />
                   </div>
-                  {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -114,56 +181,44 @@ export default function CandidateLoginPage() {
                       placeholder="Enter your password"
                       autoComplete="current-password"
                       className={`${inputClass} pr-10`}
-                      {...register('password')}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() => setShowPassword((v) => !v)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#111827]"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
-                  {errors.password && (
-                    <p className="text-xs text-destructive">{errors.password.message}</p>
-                  )}
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm text-[#64748B]">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="h-3.5 w-3.5 accent-[#FF6B00]"
+                    />
+                    Remember me
+                  </label>
+                  <Link to="/forgot-password" className="text-sm font-medium text-[#FF6B00] hover:underline">
+                    Forgot password?
+                  </Link>
                 </div>
 
                 <Button
                   type="submit"
-                  loading={isSubmitting}
+                  loading={loading}
                   className="h-11 w-full rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000]"
                 >
                   Login
                 </Button>
               </form>
-
-              <p className="mt-5 text-center text-sm text-[#64748B]">
-                Don't have an account?{' '}
-                <Link
-                  to={`/careers/signup?redirect=${encodeURIComponent(redirect)}`}
-                  className="font-medium text-[#FF6B00] hover:underline"
-                >
-                  Sign up
-                </Link>
-              </p>
-
-              <div className="my-5 flex items-center gap-3">
-                <div className="h-px flex-1 bg-[#E2E8F0]" />
-                <span className="text-sm text-[#64748B]">or</span>
-                <div className="h-px flex-1 bg-[#E2E8F0]" />
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 w-full rounded-xl border-[#FF6B00] bg-white text-[#FF6B00] hover:bg-[#FFF7F2] hover:text-[#FF6B00]"
-                onClick={() => navigate('/login')}
-              >
-                <Briefcase className="h-4 w-4" />
-                Login as HR
-              </Button>
             </div>
           </section>
         </div>

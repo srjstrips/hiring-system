@@ -1,7 +1,6 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, redirect } from 'react-router-dom';
 import { AppLayout } from '@/layouts/AppLayout';
 import { ProtectedRoute } from './ProtectedRoute';
-import { LoginPage } from '@/pages/auth/LoginPage';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import OpenPositionsPage from '@/pages/dashboard/OpenPositionsPage';
@@ -48,7 +47,6 @@ import ApplyPage from '@/pages/career/ApplyPage';
 import AssessmentPage from '@/pages/career/AssessmentPage';
 import CandidateLoginPage from '@/pages/career/CandidateLoginPage';
 import CandidateSignupPage from '@/pages/career/CandidateSignupPage';
-import ChooseLoginPage from '@/pages/career/ChooseLoginPage';
 import { CandidateProtectedRoute } from './CandidateProtectedRoute';
 import CandidateAssessmentTakePage from '@/pages/assessments/CandidateAssessmentTakePage';
 import InterviewCallPage from '@/pages/interviews/InterviewCallPage';
@@ -71,7 +69,10 @@ export const router = createBrowserRouter([
       { path: 'jobs/:slug', element: <CareerJobDetailPage /> },
       { path: 'login', element: <CandidateLoginPage /> },
       { path: 'signup', element: <CandidateSignupPage /> },
-      { path: 'choose-login', element: <ChooseLoginPage /> },
+      {
+        path: 'choose-login',
+        loader: ({ request }) => redirect(toCareersLogin(request.url)),
+      },
       {
         element: <CandidateProtectedRoute />,
         children: [{ path: 'jobs/:slug/apply', element: <ApplyPage /> }],
@@ -80,7 +81,10 @@ export const router = createBrowserRouter([
     ],
   },
 
-  { path: '/login', element: <LoginPage /> },
+  {
+    path: '/login',
+    loader: ({ request }) => redirect(toCareersLogin(request.url)),
+  },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
 
   {
@@ -150,6 +154,12 @@ export const router = createBrowserRouter([
   { path: '/403', element: <ErrorPage code={403} message="You don't have permission to view this page" /> },
   { path: '*', element: <ErrorPage code={404} message="Page not found" /> },
 ]);
+
+/** Legacy login URLs → one canonical page. Preserves query string. No auth hooks. */
+function toCareersLogin(requestUrl: string) {
+  const qs = new URL(requestUrl).searchParams.toString();
+  return qs ? `/careers/login?${qs}` : '/careers/login';
+}
 
 function ComingSoon({ title }: { title: string }) {
   return (

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { assessmentsApi, type AssessmentQuestion } from '@/api/assessments';
@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { toast } from '@/hooks/useToast';
-import { ArrowLeft, Plus, Pencil, Trash2, ArrowUp, ArrowDown, X } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, ArrowUp, ArrowDown, X, Upload } from 'lucide-react';
+import { parseQuestionSheetFile, type RowParseError } from './questionSheetImport';
 
 type OptionForm = { optionText: string; isCorrect: boolean };
 
@@ -28,11 +29,14 @@ const emptyQuestion = () => ({
 export default function AssessmentQuestionsPage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyQuestion());
   const [deleteTarget, setDeleteTarget] = useState<AssessmentQuestion | null>(null);
   const [formError, setFormError] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadErrors, setUploadErrors] = useState<RowParseError[]>([]);
 
   const { data: assessment } = useQuery({
     queryKey: ['assessment', id],
@@ -161,6 +165,68 @@ export default function AssessmentQuestionsPage() {
     });
   };
 
+  const handleUploadFile = async (file: File | undefined) => {
+    if (!file || !id) return;
+    setUploading(true);
+    setUploadErrors([]);
+
+    try {
+      const parsed = await parseQuestionSheetFile(file);
+
+      if (parsed.questions.length === 0) {
+        setUploadErrors(
+          parsed.errors.length
+            ? parsed.errors
+            : [{ row: 0, message: 'No valid questions found in the file.' }]
+        );
+        toast({
+          title: 'Upload failed',
+          description: 'Fix the file errors and try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      let imported = 0;
+      const apiErrors: RowParseError[] = [...parsed.errors];
+
+      for (let i = 0; i < parsed.questions.length; i++) {
+        try {
+          await assessmentsApi.createQuestion(id, parsed.questions[i]);
+          imported += 1;
+        } catch (e: any) {
+          apiErrors.push({
+            row: i + 1,
+            message: e.response?.data?.message || 'Failed to import this question',
+          });
+        }
+      }
+
+      setUploadErrors(apiErrors);
+      invalidate();
+
+      if (imported > 0) {
+        toast({
+          title: `${imported} question${imported === 1 ? '' : 's'} imported`,
+          description: apiErrors.length ? `${apiErrors.length} row(s) skipped with errors.` : undefined,
+          variant: 'success',
+        });
+      } else {
+        toast({
+          title: 'Upload failed',
+          description: 'No questions were imported.',
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      setUploadErrors([{ row: 0, message: 'Could not read the file. Check the format and try again.' }]);
+      toast({ title: 'Upload failed', description: 'Could not read the file.', variant: 'destructive' });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -173,8 +239,50 @@ export default function AssessmentQuestionsPage() {
             <p className="text-sm text-muted-foreground">{assessment?.name}</p>
           </div>
         </div>
-        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> Add Question</Button>
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+            className="hidden"
+            onChange={(e) => handleUploadFile(e.target.files?.[0])}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            {uploading ? 'Uploading...' : 'Upload Questions'}
+          </Button>
+          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> Add Question</Button>
+        </div>
       </div>
+
+      {uploadErrors.length > 0 && (
+        <Card className="border-red-200 bg-red-50/60">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-base text-red-700">Upload validation errors</CardTitle>
+            <Button variant="ghost" size="icon" onClick={() => setUploadErrors([])}>
+              <X className="h-4 w-4" />
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-red-700/90 mb-2">
+              Expected columns: question, option1, option2, option3, option4, correctAnswer, marks (type optional, default MCQ).
+            </p>
+            <ul className="space-y-1 text-sm text-red-700 max-h-40 overflow-y-auto">
+              {uploadErrors.map((err, i) => (
+                <li key={`${err.row}-${i}`}>
+                  {err.row > 0 ? `Row ${err.row}: ` : ''}
+                  {err.message}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       {showForm && (
         <Card>

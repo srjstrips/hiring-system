@@ -57,7 +57,7 @@ export function ForgotPasswordPage() {
                 <p className="text-sm text-muted-foreground">
                   If an account with that email exists, you'll receive a reset link shortly.
                 </p>
-                <Link to="/login">
+                <Link to="/careers/login">
                   <Button variant="outline" className="w-full">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back to Login
@@ -74,7 +74,7 @@ export function ForgotPasswordPage() {
                 <Button type="submit" className="w-full" loading={isSubmitting}>
                   Send Reset Link
                 </Button>
-                <Link to="/login">
+                <Link to="/careers/login">
                   <Button variant="ghost" className="w-full">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back to Login
