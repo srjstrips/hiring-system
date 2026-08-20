@@ -2,20 +2,31 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, Briefcase } from 'lucide-react';
 import { useState } from 'react';
 import { useCandidateAuth } from '@/contexts/CandidateAuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from '@/hooks/useToast';
+import { DoodleBackdrop } from '@/components/common/DoodleBackdrop';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
   password: z.string().min(1, 'Password is required'),
 });
 type FormValues = z.infer<typeof schema>;
+
+function SrjWordmark() {
+  return (
+    <div className="flex flex-col items-center">
+      <img src="/career-assets/srj-logo-dark.png" alt="SRJ" className="h-16 w-auto sm:h-20" />
+      <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#FF6B00]">
+        Building Tomorrow Together
+      </p>
+    </div>
+  );
+}
 
 export default function CandidateLoginPage() {
   const { login } = useCandidateAuth();
@@ -44,69 +55,119 @@ export default function CandidateLoginPage() {
     }
   };
 
+  const inputClass =
+    'h-11 rounded-xl border-[#E2E8F0] bg-white pl-10 text-[#111827] placeholder:text-slate-400 focus-visible:border-[#FF6B00] focus-visible:ring-[#FF6B00]/25 focus-visible:ring-offset-0';
+
   return (
-    <div className="flex min-h-[calc(100vh-180px)] items-center justify-center bg-[#F7F9FC] px-4 py-16">
-      <Card className="w-full max-w-[420px] border border-[#E5E7EB] shadow-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Candidate Login</CardTitle>
-          <CardDescription>Sign in to your candidate account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email address</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                autoComplete="email"
-                {...register('email')}
-              />
-              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
-            </div>
+    <div className="relative overflow-x-hidden bg-white text-[#111827]">
+      <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#FFF7F2]" />
+      <div className="pointer-events-none absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-[#FFF7F2]" />
+      <DoodleBackdrop className="pointer-events-none absolute inset-0 h-full w-full opacity-90" />
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  className="pr-10"
-                  {...register('password')}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+      <div className="relative mx-auto flex max-w-6xl flex-col px-4 py-12 sm:px-6 lg:px-8">
+        <div className="grid items-center gap-10 md:grid-cols-2 md:gap-12 lg:gap-16">
+          <section className="flex flex-col items-center text-center">
+            <SrjWordmark />
+            <h1 className="mt-8 text-3xl font-bold tracking-tight sm:text-4xl">
+              Welcome <span className="text-[#FF6B00]">Back!</span>
+            </h1>
+            <p className="mt-3 max-w-sm rounded-lg bg-white/70 px-3 py-1 text-sm leading-relaxed text-[#64748B] backdrop-blur-[2px]">
+              Sign in to your candidate account to explore openings and track your applications.
+            </p>
+          </section>
+
+          <section className="w-full">
+            <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.06)] sm:p-8">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-[#111827]">Candidate Login</h2>
+                <p className="mt-1 text-sm text-[#64748B]">Enter your credentials to access your account</p>
               </div>
-              {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-[#111827]">
+                    Email Address
+                  </Label>
+                  <div className="relative">
+                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#FF6B00]" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter your email"
+                      autoComplete="email"
+                      className={inputClass}
+                      {...register('email')}
+                    />
+                  </div>
+                  {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-[#111827]">
+                    Password
+                  </Label>
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#FF6B00]" />
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Enter your password"
+                      autoComplete="current-password"
+                      className={`${inputClass} pr-10`}
+                      {...register('password')}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#111827]"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p className="text-xs text-destructive">{errors.password.message}</p>
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  loading={isSubmitting}
+                  className="h-11 w-full rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000]"
+                >
+                  Login
+                </Button>
+              </form>
+
+              <p className="mt-5 text-center text-sm text-[#64748B]">
+                Don't have an account?{' '}
+                <Link
+                  to={`/careers/signup?redirect=${encodeURIComponent(redirect)}`}
+                  className="font-medium text-[#FF6B00] hover:underline"
+                >
+                  Sign up
+                </Link>
+              </p>
+
+              <div className="my-5 flex items-center gap-3">
+                <div className="h-px flex-1 bg-[#E2E8F0]" />
+                <span className="text-sm text-[#64748B]">or</span>
+                <div className="h-px flex-1 bg-[#E2E8F0]" />
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 w-full rounded-xl border-[#FF6B00] bg-white text-[#FF6B00] hover:bg-[#FFF7F2] hover:text-[#FF6B00]"
+                onClick={() => navigate('/login')}
+              >
+                <Briefcase className="h-4 w-4" />
+                Login as HR
+              </Button>
             </div>
-
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-[#F97316] text-white hover:bg-[#EA580C]"
-            >
-              {isSubmitting ? 'Logging in...' : 'Log In'}
-            </Button>
-          </form>
-
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Don't have an account?{' '}
-            <Link
-              to={`/careers/signup?redirect=${encodeURIComponent(redirect)}`}
-              className="font-medium text-[#F97316] hover:underline"
-            >
-              Sign up
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
+          </section>
+        </div>
+      </div>
     </div>
   );
 }

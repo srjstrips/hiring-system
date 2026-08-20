@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/useToast';
+import { DoodleBackdrop } from '@/components/common/DoodleBackdrop';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -29,73 +30,15 @@ function readRememberedEmail() {
 function SrjWordmark() {
   return (
     <div className="flex flex-col items-center">
-      <div className="relative inline-flex items-start">
-        <span className="text-[2.75rem] font-extrabold leading-none tracking-tight text-[#111827] sm:text-5xl">
-          SRJ
-        </span>
-        <svg
-          aria-hidden
-          viewBox="0 0 28 28"
-          className="ml-0.5 mt-1 h-5 w-5 text-[#FF6B00] sm:h-6 sm:w-6"
-          fill="currentColor"
-        >
-          <path d="M14 2l1.4 4.2 3.2-3.2-1.1 4.6 4.6-1.1-3.2 3.2L23 11l-4.2 1.4 3.2 3.2-4.6-1.1 1.1 4.6-3.2-3.2L14 20l-1.4-4.2-3.2 3.2 1.1-4.6-4.6 1.1 3.2-3.2L5 11l4.2-1.4L6 6.4l4.6 1.1L9.5 2.9l3.2 3.2L14 2z" />
-        </svg>
-      </div>
+      <img
+        src="/career-assets/srj-logo-dark.png"
+        alt="SRJ"
+        className="h-16 w-auto sm:h-20"
+      />
       <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#FF6B00]">
         Building Tomorrow Together
       </p>
     </div>
-  );
-}
-
-function WorkplaceIllustration() {
-  return (
-    <svg
-      viewBox="0 0 280 180"
-      className="mx-auto hidden h-auto w-full max-w-sm text-[#FF6B00] md:block"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <circle cx="36" cy="42" r="5" />
-      <path d="M48 38h10M52 32v12" />
-      <circle cx="248" cy="128" r="4" />
-      <path d="M236 136h14" />
-
-      {/* Desk */}
-      <path d="M28 148h224" />
-
-      {/* Monitor */}
-      <rect x="78" y="38" width="124" height="86" rx="6" />
-      <rect x="90" y="50" width="100" height="62" rx="3" />
-      <path d="M128 124v16M128 140h24M152 124v16" />
-      <path d="M118 148h44" />
-
-      {/* Screen content */}
-      <circle cx="118" cy="72" r="10" />
-      <path d="M108 88c2.5-6 17.5-6 20 0" />
-      <path d="M148 64h32M148 74h26M148 84h30" />
-      <rect x="148" y="94" width="8" height="12" rx="1" />
-      <rect x="160" y="88" width="8" height="18" rx="1" />
-      <rect x="172" y="82" width="8" height="24" rx="1" />
-
-      {/* Plant */}
-      <path d="M58 148v-18" />
-      <path d="M50 148h16" />
-      <path d="M58 130c-8-10-14-8-14-2 6-2 12 4 14 10z" />
-      <path d="M58 128c8-12 16-8 14 0-4-4-10 2-14 10z" />
-      <path d="M58 122c0-12 10-14 12-6-4 0-8 6-12 14z" />
-
-      {/* Mug */}
-      <path d="M198 132h22v16a6 6 0 0 1-6 6h-10a6 6 0 0 1-6-6v-16z" />
-      <path d="M220 138h6a6 6 0 0 1 0 12h-6" />
-      <path d="M204 126c0-4 4-6 6-2" />
-      <path d="M212 124c0-5 5-7 7-2" />
-    </svg>
   );
 }
 
@@ -137,25 +80,18 @@ export function LoginPage() {
     <div className="relative min-h-screen overflow-x-hidden bg-white text-[#111827]">
       <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#FFF7F2]" />
       <div className="pointer-events-none absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-[#FFF7F2]" />
-      <div className="pointer-events-none absolute right-10 top-16 grid grid-cols-4 gap-2 opacity-40">
-        {Array.from({ length: 16 }).map((_, i) => (
-          <span key={i} className="h-1 w-1 rounded-full bg-[#FF6B00]/40" />
-        ))}
-      </div>
+      <DoodleBackdrop className="pointer-events-none absolute inset-0 h-full w-full opacity-90" />
 
-      <div className="relative mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-8 sm:px-6 lg:px-8">
+      <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid flex-1 items-center gap-10 md:grid-cols-2 md:gap-12 lg:gap-16">
           <section className="flex flex-col items-center text-center">
             <SrjWordmark />
             <h1 className="mt-8 text-3xl font-bold tracking-tight sm:text-4xl">
               Welcome <span className="text-[#FF6B00]">Back!</span>
             </h1>
-            <p className="mt-3 max-w-sm text-sm leading-relaxed text-[#64748B]">
+            <p className="mt-3 max-w-sm rounded-lg bg-white/70 px-3 py-1 text-sm leading-relaxed text-[#64748B] backdrop-blur-[2px]">
               Sign in to your HR dashboard and manage your hiring process seamlessly.
             </p>
-            <div className="mt-8 w-full">
-              <WorkplaceIllustration />
-            </div>
           </section>
 
           <section className="w-full">
