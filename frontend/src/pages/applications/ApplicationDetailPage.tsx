@@ -12,21 +12,15 @@ import {
   ArrowLeft, FileText, Link2, Mail, Phone, Briefcase,
   Clock, Star, CheckCircle2, XCircle, ChevronRight, User,
   Calendar, DollarSign, Building2, Send, Search, Users,
-  ShieldCheck, Gift, UserCheck, PauseCircle, Hourglass, Video,
+  ShieldCheck, Gift, UserCheck, PauseCircle, Hourglass, Video, Lock,
 } from 'lucide-react';
-
-const PIPELINE = [
-  'APPLIED', 'SCREENING', 'SHORTLISTED',
-  'INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2', 'HR_ROUND',
-  'SELECTED', 'OFFER_SENT', 'OFFER_ACCEPTED', 'JOINED',
-];
-
-/** Final outcomes — cannot resume the active pipeline banner */
-const FINAL_OUTCOMES = ['REJECTED', 'WITHDRAWN'];
-/** Non-pipeline statuses selectable in Change Stage (On Hold is reversible) */
-const OUTCOME_STATUSES = ['REJECTED', 'WITHDRAWN', 'ON_HOLD'];
-
-const stageLabel = (s: string) => s.replace(/_/g, ' ');
+import {
+  PIPELINE_ORDER as PIPELINE,
+  isStageLocked,
+  getEffectiveStageIndex,
+  getSelectableStages,
+  stageLabel,
+} from '@/utils/applicationStages';
 
 const INTERVIEW_STAGES = ['INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2', 'HR_ROUND'] as const;
 
@@ -215,9 +209,10 @@ export default function ApplicationDetailPage() {
   }
   if (!app) return <div className="py-20 text-center text-sm text-[#64748B]">Application not found</div>;
 
-  const currentStageIdx = PIPELINE.indexOf(app.status);
-  const isFinalOutcome = FINAL_OUTCOMES.includes(app.status);
+  const currentStageIdx = getEffectiveStageIndex(app.status, app.timeline);
+  const isFinalOutcome = isStageLocked(app.status);
   const isOnHold = app.status === 'ON_HOLD';
+  const selectableStages = getSelectableStages(app.status, app.timeline);
   const CurrentStageIcon = app.status === 'SCREENING'
     ? Hourglass
     : (stageIcon[app.status] ?? Clock);
@@ -463,50 +458,51 @@ export default function ApplicationDetailPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="mb-1.5 block text-xs text-[#64748B]">Select Next Stage</label>
-                <div className="max-h-56 divide-y divide-[#E2E8F0] overflow-y-auto rounded-xl border border-[#E2E8F0] bg-white">
-                  {[...PIPELINE, ...OUTCOME_STATUSES].map((s) => {
-                    const isCurrent = s === app.status;
-                    const isSelected = newStatus === s;
-                    const Icon = stageIcon[s] ?? Clock;
-                    return (
-                      <button
-                        key={s}
-                        type="button"
-                        disabled={isCurrent}
-                        onClick={() => setNewStatus(s)}
-                        className={`w-full px-3 py-2.5 text-left transition-colors ${
-                          isCurrent
-                            ? 'cursor-not-allowed bg-[#F8FAFC]'
-                            : isSelected
-                              ? 'bg-[#FFF7ED]'
-                              : 'hover:bg-[#FFF7ED]/60'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
-                              isSelected ? 'border-[#FF6B00]' : 'border-[#CBD5E1]'
-                            }`}
-                          >
-                            {isSelected && <span className="h-2 w-2 rounded-full bg-[#FF6B00]" />}
-                          </span>
-                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${stageIconTone[s] ?? 'bg-[#F1F5F9] text-[#64748B]'}`}>
-                            <Icon className="h-4 w-4" />
-                          </span>
-                          <span className="text-xs font-semibold uppercase tracking-wide text-[#111827]">
-                            {stageLabel(s)}
-                          </span>
-                          {isCurrent && (
-                            <span className="text-xs font-medium text-[#FF6B00]">(current)</span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
+              {isFinalOutcome ? (
+                <div className="flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2.5 text-xs text-[#64748B]">
+                  <Lock className="h-3.5 w-3.5 shrink-0" />
+                  This application has reached a final outcome and is locked — no further stage changes are possible.
                 </div>
-              </div>
+              ) : (
+                <div>
+                  <label className="mb-1.5 block text-xs text-[#64748B]">Select Next Stage</label>
+                  <p className="mb-1.5 text-[11px] text-[#94A3B8]">
+                    Past stages are locked. You can only move the candidate forward.
+                  </p>
+                  <div className="max-h-56 divide-y divide-[#E2E8F0] overflow-y-auto rounded-xl border border-[#E2E8F0] bg-white">
+                    {selectableStages.map((s) => {
+                      const isSelected = newStatus === s;
+                      const Icon = stageIcon[s] ?? Clock;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setNewStatus(s)}
+                          className={`w-full px-3 py-2.5 text-left transition-colors ${
+                            isSelected ? 'bg-[#FFF7ED]' : 'hover:bg-[#FFF7ED]/60'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span
+                              className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
+                                isSelected ? 'border-[#FF6B00]' : 'border-[#CBD5E1]'
+                              }`}
+                            >
+                              {isSelected && <span className="h-2 w-2 rounded-full bg-[#FF6B00]" />}
+                            </span>
+                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${stageIconTone[s] ?? 'bg-[#F1F5F9] text-[#64748B]'}`}>
+                              <Icon className="h-4 w-4" />
+                            </span>
+                            <span className="text-xs font-semibold uppercase tracking-wide text-[#111827]">
+                              {stageLabel(s)}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {newStatus === 'REJECTED' && (
                 <div>
@@ -578,29 +574,33 @@ export default function ApplicationDetailPage() {
                 </div>
               )}
 
-              <div>
-                <label className="mb-1 block text-xs text-[#64748B]">Comments</label>
-                <textarea
-                  rows={2}
-                  className={textareaClass}
-                  placeholder="Add a note about this stage change..."
-                  value={stageNotes}
-                  onChange={(e) => setStageNotes(e.target.value)}
-                />
-              </div>
+              {!isFinalOutcome && (
+                <>
+                  <div>
+                    <label className="mb-1 block text-xs text-[#64748B]">Comments</label>
+                    <textarea
+                      rows={2}
+                      className={textareaClass}
+                      placeholder="Add a note about this stage change..."
+                      value={stageNotes}
+                      onChange={(e) => setStageNotes(e.target.value)}
+                    />
+                  </div>
 
-              <Button
-                className="h-10 w-full rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000]"
-                disabled={!newStatus || isSaving}
-                onClick={handleMoveStage}
-              >
-                {isSaving
-                  ? 'Saving...'
-                  : isInterviewStage
-                    ? 'Schedule Interview & Update Stage'
-                    : 'Update Stage'}
-                {!isSaving && <ChevronRight className="ml-1 h-4 w-4" />}
-              </Button>
+                  <Button
+                    className="h-10 w-full rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000]"
+                    disabled={!newStatus || isSaving}
+                    onClick={handleMoveStage}
+                  >
+                    {isSaving
+                      ? 'Saving...'
+                      : isInterviewStage
+                        ? 'Schedule Interview & Update Stage'
+                        : 'Update Stage'}
+                    {!isSaving && <ChevronRight className="ml-1 h-4 w-4" />}
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
 

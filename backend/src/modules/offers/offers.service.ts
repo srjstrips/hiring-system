@@ -1,6 +1,7 @@
 import { prisma } from '@/config/database';
 import { AppError } from '@/utils/errors';
 import { getUserScope, applyOfferScope } from '@/utils/scope';
+import { assertForwardTransition } from '@/modules/applications/stage-order';
 
 const offerInclude = {
   application: {
@@ -89,22 +90,48 @@ class OffersService {
     return prisma.offer.update({ where: { id }, data: dto, include: offerInclude });
   }
 
-  async send(id: string) {
+  async send(id: string, sentById?: string) {
     const offer = await this.getById(id);
     if (offer.status !== 'DRAFT' && offer.status !== 'APPROVED') throw new AppError('Offer must be DRAFT or APPROVED to send', 400);
+
+    const app = await prisma.application.findUniqueOrThrow({
+      where: { id: offer.applicationId },
+      include: { timeline: { orderBy: { createdAt: 'asc' }, select: { toStatus: true } } },
+    });
+    assertForwardTransition(app.status, 'OFFER_SENT', app.timeline);
+
     const updated = await prisma.offer.update({
       where: { id },
       data: { status: 'SENT', sentAt: new Date() },
       include: offerInclude,
     });
     // Also move application to OFFER_SENT
-    await prisma.application.update({ where: { id: offer.applicationId }, data: { status: 'OFFER_SENT' } });
+    await prisma.$transaction([
+      prisma.application.update({ where: { id: offer.applicationId }, data: { status: 'OFFER_SENT' } }),
+      prisma.applicationTimeline.create({
+        data: {
+          applicationId: offer.applicationId,
+          fromStatus: app.status,
+          toStatus: 'OFFER_SENT',
+          notes: 'Offer sent to candidate',
+          createdById: sentById,
+        },
+      }),
+    ]);
     return updated;
   }
 
-  async updateResponse(id: string, action: 'accept' | 'reject', reason?: string) {
+  async updateResponse(id: string, action: 'accept' | 'reject', reason?: string, respondedById?: string) {
     const offer = await this.getById(id);
     if (offer.status !== 'SENT') throw new AppError('Offer must be SENT to accept/reject', 400);
+
+    const targetStatus = action === 'accept' ? 'OFFER_ACCEPTED' : 'REJECTED';
+    const app = await prisma.application.findUniqueOrThrow({
+      where: { id: offer.applicationId },
+      include: { timeline: { orderBy: { createdAt: 'asc' }, select: { toStatus: true } } },
+    });
+    assertForwardTransition(app.status, targetStatus, app.timeline);
+
     const status = action === 'accept' ? 'ACCEPTED' : 'REJECTED';
     const updated = await prisma.offer.update({
       where: { id },
@@ -116,33 +143,44 @@ class OffersService {
       },
       include: offerInclude,
     });
-    await prisma.application.update({
-      where: { id: offer.applicationId },
-      data: { status: action === 'accept' ? 'OFFER_ACCEPTED' : 'REJECTED' },
-    });
+    await prisma.$transaction([
+      prisma.application.update({
+        where: { id: offer.applicationId },
+        data: { status: targetStatus, rejectionReason: action === 'reject' ? reason : undefined },
+      }),
+      prisma.applicationTimeline.create({
+        data: {
+          applicationId: offer.applicationId,
+          fromStatus: app.status,
+          toStatus: targetStatus,
+          notes: action === 'accept' ? 'Candidate accepted the offer' : (reason || 'Candidate rejected the offer'),
+          createdById: respondedById,
+        },
+      }),
+    ]);
 
     if (action === 'accept') {
-      const app = await prisma.application.findUnique({
+      const acceptedApp = await prisma.application.findUnique({
         where: { id: offer.applicationId },
         include: { job: true, candidate: true },
       });
-      if (app) {
+      if (acceptedApp) {
         await prisma.joiningChecklist.upsert({
-          where: { applicationId: app.id },
+          where: { applicationId: acceptedApp.id },
           create: {
-            applicationId: app.id,
+            applicationId: acceptedApp.id,
             joiningDate: offer.joiningDate ?? undefined,
             status: 'PENDING',
           },
           update: { joiningDate: offer.joiningDate ?? undefined },
         });
         await prisma.employee.upsert({
-          where: { applicationId: app.id },
+          where: { applicationId: acceptedApp.id },
           create: {
-            applicationId: app.id,
-            candidateId: app.candidateId,
-            departmentId: app.job.departmentId,
-            designationId: app.job.designationId,
+            applicationId: acceptedApp.id,
+            candidateId: acceptedApp.candidateId,
+            departmentId: acceptedApp.job.departmentId,
+            designationId: acceptedApp.job.designationId,
             hrOwnerId: offer.createdById,
             joinedAt: offer.joiningDate ?? new Date(),
             status: 'ACTIVE',

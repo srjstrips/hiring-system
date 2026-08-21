@@ -1,6 +1,7 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { LogOut, Menu, User } from 'lucide-react';
 import { useCandidateAuth } from '@/contexts/CandidateAuthContext';
+import NotificationBell from '@/components/career/NotificationBell';
 
 export default function CareerLayout() {
   const { candidate, isAuthenticated, logout } = useCandidateAuth();
@@ -36,6 +37,7 @@ export default function CareerLayout() {
 
             {isAuthenticated ? (
               <>
+                <NotificationBell />
                 <span className="flex items-center gap-1.5 text-[15px] font-medium text-[#475569]">
                   <User className="h-4 w-4" />
                   {candidate?.firstName}
@@ -59,10 +61,13 @@ export default function CareerLayout() {
             )}
           </nav>
 
-          {/* Mobile: show menu icon */}
-          <Link to="/careers/jobs" className="sm:hidden" aria-label="Browse jobs">
-            <Menu className="h-6 w-6 text-[#111827]" />
-          </Link>
+          {/* Mobile: bell (when logged in) + menu icon */}
+          <div className="flex items-center gap-1 sm:hidden">
+            {isAuthenticated && <NotificationBell />}
+            <Link to="/careers/jobs" className="p-2" aria-label="Browse jobs">
+              <Menu className="h-6 w-6 text-[#111827]" />
+            </Link>
+          </div>
         </div>
       </header>
 

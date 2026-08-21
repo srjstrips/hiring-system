@@ -4,6 +4,7 @@ import jobsRepository from './jobs.repository';
 import type { CreateJobDto, JobQueryDto } from './jobs.validator';
 import { getUserScope, applyJobScope } from '@/utils/scope';
 import { buildPagination } from '@/utils/response';
+import candidateNotificationsService from '@/modules/candidate-notifications/candidate-notifications.service';
 
 class JobsService {
   async getAll(query: JobQueryDto, userId?: string, roleName?: string) {
@@ -24,6 +25,44 @@ class JobsService {
   }
 
   async create(data: CreateJobDto, createdById: string) {
+    const job = await jobsRepository.create(data, createdById);
+    if (job.isPublished) {
+      await candidateNotificationsService.notifyJobPublished(job);
+    }
+    return job;
+  }
+
+  /**
+   * Called when a manpower requisition is approved. Creates the corresponding
+   * Job (unpublished draft) linked via requisitionId, unless one already exists.
+   */
+  async createFromRequisition(requisition: any, createdById: string) {
+    const existing = await jobsRepository.findByRequisitionId(requisition.id);
+    if (existing) return existing;
+
+    const title = requisition.designation?.name ?? 'New Position';
+    const jobDescription = requisition.jobDescription?.trim();
+    const description = jobDescription && jobDescription.length >= 10
+      ? jobDescription
+      : `We are hiring for the ${title} position in the ${requisition.department?.name ?? 'company'} department.`;
+
+    const data: CreateJobDto = {
+      title,
+      departmentId: requisition.departmentId,
+      designationId: requisition.designationId,
+      locationId: requisition.locationId,
+      experienceLevelId: requisition.experienceLevelId ?? undefined,
+      requisitionId: requisition.id,
+      description,
+      salaryMin: requisition.salaryMin ? Number(requisition.salaryMin) : undefined,
+      salaryMax: requisition.salaryMax ? Number(requisition.salaryMax) : undefined,
+      showSalary: false,
+      numberOfPositions: requisition.numberOfPositions,
+      priority: requisition.priority,
+      positionStatus: 'OPEN',
+      isPublished: false,
+    };
+
     return jobsRepository.create(data, createdById);
   }
 
@@ -35,7 +74,9 @@ class JobsService {
   async publish(id: string, userId: string) {
     const job = await this.getById(id);
     if (job.isPublished) throw new AppError('Job is already published', 400);
-    return jobsRepository.publish(id, userId);
+    const updated = await jobsRepository.publish(id, userId);
+    await candidateNotificationsService.notifyJobPublished(job);
+    return updated;
   }
 
   async unpublish(id: string, userId: string) {

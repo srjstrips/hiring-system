@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 const BASE_URL = (import.meta.env.VITE_API_URL ?? '/api/v1') + '/career';
-const careerAxios = axios.create({ baseURL: BASE_URL, headers: { 'Content-Type': 'application/json' } });
+export const careerAxios = axios.create({ baseURL: BASE_URL, headers: { 'Content-Type': 'application/json' } });
 
 // Attach candidate access token to every request. Kept under distinct
 // localStorage keys so it never collides with the staff session in the

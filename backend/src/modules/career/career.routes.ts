@@ -6,6 +6,7 @@ import { authenticateCandidate } from '@/middlewares/authenticateCandidate';
 import { PublicJobQuerySchema, ApplyJobSchema } from './career.validator';
 import careerController from './career.controller';
 import candidateAuthRoutes from '../candidate-auth/candidate-auth.routes';
+import candidateNotificationsRoutes from '../candidate-notifications/candidate-notifications.routes';
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, 'uploads/resumes'),
@@ -29,6 +30,9 @@ const router = Router();
 
 // Candidate signup/login/refresh/logout/me
 router.use('/auth', candidateAuthRoutes);
+
+// Requires a logged-in candidate (auth applied inside the router)
+router.use('/notifications', candidateNotificationsRoutes);
 
 // Public — no auth
 router.get('/jobs', validateQuery(PublicJobQuerySchema), careerController.getJobs);

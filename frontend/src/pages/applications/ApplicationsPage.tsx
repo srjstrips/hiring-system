@@ -6,14 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from '@/hooks/useToast';
-import { Eye, Search, FileText, Star, Mail, Briefcase, Clock, Calendar, Users } from 'lucide-react';
+import { Eye, Search, FileText, Star, Mail, Briefcase, Clock, Calendar, Users, Lock } from 'lucide-react';
+import { PIPELINE_ORDER, OUTCOME_STATUSES, isStageLocked, getSelectableStages } from '@/utils/applicationStages';
 
-const STAGES = [
-  'APPLIED', 'SCREENING', 'SHORTLISTED',
-  'INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2', 'HR_ROUND',
-  'SELECTED', 'OFFER_SENT', 'OFFER_ACCEPTED', 'JOINED',
-  'REJECTED', 'WITHDRAWN', 'ON_HOLD',
-];
+/** Filter dropdown lists every stage — filtering is not a stage change, so no forward-only restriction applies here. */
+const STAGES = [...PIPELINE_ORDER, ...OUTCOME_STATUSES];
 
 const STAGE_BADGE: Record<string, string> = {
   APPLIED: 'bg-[#FFF7ED] text-[#EA580C]',
@@ -232,16 +229,26 @@ export default function ApplicationsPage() {
                       <Link to={`/applications/${app.id}`} state={{ filterJobId: jobId }}><Eye className="h-4 w-4" /></Link>
                     </Button>
                     {movingId === app.id ? (
-                      <div className="flex items-center gap-1">
-                        <select
-                          className="h-9 rounded-xl border border-[#E2E8F0] bg-white px-2 text-xs text-[#111827]"
-                          defaultValue={app.status}
-                          onChange={(e) => statusMutation.mutate({ id: app.id, newStatus: e.target.value })}
-                        >
-                          {STAGES.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
-                        </select>
-                        <Button variant="ghost" size="sm" className="text-[#64748B]" onClick={() => setMovingId(null)}>✕</Button>
-                      </div>
+                      isStageLocked(app.status) ? (
+                        <div className="flex items-center gap-1.5 text-xs text-[#64748B]">
+                          <Lock className="h-3.5 w-3.5" /> Locked
+                          <Button variant="ghost" size="sm" className="text-[#64748B]" onClick={() => setMovingId(null)}>✕</Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <select
+                            className="h-9 rounded-xl border border-[#E2E8F0] bg-white px-2 text-xs text-[#111827]"
+                            defaultValue=""
+                            onChange={(e) => e.target.value && statusMutation.mutate({ id: app.id, newStatus: e.target.value })}
+                          >
+                            <option value="" disabled>Move to...</option>
+                            {getSelectableStages(app.status, app.timeline).map((s) => (
+                              <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
+                            ))}
+                          </select>
+                          <Button variant="ghost" size="sm" className="text-[#64748B]" onClick={() => setMovingId(null)}>✕</Button>
+                        </div>
+                      )
                     ) : (
                       <Button variant="outline" size="sm" className="h-9 rounded-xl border-[#E2E8F0]" onClick={() => setMovingId(app.id)}>
                         Move Stage

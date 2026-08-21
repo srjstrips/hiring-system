@@ -9,6 +9,7 @@ import { NotFoundError } from '../../utils/errors';
 import { getUserScope, applyInterviewScope } from '../../utils/scope';
 import { emailService } from '../../services/email.service';
 import type { CreateInterviewDto, UpdateInterviewDto } from './interviews.validator';
+import { isValidForwardTransition } from '../applications/stage-order';
 
 function buildInterviewCallUrl(token: string) {
   return `${env.FRONTEND_URL.replace(/\/$/, '')}/interview/call/${token}`;
@@ -174,6 +175,7 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
       include: {
         candidate: { select: { firstName: true, lastName: true, email: true } },
         job: { select: { title: true } },
+        timeline: { orderBy: { createdAt: 'asc' }, select: { toStatus: true } },
       },
     });
     if (!app) throw new NotFoundError('Application');
@@ -217,7 +219,12 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
     }
 
     const nextStatus = ROUND_TO_STATUS[interview.round];
-    if (updateApplicationStatus && nextStatus && app.status !== nextStatus) {
+    if (
+      updateApplicationStatus &&
+      nextStatus &&
+      app.status !== nextStatus &&
+      isValidForwardTransition(app.status, nextStatus, app.timeline)
+    ) {
       await prisma.$transaction([
         prisma.application.update({
           where: { id: applicationId },

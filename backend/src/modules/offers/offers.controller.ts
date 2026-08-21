@@ -33,18 +33,18 @@ class OffersController {
   }
 
   async send(req: AuthRequest, res: Response) {
-    const data = await offersService.send(req.params['id'] as string);
+    const data = await offersService.send(req.params['id'] as string, req.user!.id);
     res.json({ success: true, data });
   }
 
   async accept(req: AuthRequest, res: Response) {
-    const data = await offersService.updateResponse(req.params['id'] as string, 'accept');
+    const data = await offersService.updateResponse(req.params['id'] as string, 'accept', undefined, req.user!.id);
     res.json({ success: true, data });
   }
 
   async reject(req: AuthRequest, res: Response) {
     const reason = (req.body as { reason?: string })?.reason;
-    const data = await offersService.updateResponse(req.params['id'] as string, 'reject', reason);
+    const data = await offersService.updateResponse(req.params['id'] as string, 'reject', reason, req.user!.id);
     res.json({ success: true, data });
   }
 

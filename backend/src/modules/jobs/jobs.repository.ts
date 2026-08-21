@@ -90,6 +90,11 @@ export class JobsRepository {
     return withLegacyAssessmentTemplate(job);
   }
 
+  async findByRequisitionId(requisitionId: string) {
+    const job = await prisma.job.findFirst({ where: { requisitionId, deletedAt: null }, include: jobInclude });
+    return withLegacyAssessmentTemplate(job);
+  }
+
   async create(data: CreateJobDto, createdById: string) {
     const { skillIds, closingDate, isPublished, ...rest } = data;
     const slug = buildSlug(data.title);

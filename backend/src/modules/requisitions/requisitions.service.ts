@@ -1,6 +1,7 @@
 import { prisma } from '@/config/database';
 import { AppError } from '@/utils/errors';
 import { getUserScope, applyRequisitionScope } from '@/utils/scope';
+import jobsService from '@/modules/jobs/jobs.service';
 
 const requisitionInclude = {
   department: { select: { id: true, name: true } },
@@ -173,7 +174,7 @@ class RequisitionsService {
   async approve(id: string, approverId: string, action: 'approve' | 'reject', reason?: string) {
     const r = await this.getById(id);
     if (r.approvalStatus !== 'PENDING') throw new AppError('Only PENDING requisitions can be reviewed', 400);
-    return prisma.manpowerRequisition.update({
+    const updated = await prisma.manpowerRequisition.update({
       where: { id },
       data: {
         approvalStatus: action === 'approve' ? 'APPROVED' : 'REJECTED',
@@ -183,6 +184,12 @@ class RequisitionsService {
       },
       include: requisitionInclude,
     });
+
+    if (action === 'approve') {
+      await jobsService.createFromRequisition(updated, approverId);
+    }
+
+    return updated;
   }
 }
 

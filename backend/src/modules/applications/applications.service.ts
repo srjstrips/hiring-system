@@ -3,6 +3,7 @@ import { AppError } from '@/utils/errors';
 import type { ApplicationQueryDto, UpdateStatusDto } from './applications.validator';
 import { getUserScope, applyApplicationScope } from '@/utils/scope';
 import { buildPagination } from '@/utils/response';
+import { assertForwardTransition } from './stage-order';
 
 const applicationInclude = {
   candidate: {
@@ -113,6 +114,8 @@ class ApplicationsService {
 
   async updateStatus(id: string, dto: UpdateStatusDto, updatedById: string) {
     const app = await this.getById(id);
+
+    assertForwardTransition(app.status, dto.status, app.timeline);
 
     await prisma.$transaction([
       prisma.application.update({

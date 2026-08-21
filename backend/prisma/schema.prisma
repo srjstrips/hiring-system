@@ -604,6 +604,7 @@ model Job {
   assessments           Assessment[]
   assessmentAssignments AssessmentAssignment[]
   shares                JobShare[]
+  notifications         CandidateNotification[]
 
   @@map("jobs")
 }
@@ -723,8 +724,27 @@ model Candidate {
   assessmentAssignments AssessmentAssignment[]
   employees             Employee[]
   refreshTokens         CandidateRefreshToken[]
+  notifications         CandidateNotification[]
 
   @@map("candidates")
+}
+
+model CandidateNotification {
+  id          String    @id @default(uuid())
+  candidateId String
+  jobId       String?
+  jobSlug     String?
+  title       String
+  message     String
+  isRead      Boolean   @default(false)
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  job       Job?      @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([candidateId, isRead])
+  @@map("candidate_notifications")
 }
 
 model CandidateRefreshToken {
