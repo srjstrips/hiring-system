@@ -18,7 +18,7 @@ const APPROVAL_COLORS: Record<string, string> = {
 
 const PRIORITY_COLORS: Record<string, string> = {
   LOW: 'bg-[#F1F5F9] text-[#64748B]',
-  MEDIUM: 'bg-[#EFF6FF] text-blue-700',
+  MEDIUM: 'bg-[#FFF7ED] text-[#EA580C]',
   HIGH: 'bg-[#FFF7ED] text-[#FF6B00]',
   URGENT: 'bg-[#FFF1F2] text-rose-700',
 };

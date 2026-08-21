@@ -10,7 +10,7 @@ import { Plus, Send, CheckCircle2, XCircle, X, Search, Gift, MapPin, Calendar, B
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-[#F1F5F9] text-[#64748B]',
-  SENT: 'bg-[#EFF6FF] text-blue-700',
+  SENT: 'bg-[#FFF7ED] text-[#EA580C]',
   ACCEPTED: 'bg-[#F0FDF4] text-green-700',
   REJECTED: 'bg-[#FFF1F2] text-rose-700',
   EXPIRED: 'bg-[#FFF7ED] text-amber-700',

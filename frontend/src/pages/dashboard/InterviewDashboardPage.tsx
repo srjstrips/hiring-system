@@ -86,7 +86,7 @@ export default function InterviewDashboardPage() {
       <SummaryCards
         columns="grid-cols-2 sm:grid-cols-3 xl:grid-cols-6"
         items={[
-          { label: 'Scheduled', value: summary.SCHEDULED ?? 0, icon: Calendar, color: 'text-blue-600', bg: 'bg-[#EFF6FF]' },
+          { label: 'Scheduled', value: summary.SCHEDULED ?? 0, icon: Calendar, color: 'text-[#FF6B00]', bg: 'bg-[#FFF7ED]' },
           { label: 'Completed', value: summary.COMPLETED ?? 0, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-[#F0FDF4]' },
           { label: 'Shortlisted', value: summary.SHORTLISTED ?? 0, icon: CheckCircle2, color: 'text-violet-600', bg: 'bg-[#F5F3FF]' },
           { label: 'Rejected', value: summary.REJECTED ?? 0, icon: XCircle, color: 'text-rose-600', bg: 'bg-[#FFF1F2]' },

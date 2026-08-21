@@ -60,7 +60,7 @@ export default function ApplicationsAnalyticsPage() {
     <div className="space-y-6">
       <div>
         <p className="text-sm text-muted-foreground mb-1">
-          <Link to="/dashboard" className="text-blue-600 hover:underline">Dashboard</Link> / Applications Analytics
+          <Link to="/dashboard" className="text-[#FF6B00] hover:underline">Dashboard</Link> / Applications Analytics
         </p>
         <h1 className="text-2xl font-bold">Applications Analytics</h1>
         <p className="text-muted-foreground mt-1">Filter, group, and export application pipeline data.</p>
@@ -70,8 +70,8 @@ export default function ApplicationsAnalyticsPage() {
         columns="sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7"
         items={[
           { label: 'Total', value: summary.total ?? 0, icon: Users, color: 'text-violet-600', bg: 'bg-violet-50' },
-          { label: 'New', value: summary.new ?? summary.APPLIED ?? 0, icon: UserPlus, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Screening', value: summary.SCREENING ?? 0, icon: Filter, color: 'text-sky-600', bg: 'bg-sky-50' },
+          { label: 'New', value: summary.new ?? summary.APPLIED ?? 0, icon: UserPlus, color: 'text-[#FF6B00]', bg: 'bg-[#FFF7ED]' },
+          { label: 'Screening', value: summary.SCREENING ?? 0, icon: Filter, color: 'text-[#F97316]', bg: 'bg-[#FFF7ED]' },
           { label: 'Shortlisted', value: summary.SHORTLISTED ?? 0, icon: Eye, color: 'text-violet-600', bg: 'bg-violet-50' },
           { label: 'Interviewed', value: summary.interviewed ?? 0, icon: Users, color: 'text-orange-600', bg: 'bg-orange-50' },
           { label: 'Selected', value: summary.SELECTED ?? 0, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
@@ -151,7 +151,7 @@ export default function ApplicationsAnalyticsPage() {
                 ) : rows.map((row: any) => (
                   <TableRow key={row.id}>
                     <TableCell>
-                      <Link to={`/applications/${row.id}`} className="font-medium text-blue-600 hover:underline">
+                      <Link to={`/applications/${row.id}`} className="font-medium text-[#FF6B00] hover:underline">
                         {row.candidate?.firstName} {row.candidate?.lastName}
                       </Link>
                     </TableCell>

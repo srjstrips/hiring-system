@@ -62,7 +62,7 @@ export default function OffersDashboardPage() {
     <div className="space-y-6">
       <div>
         <p className="text-sm text-muted-foreground mb-1">
-          <Link to="/dashboard" className="text-blue-600 hover:underline">Dashboard</Link> / Offers
+          <Link to="/dashboard" className="text-[#FF6B00] hover:underline">Dashboard</Link> / Offers
         </p>
         <h1 className="text-2xl font-bold">Offer Management</h1>
         <p className="text-muted-foreground mt-1">Track offer lifecycle from draft to acceptance.</p>
@@ -71,7 +71,7 @@ export default function OffersDashboardPage() {
       <SummaryCards
         columns="sm:grid-cols-2 lg:grid-cols-5"
         items={[
-          { label: 'Offers Sent', value: summary.SENT ?? summary.sent ?? 0, icon: Send, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Offers Sent', value: summary.SENT ?? summary.sent ?? 0, icon: Send, color: 'text-[#FF6B00]', bg: 'bg-[#FFF7ED]' },
           { label: 'Accepted', value: summary.ACCEPTED ?? 0, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
           { label: 'Rejected', value: summary.REJECTED ?? 0, icon: XCircle, color: 'text-red-600', bg: 'bg-red-50' },
           { label: 'Pending Response', value: summary.pendingResponse ?? summary.SENT ?? 0, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
@@ -82,7 +82,7 @@ export default function OffersDashboardPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Offers</CardTitle>
-          <Link to="/offers" className="text-sm text-blue-600 hover:underline">Manage offers →</Link>
+          <Link to="/offers" className="text-sm text-[#FF6B00] hover:underline">Manage offers →</Link>
         </CardHeader>
         <CardContent className="space-y-4">
           <FilterBar

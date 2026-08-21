@@ -130,6 +130,17 @@ class ApplicationsService {
       }),
     ]);
 
+    // Auto-email candidate when an active template is mapped to this stage (category = stage).
+    if (app.status !== dto.status) {
+      const actor = await prisma.user.findUnique({
+        where: { id: updatedById },
+        select: { firstName: true, lastName: true },
+      });
+      const hrName = actor ? `${actor.firstName} ${actor.lastName}`.trim() : 'HR Team';
+      const emailTemplatesService = (await import('../email-templates/email-templates.service')).default;
+      void emailTemplatesService.sendForStageChange(id, dto.status, hrName);
+    }
+
     return this.getById(id);
   }
 

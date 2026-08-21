@@ -45,12 +45,12 @@ function interviewRoundFromStatus(status: string) {
 }
 
 const stageColor: Record<string, string> = {
-  APPLIED: 'bg-[#EFF6FF] text-blue-700',
+  APPLIED: 'bg-[#FFF7ED] text-[#EA580C]',
   SCREENING: 'bg-[#FFF7ED] text-[#FF6B00]',
   SHORTLISTED: 'bg-[#F5F3FF] text-violet-700',
   INTERVIEW_ROUND_1: 'bg-[#FFF7ED] text-[#FF6B00]',
   INTERVIEW_ROUND_2: 'bg-[#FFF7ED] text-[#FF6B00]',
-  HR_ROUND: 'bg-[#EFF6FF] text-blue-700',
+  HR_ROUND: 'bg-[#FFF7ED] text-[#EA580C]',
   SELECTED: 'bg-[#F0FDF4] text-green-700',
   OFFER_SENT: 'bg-[#F0FDF4] text-green-700',
   OFFER_ACCEPTED: 'bg-[#F0FDF4] text-green-700',
@@ -83,12 +83,12 @@ const stageIcon: Record<string, ComponentType<{ className?: string }>> = {
 };
 
 const stageIconTone: Record<string, string> = {
-  APPLIED: 'bg-blue-50 text-blue-600',
+  APPLIED: 'bg-[#FFF7ED] text-[#FF6B00]',
   SCREENING: 'bg-emerald-50 text-emerald-600',
   SHORTLISTED: 'bg-purple-50 text-purple-600',
   INTERVIEW_ROUND_1: 'bg-orange-50 text-orange-600',
   INTERVIEW_ROUND_2: 'bg-amber-50 text-amber-600',
-  HR_ROUND: 'bg-sky-50 text-sky-600',
+  HR_ROUND: 'bg-[#FFF7ED] text-[#F97316]',
   SELECTED: 'bg-green-50 text-green-600',
   OFFER_SENT: 'bg-green-50 text-green-600',
   OFFER_ACCEPTED: 'bg-green-50 text-green-600',

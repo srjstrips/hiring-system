@@ -57,7 +57,7 @@ export default function OpenPositionsPage() {
     <div className="space-y-6">
       <div>
         <p className="text-sm text-muted-foreground mb-1">
-          <Link to="/dashboard" className="text-blue-600 hover:underline">Dashboard</Link> / Open Positions
+          <Link to="/dashboard" className="text-[#FF6B00] hover:underline">Dashboard</Link> / Open Positions
         </p>
         <h1 className="text-2xl font-bold">Open Positions</h1>
         <p className="text-muted-foreground mt-1">Detailed position pipeline with vacancy and application metrics.</p>
@@ -66,7 +66,7 @@ export default function OpenPositionsPage() {
       <SummaryCards
         columns="sm:grid-cols-3"
         items={[
-          { label: 'Total Open', value: summary.totalOpen, icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Total Open', value: summary.totalOpen, icon: Briefcase, color: 'text-[#FF6B00]', bg: 'bg-[#FFF7ED]' },
           { label: 'Total On Hold', value: summary.totalOnHold, icon: PauseCircle, color: 'text-amber-600', bg: 'bg-amber-50' },
           { label: 'Total Closed', value: summary.totalClosed, icon: CheckCircle2, color: 'text-slate-600', bg: 'bg-slate-50' },
         ]}
@@ -144,7 +144,7 @@ export default function OpenPositionsPage() {
                 ) : rows.map((row: any) => (
                   <TableRow key={row.id}>
                     <TableCell className="font-mono text-xs">
-                      <Link to={`/jobs/${row.id}`} className="text-blue-600 hover:underline">{row.id?.slice(0, 8)}</Link>
+                      <Link to={`/jobs/${row.id}`} className="text-[#FF6B00] hover:underline">{row.id?.slice(0, 8)}</Link>
                     </TableCell>
                     <TableCell className="font-medium">{row.title}</TableCell>
                     <TableCell>{row.department?.name}</TableCell>

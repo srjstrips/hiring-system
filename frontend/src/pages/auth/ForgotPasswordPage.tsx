@@ -28,11 +28,11 @@ export function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-[#431407] to-slate-900 p-4">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 shadow-lg">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#FF6B00] shadow-lg">
               <UserCheck className="h-6 w-6 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-white">HireFlow</h1>

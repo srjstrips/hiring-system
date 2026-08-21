@@ -176,7 +176,7 @@ function ErrorPage({ code, message }: { code: number; message: string }) {
     <div className="min-h-screen flex flex-col items-center justify-center text-center p-4">
       <p className="text-8xl font-black text-muted-foreground/30">{code}</p>
       <h1 className="text-2xl font-bold mt-4">{message}</h1>
-      <a href="/" className="mt-6 text-blue-600 hover:underline text-sm">Go back home</a>
+      <a href="/" className="mt-6 text-[#FF6B00] hover:underline text-sm">Go back home</a>
     </div>
   );
 }

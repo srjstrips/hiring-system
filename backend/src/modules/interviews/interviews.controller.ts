@@ -202,7 +202,7 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
       include: interviewInclude,
     });
 
-    if (mode === 'VIDEO' && callUrl && app.candidate.email) {
+    if (app.candidate.email) {
       await emailService.sendInterviewInviteEmail({
         email: app.candidate.email,
         candidateName: `${app.candidate.firstName} ${app.candidate.lastName}`.trim(),
@@ -210,7 +210,9 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
         round: Number(round) || 1,
         scheduledAt: new Date(scheduledAt),
         durationMinutes: Number(durationMinutes) || 60,
-        interviewUrl: callUrl,
+        interviewUrl: mode === 'VIDEO' ? (callUrl ?? '') : '',
+        mode,
+        location: location || null,
       });
     }
 
@@ -233,6 +235,15 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
           },
         }),
       ]);
+
+      // Also send stage-mapped template if HR configured one for this interview stage.
+      const actor = await prisma.user.findUnique({
+        where: { id: req.user!.id },
+        select: { firstName: true, lastName: true },
+      });
+      const hrName = actor ? `${actor.firstName} ${actor.lastName}`.trim() : 'HR Team';
+      const emailTemplatesService = (await import('../email-templates/email-templates.service')).default;
+      void emailTemplatesService.sendForStageChange(applicationId, nextStatus, hrName);
     }
 
     return ApiResponse.created(res, interview);

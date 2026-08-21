@@ -70,7 +70,7 @@ export default function SendEmailModal({ applicationId, candidateEmail, candidat
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Select Template</label>
             {!templates?.length ? (
-              <p className="text-sm text-muted-foreground">No templates found. <a href="/settings/email-templates" className="text-blue-600 hover:underline">Create one</a>.</p>
+              <p className="text-sm text-muted-foreground">No templates found. <a href="/settings/email-templates" className="text-[#FF6B00] hover:underline">Create one</a>.</p>
             ) : (
               <select
                 className="w-full border rounded-md px-3 py-2 text-sm bg-background"

@@ -16,7 +16,7 @@ import { ArrowLeft, Eye, Mail, RefreshCw, Search, X } from 'lucide-react';
 const STATUS_BADGE: Record<string, string> = {
   ASSIGNED: 'bg-slate-100 text-slate-700',
   STARTED: 'bg-amber-100 text-amber-800',
-  COMPLETED: 'bg-blue-100 text-blue-800',
+  COMPLETED: 'bg-[#FFEDD5] text-[#C2410C]',
   EXPIRED: 'bg-orange-100 text-orange-800',
   CANCELLED: 'bg-gray-100 text-gray-600',
 };

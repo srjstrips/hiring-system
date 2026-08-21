@@ -23,7 +23,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const ASSIGN_STATUS: Record<string, string> = {
   ASSIGNED: 'bg-[#FFF7ED] text-[#FF6B00]',
-  STARTED: 'bg-[#EFF6FF] text-blue-700',
+  STARTED: 'bg-[#FFF7ED] text-[#EA580C]',
   COMPLETED: 'bg-[#F0FDF4] text-green-700',
   EXPIRED: 'bg-[#FFF1F2] text-rose-600',
   CANCELLED: 'bg-[#F1F5F9] text-[#64748B]',
@@ -160,7 +160,7 @@ export default function AssessmentDetailPage() {
         columns="grid-cols-2 lg:grid-cols-4"
         items={[
           { label: 'Total Questions', value: data.questionCount ?? data.questions?.length ?? 0, icon: ClipboardList, color: 'text-[#FF6B00]', bg: 'bg-[#FFF7ED]' },
-          { label: 'Candidates Assigned', value: data.candidatesAssigned ?? assignments.length, icon: Users, color: 'text-blue-600', bg: 'bg-[#EFF6FF]' },
+          { label: 'Candidates Assigned', value: data.candidatesAssigned ?? assignments.length, icon: Users, color: 'text-[#FF6B00]', bg: 'bg-[#FFF7ED]' },
           { label: 'Candidates Completed', value: data.candidatesCompleted ?? 0, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-[#F0FDF4]' },
           { label: 'Candidates Pending', value: data.candidatesPending ?? 0, icon: Hourglass, color: 'text-[#FF6B00]', bg: 'bg-[#FFF7ED]' },
         ]}

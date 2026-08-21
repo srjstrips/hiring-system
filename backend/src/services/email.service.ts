@@ -145,31 +145,51 @@ class EmailService {
     scheduledAt: Date;
     durationMinutes: number;
     interviewUrl: string;
+    mode?: 'VIDEO' | 'IN_PERSON' | string;
+    location?: string | null;
   }): Promise<void> {
-    const { email, candidateName, jobTitle, round, scheduledAt, durationMinutes, interviewUrl } = params;
+    const {
+      email,
+      candidateName,
+      jobTitle,
+      round,
+      scheduledAt,
+      durationMinutes,
+      interviewUrl,
+      mode = 'VIDEO',
+      location,
+    } = params;
     const when = scheduledAt.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    const isVideo = mode === 'VIDEO';
+
     await this.send({
       to: email,
-      subject: `Video interview scheduled — ${jobTitle}`,
+      subject: `${isVideo ? 'Video' : 'In-person'} interview scheduled — ${jobTitle}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #ea580c;">You're invited to a video interview</h2>
+          <h2 style="color: #ea580c;">You're invited to an interview</h2>
           <p>Hello ${candidateName},</p>
-          <p>Please join your HireFlow video interview using the button below. No Google Meet or Zoom account is required.</p>
+          <p>Your interview has been scheduled. Please find the details below.</p>
           <p>
             <strong>Role:</strong> ${jobTitle}<br/>
             <strong>Round:</strong> ${round}<br/>
             <strong>When:</strong> ${when}<br/>
-            <strong>Duration:</strong> ${durationMinutes} minutes
+            <strong>Duration:</strong> ${durationMinutes} minutes<br/>
+            <strong>Mode:</strong> ${isVideo ? 'Video call' : 'In person'}
+            ${!isVideo && location ? `<br/><strong>Location:</strong> ${location}` : ''}
           </p>
-          <p style="margin: 30px 0;">
+          ${
+            isVideo && interviewUrl
+              ? `<p style="margin: 30px 0;">
             <a href="${interviewUrl}"
                style="background-color: #ea580c; color: white; padding: 12px 24px;
                       text-decoration: none; border-radius: 6px; display: inline-block;">
               Join video interview
             </a>
           </p>
-          <p style="color: #6b7280; font-size: 13px;">Allow camera and microphone when the browser asks.</p>
+          <p style="color: #6b7280; font-size: 13px;">Allow camera and microphone when the browser asks.</p>`
+              : ''
+          }
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
           <p style="color: #6b7280; font-size: 12px;">SRJ Hiring | Do not reply to this email</p>
         </div>
@@ -190,14 +210,14 @@ class EmailService {
       subject: `Complete your assessment — ${assessmentName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2563eb;">Assessment Invitation</h2>
+          <h2 style="color: #ea580c;">Assessment Invitation</h2>
           <p>Hello ${candidateName},</p>
           <p>Please complete your assessment using the link below.</p>
           <p><strong>Assessment:</strong> ${assessmentName}<br/>
              <strong>Duration:</strong> ${durationMins} minutes</p>
           <p style="margin: 30px 0;">
             <a href="${assessmentUrl}"
-               style="background-color: #2563eb; color: white; padding: 12px 24px;
+               style="background-color: #ea580c; color: white; padding: 12px 24px;
                       text-decoration: none; border-radius: 6px; display: inline-block;">
               Start Assessment
             </a>
@@ -207,7 +227,7 @@ class EmailService {
           </p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
           <p style="color: #6b7280; font-size: 12px;">
-            HireFlow ATS | Do not reply to this email
+            SRJ Hiring | Do not reply to this email
           </p>
         </div>
       `,

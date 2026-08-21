@@ -33,7 +33,7 @@ export default function TimeToHirePage() {
     <div className="space-y-6">
       <div>
         <p className="text-sm text-muted-foreground mb-1">
-          <Link to="/dashboard" className="text-blue-600 hover:underline">Dashboard</Link> / Time to Hire
+          <Link to="/dashboard" className="text-[#FF6B00] hover:underline">Dashboard</Link> / Time to Hire
         </p>
         <h1 className="text-2xl font-bold">Average Time to Hire Analytics</h1>
         <p className="text-muted-foreground mt-1">Hiring velocity metrics with department and recruiter breakdowns.</p>
@@ -54,7 +54,7 @@ export default function TimeToHirePage() {
         columns="sm:grid-cols-2 lg:grid-cols-5"
         items={[
           { label: 'Avg Time to Hire', value: `${metrics.avgHire ?? 0}d`, icon: Clock, color: 'text-teal-600', bg: 'bg-teal-50' },
-          { label: 'Avg Time to Screen', value: `${metrics.avgScreen ?? 0}d`, icon: Hourglass, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Avg Time to Screen', value: `${metrics.avgScreen ?? 0}d`, icon: Hourglass, color: 'text-[#FF6B00]', bg: 'bg-[#FFF7ED]' },
           { label: 'Avg Time to Interview', value: `${metrics.avgInterview ?? 0}d`, icon: Users, color: 'text-orange-600', bg: 'bg-orange-50' },
           { label: 'Avg Offer Acceptance', value: `${metrics.avgOfferAccept ?? 0}d`, icon: Gift, color: 'text-green-600', bg: 'bg-green-50' },
           { label: 'Avg Joining Time', value: `${metrics.avgJoining ?? 0}d`, icon: UserCheck, color: 'text-violet-600', bg: 'bg-violet-50' },

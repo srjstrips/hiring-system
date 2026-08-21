@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 
 const PIPELINE_COLORS: Record<string, string> = {
   APPLIED: 'bg-slate-500',
-  SCREENING: 'bg-blue-500',
+  SCREENING: 'bg-[#FFF7ED]0',
   SHORTLISTED: 'bg-violet-500',
   INTERVIEW_ROUND_1: 'bg-orange-500',
   INTERVIEW_ROUND_2: 'bg-amber-500',

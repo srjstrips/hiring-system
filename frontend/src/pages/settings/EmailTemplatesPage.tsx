@@ -7,11 +7,28 @@ import { Plus, Pencil, Trash2, X, Info } from 'lucide-react';
 const PLACEHOLDERS = [
   '{{candidate_name}}', '{{candidate_first_name}}', '{{candidate_email}}',
   '{{job_title}}', '{{company_name}}', '{{hr_name}}', '{{portal_link}}',
+  '{{current_stage}}', '{{stage_name}}',
+  '{{assessment_link}}', '{{assessment_name}}', '{{assessment_duration}}',
   '{{interview_date}}', '{{interview_mode}}', '{{interview_location}}',
-  '{{meeting_link}}', '{{interview_round}}', '{{interview_title}}',
+  '{{meeting_link}}', '{{interview_round}}', '{{interview_title}}', '{{interview_duration}}',
 ];
 
-const CATEGORIES = ['GENERAL', 'SHORTLISTED', 'INTERVIEW', 'OFFER', 'REJECTED', 'ONBOARDING'];
+/** Category = pipeline stage → email auto-sends when candidate is moved to that stage. */
+const STAGE_CATEGORIES = [
+  { value: 'APPLIED', label: 'Applied' },
+  { value: 'SCREENING', label: 'Screening (use {{assessment_link}})' },
+  { value: 'SHORTLISTED', label: 'Shortlisted' },
+  { value: 'INTERVIEW_ROUND_1', label: 'Interview Round 1' },
+  { value: 'INTERVIEW_ROUND_2', label: 'Interview Round 2' },
+  { value: 'HR_ROUND', label: 'HR Round' },
+  { value: 'SELECTED', label: 'Selected' },
+  { value: 'OFFER_SENT', label: 'Offer Sent' },
+  { value: 'OFFER_ACCEPTED', label: 'Offer Accepted' },
+  { value: 'JOINED', label: 'Joined' },
+  { value: 'REJECTED', label: 'Rejected' },
+  { value: 'ON_HOLD', label: 'On Hold' },
+  { value: 'GENERAL', label: 'General (manual send only)' },
+];
 
 const emptyForm = { name: '', subject: '', body: '', category: '', description: '' };
 
@@ -85,7 +102,9 @@ export default function EmailTemplatesPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
             <h1 className="text-[22px] font-bold leading-tight text-[#0F172A]">Email Templates</h1>
-            <p className="text-sm text-[#64748B]">Reusable templates for candidate communication</p>
+            <p className="text-sm text-[#64748B]">
+              Create one template per pipeline stage. When HR moves a candidate to that stage, the matching template is emailed automatically.
+            </p>
           </div>
           <button
             type="button"
@@ -114,11 +133,16 @@ export default function EmailTemplatesPage() {
                     <input type="text" required value={form.name} onChange={set('name')} placeholder="e.g. Shortlisting Email" className={inputCls} />
                   </div>
                   <div>
-                    <label className={labelCls}>Category</label>
+                    <label className={labelCls}>Auto-send on stage</label>
                     <select value={form.category} onChange={set('category')} className={selectCls}>
-                      <option value="">None</option>
-                      {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                      <option value="">None (manual Send Email only)</option>
+                      {STAGE_CATEGORIES.map((c) => (
+                        <option key={c.value} value={c.value}>{c.label}</option>
+                      ))}
                     </select>
+                    <p className="mt-1.5 text-xs text-[#64748B]">
+                      Pick a stage to auto-email candidates when they are moved there. Use {'{{assessment_link}}'} for Screening and {'{{meeting_link}}'} / {'{{interview_date}}'} for interview stages.
+                    </p>
                   </div>
                 </div>
                 <div>
@@ -197,8 +221,8 @@ export default function EmailTemplatesPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-sm font-semibold text-[#0F172A]">{t.name}</h3>
                       {t.category && (
-                        <span className="inline-flex items-center rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-2.5 py-0.5 text-xs font-medium uppercase text-[#64748B]">
-                          {t.category}
+                        <span className="inline-flex items-center rounded-full border border-[#FED7AA] bg-[#FFF7ED] px-2.5 py-0.5 text-xs font-medium uppercase text-[#EA580C]">
+                          Auto: {t.category.replace(/_/g, ' ')}
                         </span>
                       )}
                     </div>

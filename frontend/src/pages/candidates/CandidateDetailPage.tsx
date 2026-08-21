@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Mail, Phone, Briefcase, Clock, FileText, Link2, DollarSign } from 'lucide-react';
 
 const stageColor: Record<string, string> = {
-  APPLIED: 'bg-blue-100 text-blue-700',
+  APPLIED: 'bg-[#FFEDD5] text-[#EA580C]',
   SCREENING: 'bg-yellow-100 text-yellow-700',
   SHORTLISTED: 'bg-purple-100 text-purple-700',
   SELECTED: 'bg-green-100 text-green-700',

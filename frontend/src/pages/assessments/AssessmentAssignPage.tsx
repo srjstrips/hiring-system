@@ -153,7 +153,7 @@ export default function AssessmentAssignPage() {
                     Assigned {new Date(a.assignedAt).toLocaleString()}
                   </p>
                   {a.secureToken && (
-                    <p className="text-xs text-blue-600 break-all mt-1">
+                    <p className="text-xs text-[#FF6B00] break-all mt-1">
                       {`${window.location.origin}/assessment/t/${a.secureToken}`}
                     </p>
                   )}

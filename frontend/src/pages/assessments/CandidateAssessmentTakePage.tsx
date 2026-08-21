@@ -705,7 +705,7 @@ export default function CandidateAssessmentTakePage() {
                     return (
                       <label
                         key={opt.id}
-                        className={`flex items-start gap-3 border rounded-md p-3 cursor-pointer ${selected ? 'border-blue-500 bg-blue-50' : 'hover:bg-slate-50'}`}
+                        className={`flex items-start gap-3 border rounded-md p-3 cursor-pointer ${selected ? 'border-[#FF6B00] bg-[#FFF7ED]' : 'hover:bg-slate-50'}`}
                       >
                         <input
                           type="radio"
@@ -748,9 +748,9 @@ export default function CandidateAssessmentTakePage() {
                     onClick={() => setCurrentQ(i)}
                     className={`h-9 rounded text-xs font-medium border ${
                       current
-                        ? 'bg-blue-600 text-white border-blue-600'
+                        ? 'bg-[#FF6B00] text-white border-[#FF6B00]'
                         : answered
-                          ? 'bg-blue-100 text-blue-800 border-blue-200'
+                          ? 'bg-[#FFEDD5] text-[#C2410C] border-[#FED7AA]'
                           : 'bg-white text-slate-600'
                     }`}
                   >

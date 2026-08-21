@@ -58,7 +58,7 @@ export default function RequisitionsDashboardPage() {
     <div className="space-y-6">
       <div>
         <p className="text-sm text-muted-foreground mb-1">
-          <Link to="/dashboard" className="text-blue-600 hover:underline">Dashboard</Link> / Requisitions
+          <Link to="/dashboard" className="text-[#FF6B00] hover:underline">Dashboard</Link> / Requisitions
         </p>
         <h1 className="text-2xl font-bold">Requisition Dashboard</h1>
         <p className="text-muted-foreground mt-1">Track approval workflow for manpower requests.</p>
@@ -76,7 +76,7 @@ export default function RequisitionsDashboardPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Requisitions</CardTitle>
-          <Link to="/requisitions" className="text-sm text-blue-600 hover:underline">Manage requisitions →</Link>
+          <Link to="/requisitions" className="text-sm text-[#FF6B00] hover:underline">Manage requisitions →</Link>
         </CardHeader>
         <CardContent className="space-y-4">
           <FilterBar

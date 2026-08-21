@@ -16,12 +16,12 @@ const STAGES = [
 ];
 
 const STAGE_BADGE: Record<string, string> = {
-  APPLIED: 'bg-[#EFF6FF] text-blue-700',
+  APPLIED: 'bg-[#FFF7ED] text-[#EA580C]',
   SCREENING: 'bg-[#FFF7ED] text-[#FF6B00]',
   SHORTLISTED: 'bg-[#F5F3FF] text-violet-700',
   INTERVIEW_ROUND_1: 'bg-[#FFF7ED] text-[#FF6B00]',
   INTERVIEW_ROUND_2: 'bg-[#FFF7ED] text-[#FF6B00]',
-  HR_ROUND: 'bg-[#EFF6FF] text-blue-700',
+  HR_ROUND: 'bg-[#FFF7ED] text-[#EA580C]',
   SELECTED: 'bg-[#F0FDF4] text-green-700',
   OFFER_SENT: 'bg-[#F0FDF4] text-green-700',
   OFFER_ACCEPTED: 'bg-[#F0FDF4] text-green-700',
@@ -84,7 +84,7 @@ export default function ApplicationsPage() {
   const SUMMARY_STAGES = ['APPLIED', 'SCREENING', 'SHORTLISTED', 'INTERVIEW_ROUND_1', 'SELECTED', 'REJECTED'] as const;
 
   const stageAccent: Record<string, { count: string; active: string }> = {
-    APPLIED: { count: 'text-blue-700', active: 'border-blue-200 bg-[#EFF6FF]' },
+    APPLIED: { count: 'text-[#EA580C]', active: 'border-[#FED7AA] bg-[#FFF7ED]' },
     SCREENING: { count: 'text-[#FF6B00]', active: 'border-[#FF6B00]/30 bg-[#FFF7ED]' },
     SHORTLISTED: { count: 'text-violet-700', active: 'border-violet-200 bg-[#F5F3FF]' },
     INTERVIEW_ROUND_1: { count: 'text-[#FF6B00]', active: 'border-[#FF6B00]/30 bg-[#FFF7ED]' },
