@@ -6,7 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DoodleBackdrop } from '@/components/common/DoodleBackdrop';
 
 const REMEMBERED_EMAIL_KEY = 'hr_login_email';
 
@@ -119,25 +118,21 @@ export default function CandidateLoginPage() {
   };
 
   return (
-    <div className="relative overflow-x-hidden bg-white text-[#111827]">
-      <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-[#FFF7F2]" />
-      <div className="pointer-events-none absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-[#FFF7F2]" />
-      <DoodleBackdrop className="pointer-events-none absolute inset-0 h-full w-full opacity-90" />
+    <div className="grid min-h-screen bg-white text-[#111827] md:grid-cols-[7fr_3fr]">
+      <div className="relative hidden md:block">
+        <img
+          src="/career-assets/signup-login-bg.png"
+          alt="SRJ — building tomorrow together"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      </div>
 
-      <div className="relative mx-auto flex max-w-6xl flex-col px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid items-center gap-10 md:grid-cols-2 md:gap-12 lg:gap-16">
-          <section className="flex flex-col items-center text-center">
+      <div className="flex items-center justify-center px-4 py-12 sm:px-8">
+        <section className="w-full max-w-md">
+          <div className="mb-8 flex justify-center">
             <SrjWordmark />
-            <h1 className="mt-8 text-3xl font-bold tracking-tight sm:text-4xl">
-              Welcome <span className="text-[#FF6B00]">Back!</span>
-            </h1>
-            <p className="mt-3 max-w-sm rounded-lg bg-white/70 px-3 py-1 text-sm leading-relaxed text-[#64748B] backdrop-blur-[2px]">
-              Sign in to continue to your account.
-            </p>
-          </section>
-
-          <section className="w-full">
-            <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.06)] sm:p-8">
+          </div>
+          <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.06)] sm:p-8">
               <div className="mb-6">
                 <h2 className="text-2xl font-bold text-[#111827]">Login</h2>
                 <p className="mt-1 text-sm text-[#64748B]">Enter your credentials to access your account</p>
@@ -219,9 +214,8 @@ export default function CandidateLoginPage() {
                   Login
                 </Button>
               </form>
-            </div>
-          </section>
-        </div>
+          </div>
+        </section>
       </div>
     </div>
   );

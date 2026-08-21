@@ -12,7 +12,7 @@ export default function CareerLayout() {
   };
 
   return (
-    <div className="career-theme dark min-h-screen bg-background text-foreground">
+    <div className="career-theme min-h-screen bg-white text-[#111827]">
       {/* WHITE navigation bar */}
       <header className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
         <div className="mx-auto flex h-[84px] max-w-7xl items-center justify-between px-5 lg:px-8">
@@ -70,26 +70,26 @@ export default function CareerLayout() {
         <Outlet />
       </main>
 
-      <footer className="border-t border-white/10 bg-[#090909]">
+      <footer className="border-t border-[#E5E7EB] bg-[#F8FAFC]">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-7 px-5 py-9 sm:flex-row lg:px-8">
           <div>
             <Link to="/careers" aria-label="SRJ Careers home">
               <img
-                src="/career-assets/srj-logo.png"
+                src="/career-assets/srj-logo-dark.png"
                 alt="SRJ — TMT, HR Coil and Pipes"
                 className="h-16 w-auto object-contain"
               />
             </Link>
-            <p className="mt-2 text-xs text-zinc-500">© {new Date().getFullYear()} SRJ Group. All rights reserved.</p>
+            <p className="mt-2 text-xs text-[#64748B]">© {new Date().getFullYear()} SRJ Group. All rights reserved.</p>
           </div>
-          <div className="flex items-center gap-3 text-zinc-400">
+          <div className="flex items-center gap-3 text-[#475569]">
             <span className="mr-2 text-xs">Follow Us</span>
             {[
               { label: 'LinkedIn', mark: 'in' },
               { label: 'Instagram', mark: '◎' },
               { label: 'YouTube', mark: '▶' },
             ].map(({ label, mark }) => (
-              <a key={label} href="#" aria-label={label} className="flex h-9 w-9 items-center justify-center rounded-md border border-white/10 text-xs font-bold transition-colors hover:border-[#f97316]/60 hover:text-[#f97316]">
+              <a key={label} href="#" aria-label={label} className="flex h-9 w-9 items-center justify-center rounded-md border border-[#E5E7EB] text-xs font-bold transition-colors hover:border-[#f97316]/60 hover:text-[#f97316]">
                 {mark}
               </a>
             ))}

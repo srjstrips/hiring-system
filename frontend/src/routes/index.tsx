@@ -81,6 +81,8 @@ export const router = createBrowserRouter([
     ],
   },
 
+  { path: '/', element: <Navigate to="/careers" replace /> },
+
   {
     path: '/login',
     loader: ({ request }) => redirect(toCareersLogin(request.url)),
@@ -93,7 +95,6 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { path: '/', element: <Navigate to="/dashboard" replace /> },
           { path: '/dashboard', element: <DashboardPage /> },
           { path: '/dashboard/open-positions', element: <OpenPositionsPage /> },
           { path: '/dashboard/applications', element: <ApplicationsAnalyticsPage /> },

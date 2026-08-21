@@ -59,8 +59,16 @@ export default function CandidateSignupPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-16">
-      <Card>
+    <div className="grid min-h-[calc(100vh-84px)] md:grid-cols-[7fr_3fr]">
+      <div className="relative hidden md:block">
+        <img
+          src="/career-assets/signup-login-bg.png"
+          alt="SRJ — building tomorrow together"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      </div>
+      <div className="flex items-center justify-center bg-white px-4 py-12 sm:px-8">
+      <Card className="w-full max-w-md border-none shadow-none">
         <CardHeader className="space-y-1 pb-4">
           <CardTitle className="text-2xl font-bold text-center">Create your account</CardTitle>
           <CardDescription className="text-center">
@@ -142,6 +150,7 @@ export default function CandidateSignupPage() {
           </p>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

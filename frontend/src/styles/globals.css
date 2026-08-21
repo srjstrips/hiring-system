@@ -74,24 +74,24 @@
 }
 
 .career-theme {
-  --background:             hsl(0 0% 3.5%);
-  --foreground:             hsl(0 0% 98%);
-  --card:                   hsl(0 0% 8%);
-  --card-foreground:        hsl(0 0% 98%);
-  --popover:                hsl(0 0% 7%);
-  --popover-foreground:     hsl(0 0% 98%);
+  --background:             hsl(0 0% 100%);
+  --foreground:             hsl(222 47% 11%);
+  --card:                   hsl(0 0% 100%);
+  --card-foreground:        hsl(222 47% 11%);
+  --popover:                hsl(0 0% 100%);
+  --popover-foreground:     hsl(222 47% 11%);
   --primary:                hsl(24.6 95% 53.1%);
   --primary-foreground:     hsl(0 0% 100%);
-  --secondary:              hsl(0 0% 12%);
-  --secondary-foreground:   hsl(0 0% 98%);
-  --muted:                  hsl(0 0% 13%);
-  --muted-foreground:       hsl(0 0% 63%);
-  --accent:                 hsl(24.6 80% 18%);
-  --accent-foreground:      hsl(0 0% 100%);
-  --border:                 hsl(0 0% 16%);
-  --input:                  hsl(0 0% 18%);
+  --secondary:              hsl(210 40% 96%);
+  --secondary-foreground:   hsl(222 47% 11%);
+  --muted:                  hsl(210 40% 96%);
+  --muted-foreground:       hsl(215 16% 47%);
+  --accent:                 hsl(24.6 100% 95%);
+  --accent-foreground:      hsl(24.6 95% 40%);
+  --border:                 hsl(214 32% 91%);
+  --input:                  hsl(214 32% 91%);
   --ring:                   hsl(24.6 95% 53.1%);
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 .career-theme ::selection {
