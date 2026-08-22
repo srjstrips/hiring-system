@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { candidatesApi } from '@/api/candidates';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Mail, Phone, Briefcase, Clock, FileText, Link2, DollarSign } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, Briefcase, Clock, FileText, Link2, DollarSign, Award } from 'lucide-react';
 
 const stageColor: Record<string, string> = {
   APPLIED: 'bg-[#FFEDD5] text-[#EA580C]',
@@ -129,6 +129,34 @@ export default function CandidateDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Certifications & achievements */}
+          {candidate.certificates?.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Certifications & Achievements ({candidate.certificates.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {candidate.certificates.map((cert: any) => (
+                    <div key={cert.id} className="flex items-center justify-between gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
+                      <div className="flex min-w-0 items-center gap-2 text-sm">
+                        <Award className="h-4 w-4 shrink-0 text-[#F97316]" />
+                        <span className="truncate font-medium">{cert.name || cert.fileOriginalName || 'Certificate'}</span>
+                      </div>
+                      {cert.fileUrl && (
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={cert.fileUrl} target="_blank" rel="noreferrer">
+                            <FileText className="h-3.5 w-3.5 mr-1.5" /> View
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Side */}

@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { candidateAuthApi, type CandidateFullProfile } from '@/api/career';
+import {
+  candidateAuthApi,
+  type CandidateFullProfile,
+  type CandidateCertification,
+} from '@/api/career';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, FileText, Loader2, Upload, UserCircle2 } from 'lucide-react';
+import { Award, CheckCircle2, FileText, Loader2, Trash2, Upload, UserCircle2 } from 'lucide-react';
 
 type FormState = Record<string, string>;
 
@@ -29,6 +33,8 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [uploadingResume, setUploadingResume] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [certs, setCerts] = useState<CandidateCertification[]>([]);
+  const [uploadingCert, setUploadingCert] = useState(false);
   const resumeRef = useRef<HTMLInputElement>(null);
 
   const hydrate = (p: CandidateFullProfile) => {
@@ -45,6 +51,7 @@ export default function ProfilePage() {
       .then(hydrate)
       .catch(() => setError('Could not load your profile.'))
       .finally(() => setLoading(false));
+    candidateAuthApi.listCertifications().then(setCerts).catch(() => undefined);
   }, []);
 
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
@@ -91,6 +98,30 @@ export default function ProfilePage() {
       setError(err.response?.data?.message ?? 'Could not upload photo.');
     } finally {
       setUploadingPhoto(false);
+    }
+  };
+
+  const handleCertUpload = async (file: File) => {
+    setUploadingCert(true);
+    setError('');
+    try {
+      const created = await candidateAuthApi.uploadCertification(file, file.name.replace(/\.[^.]+$/, ''));
+      setCerts((prev) => [created, ...prev]);
+    } catch (err: any) {
+      setError(err.response?.data?.message ?? 'Could not upload certificate. Use PDF, JPG or PNG (max 10MB).');
+    } finally {
+      setUploadingCert(false);
+    }
+  };
+
+  const handleCertDelete = async (id: string) => {
+    const prev = certs;
+    setCerts((c) => c.filter((x) => x.id !== id));
+    try {
+      await candidateAuthApi.deleteCertification(id);
+    } catch (err: any) {
+      setCerts(prev);
+      setError(err.response?.data?.message ?? 'Could not remove certificate.');
     }
   };
 
@@ -239,7 +270,7 @@ export default function ProfilePage() {
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div><Label>Expected Stipend / Salary (₹/year) {optional}</Label><Input type="number" value={form.expectedSalary} onChange={set('expectedSalary')} /></div>
               <p className="sm:col-span-2 text-xs text-muted-foreground">
-                Internships, academic projects and certifications can be added in the next update — for now include them in your resume and profile summary.
+                Add internships and academic projects in your profile summary, and upload certificates or awards in the Certifications & Achievements section below.
               </p>
             </CardContent>
           </Card>
@@ -285,6 +316,55 @@ export default function ProfilePage() {
             )}
             <input ref={resumeRef} type="file" className="hidden" accept=".pdf,.doc,.docx"
               onChange={(e) => e.target.files?.[0] && handleResume(e.target.files[0])} />
+          </CardContent>
+        </Card>
+
+        {/* Certifications & achievements */}
+        <Card>
+          <CardHeader><CardTitle className="text-base">Certifications & Achievements {optional}</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Upload certificates, awards or any achievements as PDF or image. Our recruiters can view these along with your profile.
+            </p>
+
+            {certs.length > 0 && (
+              <ul className="space-y-2">
+                {certs.map((cert) => (
+                  <li key={cert.id} className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 p-3">
+                    <div className="flex min-w-0 items-center gap-2 text-sm">
+                      <Award className="h-4 w-4 shrink-0 text-[#F97316]" />
+                      {cert.fileUrl ? (
+                        <a href={cert.fileUrl} target="_blank" rel="noreferrer" className="truncate font-medium text-[#111827] hover:underline">
+                          {cert.name || cert.fileOriginalName || 'Certificate'}
+                        </a>
+                      ) : (
+                        <span className="truncate font-medium text-[#111827]">{cert.name}</span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleCertDelete(cert.id)}
+                      className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+                      aria-label="Remove certificate"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors hover:bg-muted/50">
+              <Upload className="mb-2 h-6 w-6 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                {uploadingCert ? 'Uploading…' : 'Upload a certificate (PDF, JPG, PNG)'}
+              </span>
+              <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" disabled={uploadingCert}
+                onChange={(e) => {
+                  if (e.target.files?.[0]) handleCertUpload(e.target.files[0]);
+                  e.target.value = '';
+                }} />
+            </label>
           </CardContent>
         </Card>
 

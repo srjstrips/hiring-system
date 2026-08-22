@@ -43,6 +43,22 @@ const photoUpload = multer({
   },
 });
 
+const certificationStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, 'uploads/certifications'),
+  filename: (_req, file, cb) => {
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    cb(null, unique + path.extname(file.originalname));
+  },
+});
+const certificationUpload = multer({
+  storage: certificationStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['.pdf', '.jpg', '.jpeg', '.png'];
+    cb(null, allowed.includes(path.extname(file.originalname).toLowerCase()));
+  },
+});
+
 const router = Router();
 
 router.post('/signup', validateBody(signupSchema), candidateAuthController.signup);
@@ -69,6 +85,23 @@ router.post(
   authenticateCandidate,
   photoUpload.single('photo'),
   candidateAuthController.updatePhoto
+);
+
+router.get(
+  '/profile/certifications',
+  authenticateCandidate,
+  candidateAuthController.listCertifications
+);
+router.post(
+  '/profile/certifications',
+  authenticateCandidate,
+  certificationUpload.single('file'),
+  candidateAuthController.addCertification
+);
+router.delete(
+  '/profile/certifications/:id',
+  authenticateCandidate,
+  candidateAuthController.deleteCertification
 );
 
 export default router;

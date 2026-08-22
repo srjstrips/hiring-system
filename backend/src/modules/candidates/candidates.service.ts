@@ -7,6 +7,7 @@ const candidateInclude = {
   skills: { include: { skill: { select: { id: true, name: true } } } },
   educations: { include: { education: { select: { id: true, name: true } } } },
   experiences: { orderBy: { startDate: 'desc' as const } },
+  certificates: { orderBy: { createdAt: 'desc' as const } },
   applications: {
     orderBy: { appliedAt: 'desc' as const },
     include: {

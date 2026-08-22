@@ -152,7 +152,39 @@ export const candidateAuthApi = {
     });
     return data.data;
   },
+
+  async listCertifications(): Promise<CandidateCertification[]> {
+    const { data } = await careerAxios.get<{ data: CandidateCertification[] }>(
+      '/auth/profile/certifications'
+    );
+    return data.data;
+  },
+
+  async uploadCertification(file: File, name?: string): Promise<CandidateCertification> {
+    const fd = new FormData();
+    fd.append('file', file);
+    if (name) fd.append('name', name);
+    const { data } = await careerAxios.post<{ data: CandidateCertification }>(
+      '/auth/profile/certifications',
+      fd,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    return data.data;
+  },
+
+  async deleteCertification(id: string): Promise<void> {
+    await careerAxios.delete(`/auth/profile/certifications/${id}`);
+  },
 };
+
+export interface CandidateCertification {
+  id: string;
+  candidateId: string;
+  name: string;
+  fileUrl?: string | null;
+  fileOriginalName?: string | null;
+  createdAt: string;
+}
 
 export type CandidateType = 'FRESHER' | 'EXPERIENCED';
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY';

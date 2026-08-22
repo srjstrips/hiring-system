@@ -203,6 +203,26 @@ export class CandidateAuthService {
     const candidate = await candidateAuthRepository.updateProfile(candidateId, { photoUrl });
     return serializeProfile(candidate);
   }
+
+  async listCertifications(candidateId: string) {
+    return candidateAuthRepository.listCertifications(candidateId);
+  }
+
+  async addCertification(
+    candidateId: string,
+    data: { name: string; fileUrl?: string; fileOriginalName?: string }
+  ) {
+    return candidateAuthRepository.createCertification({ candidateId, ...data });
+  }
+
+  async deleteCertification(candidateId: string, certificationId: string) {
+    const cert = await candidateAuthRepository.findCertification(certificationId);
+    if (!cert || cert.candidateId !== candidateId) {
+      throw new NotFoundError('Certification');
+    }
+    await candidateAuthRepository.deleteCertification(certificationId);
+    return { id: certificationId };
+  }
 }
 
 function serializeProfile(c: any) {

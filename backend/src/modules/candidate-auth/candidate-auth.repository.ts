@@ -52,6 +52,30 @@ export class CandidateAuthRepository {
     });
   }
 
+  async listCertifications(candidateId: string) {
+    return prisma.candidateCertification.findMany({
+      where: { candidateId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createCertification(data: {
+    candidateId: string;
+    name: string;
+    fileUrl?: string;
+    fileOriginalName?: string;
+  }) {
+    return prisma.candidateCertification.create({ data });
+  }
+
+  async findCertification(id: string) {
+    return prisma.candidateCertification.findUnique({ where: { id } });
+  }
+
+  async deleteCertification(id: string) {
+    return prisma.candidateCertification.delete({ where: { id } });
+  }
+
   async createRefreshToken(data: {
     candidateId: string;
     token: string;

@@ -63,6 +63,31 @@ export class CandidateAuthController {
     );
     return ApiResponse.success(res, profile, 'Photo updated');
   });
+
+  listCertifications = asyncHandler(async (req: CandidateAuthRequest, res: Response) => {
+    const items = await candidateAuthService.listCertifications(req.candidate!.id);
+    return ApiResponse.success(res, items);
+  });
+
+  addCertification = asyncHandler(async (req: CandidateAuthRequest, res: Response) => {
+    const file = (req as any).file;
+    if (!file) return ApiResponse.error(res, 'No certificate file uploaded', 400);
+    const name = (((req.body as any)?.name as string) || file.originalname).trim();
+    const cert = await candidateAuthService.addCertification(req.candidate!.id, {
+      name,
+      fileUrl: `/uploads/certifications/${file.filename}`,
+      fileOriginalName: file.originalname,
+    });
+    return ApiResponse.success(res, cert, 'Certificate uploaded', 201);
+  });
+
+  deleteCertification = asyncHandler(async (req: CandidateAuthRequest, res: Response) => {
+    const result = await candidateAuthService.deleteCertification(
+      req.candidate!.id,
+      req.params.id as string
+    );
+    return ApiResponse.success(res, result, 'Certificate removed');
+  });
 }
 
 export const candidateAuthController = new CandidateAuthController();
