@@ -118,6 +118,105 @@ class CareerService {
     };
   }
 
+  /**
+   * Recommend published jobs for a logged-in candidate. No dedicated table —
+   * we score existing jobs against the candidate's skills, experience and the
+   * departments/locations they've already applied to, excluding applied jobs.
+   */
+  async getRecommendedJobs(candidateId: string, limit = 12) {
+    const candidate = await prisma.candidate.findFirst({
+      where: { id: candidateId, deletedAt: null },
+      select: {
+        totalExperience: true,
+        currentLocation: true,
+        skills: { select: { skillId: true } },
+        applications: {
+          select: { jobId: true, job: { select: { departmentId: true, locationId: true } } },
+        },
+      },
+    });
+    if (!candidate) throw new AppError('Candidate not found', 404);
+
+    const skillIds = new Set(candidate.skills.map((s) => s.skillId));
+    const appliedJobIds = new Set(candidate.applications.map((a) => a.jobId));
+    const preferredDepartments = new Set(candidate.applications.map((a) => a.job.departmentId));
+    const preferredLocations = new Set(candidate.applications.map((a) => a.job.locationId));
+    const exp = candidate.totalExperience;
+
+    const jobs = await prisma.job.findMany({
+      where: {
+        deletedAt: null,
+        isPublished: true,
+        isActive: true,
+        ...(appliedJobIds.size ? { id: { notIn: Array.from(appliedJobIds) } } : {}),
+      },
+      select: publicJobSelect,
+      orderBy: { publishedAt: 'desc' },
+    });
+
+    const scored = jobs.map((job: any) => {
+      let score = 0;
+      const reasons: string[] = [];
+
+      const matchedSkills = (job.skills ?? []).filter((js: any) => skillIds.has(js.skill.id)).length;
+      if (matchedSkills > 0) {
+        score += matchedSkills * 3;
+        reasons.push(`${matchedSkills} matching skill${matchedSkills > 1 ? 's' : ''}`);
+      }
+      if (preferredDepartments.has(job.department?.id)) {
+        score += 2;
+        reasons.push('In a department you applied to');
+      }
+      if (
+        preferredLocations.has(job.location?.id) ||
+        (candidate.currentLocation &&
+          job.location?.city &&
+          job.location.city.toLowerCase() === candidate.currentLocation.toLowerCase())
+      ) {
+        score += 1;
+        reasons.push('Near your location');
+      }
+      if (
+        exp != null &&
+        job.experienceLevel &&
+        (job.experienceLevel.minYears == null || exp >= job.experienceLevel.minYears) &&
+        (job.experienceLevel.maxYears == null || exp <= job.experienceLevel.maxYears)
+      ) {
+        score += 1;
+        reasons.push('Matches your experience');
+      }
+
+      return { job, score, reasons };
+    });
+
+    // If we have any signal, prefer scored jobs; otherwise fall back to newest.
+    const hasSignal = skillIds.size > 0 || appliedJobIds.size > 0 || exp != null;
+    const ranked = hasSignal
+      ? scored.filter((s) => s.score > 0).sort((a, b) => b.score - a.score)
+      : [];
+
+    const list = (ranked.length ? ranked : scored).slice(0, limit);
+    return list.map(({ job, reasons }) => ({ ...job, matchReasons: reasons }));
+  }
+
+  async getAlertSubscription(candidateId: string) {
+    const candidate = await prisma.candidate.findFirst({
+      where: { id: candidateId, deletedAt: null },
+      select: { jobAlertSubscribed: true },
+    });
+    if (!candidate) throw new AppError('Candidate not found', 404);
+    return { subscribed: candidate.jobAlertSubscribed };
+  }
+
+  async updateAlertSubscription(candidateId: string, dto: { subscribed: boolean }) {
+    const candidate = await prisma.candidate.update({
+      where: { id: candidateId },
+      data: { jobAlertSubscribed: dto.subscribed },
+      select: { jobAlertSubscribed: true },
+    });
+    return { subscribed: candidate.jobAlertSubscribed };
+  }
+
   async getFilters() {
     const [departments, locations, employmentTypes, experienceLevels] = await Promise.all([
       prisma.department.findMany({ where: { isActive: true }, select: { id: true, name: true } }),

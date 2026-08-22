@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   ArrowRight,
+  Bell,
   BriefcaseBusiness,
   Building2,
   Calculator,
@@ -174,6 +175,33 @@ export default function CareerHomePage() {
                 New opportunities are coming soon. Check back again or explore all roles.
               </div>
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* Job-alert subscribe strip */}
+      <section className="border-b border-[#E5E7EB] bg-white py-12">
+        <div className="mx-auto max-w-7xl px-5 lg:px-8">
+          <div className="flex flex-col items-start justify-between gap-5 rounded-2xl border border-[#f97316]/25 bg-[#FFF7ED] p-7 sm:flex-row sm:items-center">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#f97316]/15 text-[#ea580c]">
+                <Bell className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-[#111827]">Never miss an opening</h3>
+                <p className="mt-1 text-sm text-[#475569]">
+                  Subscribe to get the latest postings and job recommendations by email — weekly or monthly.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="lg"
+              className="shrink-0 bg-[#f97316] px-7 text-white hover:bg-[#ea580c]"
+              onClick={() => navigate('/careers/recommended')}
+            >
+              <Bell className="mr-2 h-4 w-4" />
+              Subscribe to Job Alerts
+            </Button>
           </div>
         </div>
       </section>

@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import careerService from './career.service';
-import type { ApplyJobDto, PublicJobQueryDto } from './career.validator';
+import type { AlertSubscriptionDto, ApplyJobDto, PublicJobQueryDto } from './career.validator';
 import type { CandidateAuthRequest } from '@/types';
 
 class CareerController {
@@ -18,6 +18,24 @@ class CareerController {
   async getFilters(req: Request, res: Response) {
     const filters = await careerService.getFilters();
     res.json({ success: true, data: filters });
+  }
+
+  async getRecommended(req: CandidateAuthRequest, res: Response) {
+    const jobs = await careerService.getRecommendedJobs(req.candidate!.id);
+    res.json({ success: true, data: jobs });
+  }
+
+  async getAlertSubscription(req: CandidateAuthRequest, res: Response) {
+    const data = await careerService.getAlertSubscription(req.candidate!.id);
+    res.json({ success: true, data });
+  }
+
+  async updateAlertSubscription(req: CandidateAuthRequest, res: Response) {
+    const data = await careerService.updateAlertSubscription(
+      req.candidate!.id,
+      req.body as any as AlertSubscriptionDto
+    );
+    res.json({ success: true, data, message: 'Subscription updated' });
   }
 
   async apply(req: CandidateAuthRequest, res: Response) {

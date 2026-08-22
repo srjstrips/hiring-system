@@ -24,5 +24,10 @@ export const ApplyJobSchema = z.object({
   sourceId: z.string().uuid().optional(),
 });
 
+export const AlertSubscriptionSchema = z.object({
+  subscribed: z.boolean(),
+});
+
 export type PublicJobQueryDto = z.infer<typeof PublicJobQuerySchema>;
 export type ApplyJobDto = z.infer<typeof ApplyJobSchema>;
+export type AlertSubscriptionDto = z.infer<typeof AlertSubscriptionSchema>;

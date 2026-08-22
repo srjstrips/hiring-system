@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { careerApi } from '@/api/career';
+import { careerApi, candidateAuthApi } from '@/api/career';
 import { useCandidateAuth } from '@/contexts/CandidateAuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ChevronRight, Upload, CheckCircle2, Loader2, UserCircle2 } from 'lucide-react';
+import { ChevronRight, Upload, CheckCircle2, Loader2, UserCircle2, FileText } from 'lucide-react';
+
+const toStr = (v: unknown) => (v == null ? '' : String(v));
 
 export default function ApplyPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -18,6 +20,7 @@ export default function ApplyPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [savedResume, setSavedResume] = useState<{ url: string; name?: string } | null>(null);
 
   const [form, setForm] = useState({
     phone: candidate?.phone ?? '',
@@ -25,6 +28,26 @@ export default function ApplyPage() {
     totalExperience: '', expectedSalary: '', noticePeriodDays: '',
     linkedinUrl: '', coverLetter: '',
   });
+
+  // Auto-fill from the saved candidate profile
+  useEffect(() => {
+    candidateAuthApi
+      .getProfile()
+      .then((p) => {
+        setForm((f) => ({
+          ...f,
+          phone: toStr(p.phone) || f.phone,
+          currentCompany: toStr(p.currentCompany),
+          currentDesignation: toStr(p.currentDesignation),
+          totalExperience: toStr(p.totalExperience),
+          expectedSalary: toStr(p.expectedSalary),
+          noticePeriodDays: toStr(p.noticePeriodDays),
+          linkedinUrl: toStr(p.linkedinUrl),
+        }));
+        if (p.resumeUrl) setSavedResume({ url: p.resumeUrl, name: p.resumeOriginalName ?? undefined });
+      })
+      .catch(() => {});
+  }, []);
 
   const { data: jobData, isLoading: jobLoading } = useQuery({
     queryKey: ['career-job', slug],
@@ -163,12 +186,23 @@ export default function ApplyPage() {
           <CardContent className="space-y-4">
             <div>
               <Label>Resume (PDF, DOC, DOCX — max 10MB)</Label>
+              {savedResume && !resumeFile && (
+                <div className="mt-1 mb-2 flex items-center gap-2 rounded-lg border bg-muted/40 p-3 text-sm">
+                  <FileText className="h-4 w-4 text-[#F97316]" />
+                  <span className="text-muted-foreground">Using your saved resume:</span>
+                  <a href={savedResume.url} target="_blank" rel="noreferrer" className="font-medium text-[#111827] hover:underline">
+                    {savedResume.name ?? 'resume'}
+                  </a>
+                </div>
+              )}
               <label className="mt-1 flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 cursor-pointer hover:bg-muted/50 transition-colors">
                 <Upload className="h-6 w-6 text-muted-foreground mb-2" />
                 {resumeFile ? (
                   <span className="text-sm font-medium">{resumeFile.name}</span>
                 ) : (
-                  <span className="text-sm text-muted-foreground">Click to upload your resume</span>
+                  <span className="text-sm text-muted-foreground">
+                    {savedResume ? 'Attach a different resume (optional)' : 'Click to upload your resume'}
+                  </span>
                 )}
                 <input
                   type="file"

@@ -45,6 +45,13 @@ export class CandidateAuthRepository {
     });
   }
 
+  async updateProfile(candidateId: string, data: Record<string, unknown>) {
+    return prisma.candidate.update({
+      where: { id: candidateId },
+      data,
+    });
+  }
+
   async createRefreshToken(data: {
     candidateId: string;
     token: string;

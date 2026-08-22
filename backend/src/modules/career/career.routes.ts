@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import { validateBody, validateQuery } from '@/middlewares/validate';
 import { authenticateCandidate } from '@/middlewares/authenticateCandidate';
-import { PublicJobQuerySchema, ApplyJobSchema } from './career.validator';
+import { PublicJobQuerySchema, ApplyJobSchema, AlertSubscriptionSchema } from './career.validator';
 import careerController from './career.controller';
 import candidateAuthRoutes from '../candidate-auth/candidate-auth.routes';
 import candidateNotificationsRoutes from '../candidate-notifications/candidate-notifications.routes';
@@ -37,7 +37,18 @@ router.use('/notifications', candidateNotificationsRoutes);
 // Public — no auth
 router.get('/jobs', validateQuery(PublicJobQuerySchema), careerController.getJobs);
 router.get('/jobs/filters', careerController.getFilters);
+// Requires a logged-in candidate — must precede '/jobs/:slug'
+router.get('/jobs/recommended', authenticateCandidate, careerController.getRecommended);
 router.get('/jobs/:slug', careerController.getJob);
+
+// Job-alert subscription (requires a logged-in candidate)
+router.get('/alert-subscription', authenticateCandidate, careerController.getAlertSubscription);
+router.put(
+  '/alert-subscription',
+  authenticateCandidate,
+  validateBody(AlertSubscriptionSchema),
+  careerController.updateAlertSubscription
+);
 
 // Requires a logged-in candidate
 router.post(

@@ -44,6 +44,8 @@ import CareerHomePage from '@/pages/career/CareerHomePage';
 import CareerJobsPage from '@/pages/career/CareerJobsPage';
 import CareerJobDetailPage from '@/pages/career/CareerJobDetailPage';
 import ApplyPage from '@/pages/career/ApplyPage';
+import RecommendedJobsPage from '@/pages/career/RecommendedJobsPage';
+import ProfilePage from '@/pages/career/ProfilePage';
 import AssessmentPage from '@/pages/career/AssessmentPage';
 import CandidateLoginPage from '@/pages/career/CandidateLoginPage';
 import CandidateSignupPage from '@/pages/career/CandidateSignupPage';
@@ -75,7 +77,11 @@ export const router = createBrowserRouter([
       },
       {
         element: <CandidateProtectedRoute />,
-        children: [{ path: 'jobs/:slug/apply', element: <ApplyPage /> }],
+        children: [
+          { path: 'jobs/:slug/apply', element: <ApplyPage /> },
+          { path: 'recommended', element: <RecommendedJobsPage /> },
+          { path: 'profile', element: <ProfilePage /> },
+        ],
       },
       { path: 'assessment/:applicationId', element: <AssessmentPage /> },
     ],

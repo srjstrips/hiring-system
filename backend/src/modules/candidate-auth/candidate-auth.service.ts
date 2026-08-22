@@ -174,6 +174,83 @@ export class CandidateAuthService {
       createdAt: candidate.createdAt,
     };
   }
+
+  async getProfile(candidateId: string) {
+    const candidate = await candidateAuthRepository.findById(candidateId);
+    if (!candidate) throw new NotFoundError('Candidate');
+    return serializeProfile(candidate);
+  }
+
+  async updateProfile(candidateId: string, dto: Record<string, unknown>) {
+    // Empty strings from the form should clear the column (and never reach an enum as '').
+    const data: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(dto)) {
+      data[k] = v === '' ? null : v;
+    }
+    const candidate = await candidateAuthRepository.updateProfile(candidateId, data);
+    return serializeProfile(candidate);
+  }
+
+  async updateResume(candidateId: string, resumeUrl: string, resumeOriginalName?: string) {
+    const candidate = await candidateAuthRepository.updateProfile(candidateId, {
+      resumeUrl,
+      resumeOriginalName,
+    });
+    return serializeProfile(candidate);
+  }
+
+  async updatePhoto(candidateId: string, photoUrl: string) {
+    const candidate = await candidateAuthRepository.updateProfile(candidateId, { photoUrl });
+    return serializeProfile(candidate);
+  }
+}
+
+function serializeProfile(c: any) {
+  return {
+    id: c.id,
+    email: c.email,
+    firstName: c.firstName,
+    lastName: c.lastName,
+    phone: c.phone,
+    alternatePhone: c.alternatePhone,
+    whatsappNumber: c.whatsappNumber,
+    candidateType: c.candidateType,
+    gender: c.gender,
+    dateOfBirth: c.dateOfBirth,
+    // Address
+    currentLocation: c.currentLocation,
+    state: c.state,
+    pincode: c.pincode,
+    currentAddress: c.currentAddress,
+    permanentAddress: c.permanentAddress,
+    preferredLocation: c.preferredLocation,
+    languagesKnown: c.languagesKnown,
+    willingToRelocate: c.willingToRelocate,
+    // Education
+    highestQualification: c.highestQualification,
+    instituteName: c.instituteName,
+    yearOfPassing: c.yearOfPassing,
+    percentageCgpa: c.percentageCgpa,
+    certifications: c.certifications,
+    // Professional
+    currentCompany: c.currentCompany,
+    currentDesignation: c.currentDesignation,
+    totalExperience: c.totalExperience,
+    currentSalary: c.currentSalary != null ? Number(c.currentSalary) : null,
+    expectedSalary: c.expectedSalary != null ? Number(c.expectedSalary) : null,
+    noticePeriodDays: c.noticePeriodDays,
+    // Links & summary
+    linkedinUrl: c.linkedinUrl,
+    portfolioUrl: c.portfolioUrl,
+    profileSummary: c.profileSummary,
+    // Verification
+    aadharNumber: c.aadharNumber,
+    panNumber: c.panNumber,
+    // Documents
+    resumeUrl: c.resumeUrl,
+    resumeOriginalName: c.resumeOriginalName,
+    photoUrl: c.photoUrl,
+  };
 }
 
 export const candidateAuthService = new CandidateAuthService();

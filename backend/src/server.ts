@@ -9,6 +9,7 @@ import path from 'path';
 const dirs = [
   env.UPLOAD_DIR,
   `${env.UPLOAD_DIR}/resumes`,
+  `${env.UPLOAD_DIR}/photos`,
   `${env.UPLOAD_DIR}/documents`,
   `${env.UPLOAD_DIR}/assessment-recordings-private`,
   env.LOG_DIR,
@@ -29,6 +30,11 @@ async function main() {
       .then((m) => m.default.purgeExpiredRecordings())
       .catch((err) => logger.error('Recording retention purge failed', err));
   }, retentionMs).unref?.();
+
+  // Weekly/monthly job-alert emails (self-selects who is due)
+  import('./modules/career/job-alerts.scheduler')
+    .then((m) => m.startJobAlertScheduler())
+    .catch((err) => logger.error('Failed to start job alert scheduler', err));
 
   const server = app.listen(env.PORT, () => {
     logger.info(`Server running on port ${env.PORT} in ${env.NODE_ENV} mode`);

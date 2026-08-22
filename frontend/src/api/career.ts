@@ -90,6 +90,10 @@ export const careerApi = {
   getJobs: (params?: any) => careerAxios.get('/jobs', { params }),
   getJob: (slug: string) => careerAxios.get(`/jobs/${slug}`),
   getFilters: () => careerAxios.get('/jobs/filters'),
+  getRecommended: () => careerAxios.get('/jobs/recommended'),
+  getAlertSubscription: () => careerAxios.get('/alert-subscription'),
+  updateAlertSubscription: (body: { subscribed: boolean }) =>
+    careerAxios.put('/alert-subscription', body),
   apply: (jobId: string, formData: FormData) =>
     careerAxios.post(`/jobs/${jobId}/apply`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
 };
@@ -120,4 +124,75 @@ export const candidateAuthApi = {
     const { data } = await careerAxios.get<{ data: CandidateProfile }>('/auth/me');
     return data.data;
   },
+
+  async getProfile(): Promise<CandidateFullProfile> {
+    const { data } = await careerAxios.get<{ data: CandidateFullProfile }>('/auth/profile');
+    return data.data;
+  },
+
+  async updateProfile(dto: Partial<CandidateFullProfile>): Promise<CandidateFullProfile> {
+    const { data } = await careerAxios.put<{ data: CandidateFullProfile }>('/auth/profile', dto);
+    return data.data;
+  },
+
+  async uploadResume(file: File): Promise<CandidateFullProfile> {
+    const fd = new FormData();
+    fd.append('resume', file);
+    const { data } = await careerAxios.post<{ data: CandidateFullProfile }>('/auth/profile/resume', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data.data;
+  },
+
+  async uploadPhoto(file: File): Promise<CandidateFullProfile> {
+    const fd = new FormData();
+    fd.append('photo', file);
+    const { data } = await careerAxios.post<{ data: CandidateFullProfile }>('/auth/profile/photo', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data.data;
+  },
 };
+
+export type CandidateType = 'FRESHER' | 'EXPERIENCED';
+export type Gender = 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY';
+
+export interface CandidateFullProfile {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone?: string | null;
+  alternatePhone?: string | null;
+  whatsappNumber?: string | null;
+  candidateType?: CandidateType | null;
+  gender?: Gender | null;
+  dateOfBirth?: string | null;
+  currentLocation?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  currentAddress?: string | null;
+  permanentAddress?: string | null;
+  preferredLocation?: string | null;
+  languagesKnown?: string | null;
+  willingToRelocate?: boolean | null;
+  highestQualification?: string | null;
+  instituteName?: string | null;
+  yearOfPassing?: number | null;
+  percentageCgpa?: string | null;
+  certifications?: string | null;
+  currentCompany?: string | null;
+  currentDesignation?: string | null;
+  totalExperience?: number | null;
+  currentSalary?: number | null;
+  expectedSalary?: number | null;
+  noticePeriodDays?: number | null;
+  linkedinUrl?: string | null;
+  portfolioUrl?: string | null;
+  profileSummary?: string | null;
+  aadharNumber?: string | null;
+  panNumber?: string | null;
+  resumeUrl?: string | null;
+  resumeOriginalName?: string | null;
+  photoUrl?: string | null;
+}

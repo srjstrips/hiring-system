@@ -233,6 +233,55 @@ class EmailService {
       `,
     });
   }
+
+  async sendJobAlertEmail(params: {
+    email: string;
+    candidateName: string;
+    frequency: 'WEEKLY' | 'MONTHLY';
+    jobs: { title: string; slug: string; department?: string; location?: string }[];
+  }): Promise<void> {
+    const { email, candidateName, frequency, jobs } = params;
+    const base = env.FRONTEND_URL.replace(/\/$/, '');
+    const period = frequency === 'WEEKLY' ? 'this week' : 'this month';
+
+    const rows = jobs
+      .map((j) => {
+        const meta = [j.department, j.location].filter(Boolean).join(' · ');
+        return `
+          <tr>
+            <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+              <a href="${base}/careers/jobs/${j.slug}" style="color: #111827; font-weight: 600; text-decoration: none; font-size: 15px;">${j.title}</a>
+              ${meta ? `<div style="color: #6b7280; font-size: 13px; margin-top: 2px;">${meta}</div>` : ''}
+            </td>
+          </tr>`;
+      })
+      .join('');
+
+    await this.send({
+      to: email,
+      subject: `New jobs for you at SRJ — ${period}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #ea580c;">Jobs picked for you</h2>
+          <p>Hello ${candidateName},</p>
+          <p>Here are new openings and recommendations matched to your profile ${period}.</p>
+          <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">${rows}</table>
+          <p style="margin: 30px 0;">
+            <a href="${base}/careers/recommended"
+               style="background-color: #ea580c; color: white; padding: 12px 24px;
+                      text-decoration: none; border-radius: 6px; display: inline-block;">
+              View all recommendations
+            </a>
+          </p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
+          <p style="color: #6b7280; font-size: 12px;">
+            You're receiving this because you subscribed to ${frequency.toLowerCase()} job alerts.
+            Manage your preference on the Recommended page. SRJ Hiring | Do not reply to this email
+          </p>
+        </div>
+      `,
+    });
+  }
 }
 
 export const emailService = new EmailService();

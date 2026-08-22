@@ -213,6 +213,16 @@ export default function CandidateLoginPage() {
                 >
                   Login
                 </Button>
+
+                <p className="text-center text-sm text-[#64748B]">
+                  Don&apos;t have an account?{' '}
+                  <Link
+                    to={redirect ? `/careers/signup?redirect=${encodeURIComponent(redirect)}` : '/careers/signup'}
+                    className="font-semibold text-[#FF6B00] hover:underline"
+                  >
+                    Sign up
+                  </Link>
+                </p>
               </form>
           </div>
         </section>

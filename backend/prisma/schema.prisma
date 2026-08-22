@@ -22,6 +22,12 @@ enum Gender {
   PREFER_NOT_TO_SAY
 }
 
+enum CandidateType {
+  FRESHER
+  EXPERIENCED
+}
+
+
 enum Priority {
   LOW
   MEDIUM
@@ -706,6 +712,26 @@ model Candidate {
   ownedById            String?
   passwordHash         String?
   lastLoginAt          DateTime?
+  jobAlertSubscribed    Boolean   @default(false)
+  jobAlertWeeklySentAt  DateTime?
+  jobAlertMonthlySentAt DateTime?
+  // Extended profile (Phase 1)
+  candidateType        CandidateType?
+  whatsappNumber       String?
+  state                String?
+  pincode              String?
+  currentAddress       String?
+  permanentAddress     String?
+  preferredLocation    String?
+  languagesKnown       String?
+  willingToRelocate    Boolean?
+  highestQualification String?
+  instituteName        String?
+  yearOfPassing        Int?
+  percentageCgpa       String?
+  photoUrl             String?
+  aadharNumber         String?
+  panNumber            String?
   isActive             Boolean   @default(true)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
@@ -725,8 +751,23 @@ model Candidate {
   employees             Employee[]
   refreshTokens         CandidateRefreshToken[]
   notifications         CandidateNotification[]
+  certificates          CandidateCertification[]
 
   @@map("candidates")
+}
+
+model CandidateCertification {
+  id               String   @id @default(uuid())
+  candidateId      String
+  name             String
+  fileUrl          String?
+  fileOriginalName String?
+  createdAt        DateTime @default(now())
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@map("candidate_certifications")
 }
 
 model CandidateNotification {
