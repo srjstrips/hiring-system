@@ -131,14 +131,14 @@ export default function CandidateDetailPage() {
           </Card>
 
           {/* Certifications & achievements */}
-          {candidate.certificates?.length > 0 && (
+          {(candidate.certificates?.length ?? 0) > 0 && (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Certifications & Achievements ({candidate.certificates.length})</CardTitle>
+                <CardTitle className="text-base">Certifications & Achievements ({candidate.certificates?.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {candidate.certificates.map((cert: any) => (
+                  {candidate.certificates?.map((cert: any) => (
                     <div key={cert.id} className="flex items-center justify-between gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
                       <div className="flex min-w-0 items-center gap-2 text-sm">
                         <Award className="h-4 w-4 shrink-0 text-[#F97316]" />
