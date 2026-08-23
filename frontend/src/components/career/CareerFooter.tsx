@@ -242,12 +242,6 @@ export default function CareerFooter() {
           <p className="mb-2 text-xs text-[#B0B0B0]">
             © {new Date().getFullYear()} SRJ Steel. All rights reserved.
           </p>
-          <p className="text-xs text-[#B0B0B0]">
-            Website is maintained and hosted by{' '}
-            <a href="https://7thhighway.com" target="_blank" rel="noopener noreferrer" className="text-[#F97316] hover:underline">
-              7th Highway
-            </a>
-          </p>
         </div>
       </div>
 

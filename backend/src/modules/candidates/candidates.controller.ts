@@ -13,6 +13,13 @@ class CandidatesController {
     const data = await candidatesService.getById(req.params['id'] as string);
     res.json({ success: true, data });
   }
+
+  async exportExcel(req: AuthRequest, res: Response) {
+    const buffer = await candidatesService.exportExcel(req.query as unknown as any);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="candidates.xlsx"');
+    res.send(buffer);
+  }
 }
 
 export default new CandidatesController();

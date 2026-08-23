@@ -8,6 +8,7 @@ import candidatesController from './candidates.controller';
 const router = Router();
 router.use(authenticate);
 
+router.get('/export/excel', authorize('candidates:read'), validateQuery(CandidateQuerySchema), candidatesController.exportExcel);
 router.get('/', authorize('candidates:read'), validateQuery(CandidateQuerySchema), candidatesController.getAll);
 router.get('/:id', authorize('candidates:read'), candidatesController.getById);
 

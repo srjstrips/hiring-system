@@ -51,4 +51,6 @@ export const candidatesApi = {
       { params },
     ),
   getById: (id: string) => api.get<{ success: boolean; data: Candidate }>(`/candidates/${id}`),
+  exportExcel: (params?: Omit<CandidateQueryParams, 'page' | 'limit'>) =>
+    api.get('/candidates/export/excel', { params, responseType: 'blob' }),
 };

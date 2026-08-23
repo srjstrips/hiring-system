@@ -1,3 +1,4 @@
+import * as XLSX from 'xlsx';
 import { prisma } from '@/config/database';
 import { AppError } from '@/utils/errors';
 import type { CandidateQueryDto } from './candidates.validator';
@@ -163,6 +164,117 @@ class CandidatesService {
     const c = await prisma.candidate.findUnique({ where: { id }, include: candidateInclude });
     if (!c) throw new AppError('Candidate not found', 404);
     return mapCandidate(c);
+  }
+
+  async exportExcel(query: CandidateQueryDto): Promise<Buffer> {
+    // Reuse same where-building logic but fetch all rows (no pagination)
+    const {
+      search, experienceMin, experienceMax, noticeMin, noticeMax,
+      salaryMin, salaryMax, designation, applicationFrom, applicationTo,
+      pastCompany, skills, skillMatchMode,
+    } = query;
+
+    const where: any = { deletedAt: null };
+    const andConditions: any[] = [];
+
+    if (search) {
+      andConditions.push({
+        OR: [
+          { firstName: { contains: search, mode: 'insensitive' } },
+          { lastName: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+          { currentCompany: { contains: search, mode: 'insensitive' } },
+        ],
+      });
+    }
+    if (experienceMin != null || experienceMax != null) {
+      where.totalExperience = {
+        ...(experienceMin != null ? { gte: experienceMin } : {}),
+        ...(experienceMax != null ? { lte: experienceMax } : {}),
+      };
+    }
+    if (noticeMin != null || noticeMax != null) {
+      where.noticePeriodDays = {
+        ...(noticeMin != null ? { gte: noticeMin } : {}),
+        ...(noticeMax != null ? { lte: noticeMax } : {}),
+      };
+    }
+    if (salaryMin != null || salaryMax != null) {
+      where.expectedSalary = {
+        ...(salaryMin != null ? { gte: salaryMin } : {}),
+        ...(salaryMax != null ? { lte: salaryMax } : {}),
+      };
+    }
+    if (designation) {
+      where.currentDesignation = { contains: designation, mode: 'insensitive' };
+    }
+    if (pastCompany) {
+      andConditions.push({
+        OR: [
+          { currentCompany: { contains: pastCompany, mode: 'insensitive' } },
+          { experiences: { some: { company: { contains: pastCompany, mode: 'insensitive' } } } },
+        ],
+      });
+    }
+    if (applicationFrom || applicationTo) {
+      where.applications = {
+        some: {
+          appliedAt: {
+            ...(applicationFrom ? { gte: startOfDay(applicationFrom) } : {}),
+            ...(applicationTo ? { lte: endOfDay(applicationTo) } : {}),
+          },
+        },
+      };
+    }
+    if (skills?.length) {
+      if (skillMatchMode === 'ANY') {
+        where.skills = { some: { skillId: { in: skills } } };
+      } else {
+        andConditions.push(...skills.map((skillId) => ({ skills: { some: { skillId } } })));
+      }
+    }
+    if (andConditions.length) where.AND = andConditions;
+
+    const rows = await prisma.candidate.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        source: { select: { name: true } },
+        skills: { include: { skill: { select: { name: true } } } },
+        _count: { select: { applications: true } },
+      },
+    });
+
+    const sheetData = rows.map((c: any) => ({
+      'First Name': c.firstName,
+      'Last Name': c.lastName,
+      'Email': c.email,
+      'Phone': c.phone ?? '',
+      'Current Company': c.currentCompany ?? '',
+      'Current Designation': c.currentDesignation ?? '',
+      'Total Experience (yrs)': c.totalExperience ?? '',
+      'Notice Period (days)': c.noticePeriodDays ?? '',
+      'Expected Salary (₹)': c.expectedSalary ?? '',
+      'Current Salary (₹)': c.currentSalary ?? '',
+      'Skills': (c.skills ?? []).map((s: any) => s.skill.name).join(', '),
+      'Source': c.source?.name ?? '',
+      'LinkedIn': c.linkedinUrl ?? '',
+      'Applications': c._count.applications,
+      'Location': c.currentLocation ?? '',
+      'Date Added': c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-IN') : '',
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(sheetData);
+
+    // Auto column widths
+    const colWidths = Object.keys(sheetData[0] ?? {}).map((key) => ({
+      wch: Math.max(key.length, ...sheetData.map((r: any) => String(r[key] ?? '').length), 10),
+    }));
+    ws['!cols'] = colWidths;
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Candidates');
+    return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
   }
 }
 

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Eye, FileText, Briefcase, Clock, Mail, Filter, X, Users } from 'lucide-react';
+import { Search, Eye, FileText, Briefcase, Clock, Mail, Filter, X, Users, Download } from 'lucide-react';
 
 type DraftFilters = {
   experienceRange: string;
@@ -130,6 +130,7 @@ export default function CandidatesPage() {
   const [page, setPage] = useState(Number(searchParams.get('page') ?? 1) || 1);
   const [draft, setDraft] = useState<DraftFilters>(() => draftFromParams(searchParams));
   const [applied, setApplied] = useState<DraftFilters>(() => draftFromParams(searchParams));
+  const [downloading, setDownloading] = useState(false);
 
   const { data: designations = [] } = useQuery({
     queryKey: ['desig-active'],
@@ -186,6 +187,23 @@ export default function CandidatesPage() {
     setPage(1);
   };
 
+  const downloadExcel = async () => {
+    setDownloading(true);
+    try {
+      const params = buildQueryFromDraft(applied, search, 1);
+      const { page: _p, limit: _l, ...exportParams } = params;
+      const res = await candidatesApi.exportExcel(exportParams);
+      const url = URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'candidates.xlsx';
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const clearFilters = () => {
     setDraft(EMPTY_DRAFT);
     setApplied(EMPTY_DRAFT);
@@ -228,13 +246,24 @@ export default function CandidatesPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-[#111827]">Candidates</h1>
-        <p className="mt-1 text-sm text-[#64748B]">
-          {hasFilters
-            ? `${data?.total ?? 0} candidate${(data?.total ?? 0) === 1 ? '' : 's'} found`
-            : `${data?.total ?? 0} total candidates`}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-[#111827]">Candidates</h1>
+          <p className="mt-1 text-sm text-[#64748B]">
+            {hasFilters
+              ? `${data?.total ?? 0} candidate${(data?.total ?? 0) === 1 ? '' : 's'} found`
+              : `${data?.total ?? 0} total candidates`}
+          </p>
+        </div>
+        <Button
+          type="button"
+          className="h-10 gap-2 rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000]"
+          onClick={downloadExcel}
+          disabled={downloading || (data?.total ?? 0) === 0}
+        >
+          <Download className="h-4 w-4" />
+          {downloading ? 'Downloading…' : 'Download Excel'}
+        </Button>
       </div>
 
       <div className="relative max-w-full sm:max-w-sm">
