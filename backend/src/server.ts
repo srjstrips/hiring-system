@@ -36,6 +36,19 @@ async function main() {
     .then((m) => m.startJobAlertScheduler())
     .catch((err) => logger.error('Failed to start job alert scheduler', err));
 
+  // Daily cleanup: delete candidate notifications older than 30 days
+  const purgeNotifications = () => {
+    import('./config/database')
+      .then(({ prisma }) => {
+        const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        return prisma.candidateNotification.deleteMany({ where: { createdAt: { lt: cutoff } } });
+      })
+      .then((r) => { if (r.count > 0) logger.info(`Purged ${r.count} notifications older than 30 days`); })
+      .catch((err) => logger.error('Notification purge failed', err));
+  };
+  purgeNotifications(); // run once at startup to clear any backlog
+  setInterval(purgeNotifications, 24 * 60 * 60 * 1000).unref?.();
+
   const server = app.listen(env.PORT, () => {
     logger.info(`Server running on port ${env.PORT} in ${env.NODE_ENV} mode`);
     logger.info(`API: http://localhost:${env.PORT}${env.API_PREFIX}`);
