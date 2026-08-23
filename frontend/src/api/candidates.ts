@@ -23,6 +23,7 @@ export interface Candidate {
     job: { id: string; title: string };
     assessmentAttempt?: { score?: number; isPassed?: boolean } | null;
   }>;
+  certificates?: Array<{ id: string; name?: string; fileUrl?: string; fileOriginalName?: string }>;
   createdAt: string;
 }
 
