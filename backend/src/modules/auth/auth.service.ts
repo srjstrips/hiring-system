@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { prisma } from '@/config/database';
 import { authRepository } from './auth.repository';
 import { comparePassword, hashPassword, generateToken } from '../../utils/hash';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/jwt';
@@ -213,6 +214,10 @@ export class AuthService {
       lastLoginAt: user.lastLoginAt,
       createdAt: user.createdAt,
     };
+  }
+
+  async saveFcmToken(userId: string, token: string) {
+    await prisma.user.update({ where: { id: userId }, data: { fcmToken: token } });
   }
 }
 

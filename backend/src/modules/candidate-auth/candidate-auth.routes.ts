@@ -104,4 +104,6 @@ router.delete(
   candidateAuthController.deleteCertification
 );
 
+router.post('/fcm-token', authenticateCandidate, candidateAuthController.saveFcmToken);
+
 export default router;

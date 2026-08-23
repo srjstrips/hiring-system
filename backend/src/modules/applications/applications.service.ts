@@ -4,6 +4,7 @@ import type { ApplicationQueryDto, UpdateStatusDto } from './applications.valida
 import { getUserScope, applyApplicationScope } from '@/utils/scope';
 import { buildPagination } from '@/utils/response';
 import { assertForwardTransition } from './stage-order';
+import candidateNotificationsService from '@/modules/candidate-notifications/candidate-notifications.service';
 
 const applicationInclude = {
   candidate: {
@@ -148,6 +149,7 @@ class ApplicationsService {
       const hrName = actor ? `${actor.firstName} ${actor.lastName}`.trim() : 'HR Team';
       const emailTemplatesService = (await import('../email-templates/email-templates.service')).default;
       void emailTemplatesService.sendForStageChange(id, dto.status, hrName);
+      void candidateNotificationsService.notifyStatusChanged(app.candidate.id, dto.status, app.job.title);
     }
 
     return this.getById(id);

@@ -8,6 +8,7 @@ import { ApiResponse, buildPagination } from '../../utils/response';
 import { NotFoundError } from '../../utils/errors';
 import { getUserScope, applyInterviewScope } from '../../utils/scope';
 import { emailService } from '../../services/email.service';
+import candidateNotificationsService from '../candidate-notifications/candidate-notifications.service';
 import type { CreateInterviewDto, UpdateInterviewDto } from './interviews.validator';
 import { isValidForwardTransition } from '../applications/stage-order';
 
@@ -252,6 +253,8 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
       const emailTemplatesService = (await import('../email-templates/email-templates.service')).default;
       void emailTemplatesService.sendForStageChange(applicationId, nextStatus, hrName);
     }
+
+    void candidateNotificationsService.notifyInterviewScheduled(app.candidateId, app.job.title, new Date(scheduledAt));
 
     return ApiResponse.created(res, interview);
   } catch (err) {

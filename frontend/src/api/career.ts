@@ -175,6 +175,10 @@ export const candidateAuthApi = {
   async deleteCertification(id: string): Promise<void> {
     await careerAxios.delete(`/auth/profile/certifications/${id}`);
   },
+
+  async saveFcmToken(token: string): Promise<void> {
+    await careerAxios.post('/auth/fcm-token', { token });
+  },
 };
 
 export interface CandidateCertification {

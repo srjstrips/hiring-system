@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { candidateAuthApi, type CandidateProfile } from '@/api/career';
+import { requestNotificationPermission } from '@/lib/firebase';
 
 interface SignupInput {
   firstName: string;
@@ -41,19 +42,26 @@ export function CandidateAuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const registerFcmToken = useCallback(async () => {
+    const token = await requestNotificationPermission();
+    if (token) void candidateAuthApi.saveFcmToken(token);
+  }, []);
+
   const signup = useCallback(async (dto: SignupInput) => {
     const result = await candidateAuthApi.signup(dto);
     localStorage.setItem('candidateAccessToken', result.accessToken);
     localStorage.setItem('candidateRefreshToken', result.refreshToken);
     setCandidate(result.candidate);
-  }, []);
+    void registerFcmToken();
+  }, [registerFcmToken]);
 
   const login = useCallback(async (email: string, password: string) => {
     const result = await candidateAuthApi.login(email, password);
     localStorage.setItem('candidateAccessToken', result.accessToken);
     localStorage.setItem('candidateRefreshToken', result.refreshToken);
     setCandidate(result.candidate);
-  }, []);
+    void registerFcmToken();
+  }, [registerFcmToken]);
 
   const logout = useCallback(async () => {
     const refreshToken = localStorage.getItem('candidateRefreshToken');

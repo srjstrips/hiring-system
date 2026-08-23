@@ -1,0 +1,2 @@
+ALTER TABLE "User" ADD COLUMN "fcmToken" TEXT;
+ALTER TABLE "Candidate" ADD COLUMN "fcmToken" TEXT;

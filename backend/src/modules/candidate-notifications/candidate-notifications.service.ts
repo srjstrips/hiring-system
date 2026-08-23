@@ -1,4 +1,6 @@
 import { AppError } from '@/utils/errors';
+import { prisma } from '@/config/database';
+import { sendPushNotification, sendPushToMany } from '@/services/firebase.service';
 import candidateNotificationsRepository from './candidate-notifications.repository';
 
 class CandidateNotificationsService {
@@ -39,7 +41,41 @@ class CandidateNotificationsService {
       departmentName: job.department?.name ?? 'General',
       locationLabel: job.location ? `${job.location.city}, ${job.location.state}` : 'Multiple Locations',
     });
+    // Push to all candidates with FCM token
+    const candidates = await prisma.candidate.findMany({
+      where: { deletedAt: null, fcmToken: { not: null } },
+      select: { fcmToken: true },
+    });
+    const tokens = candidates.map((c) => c.fcmToken!).filter(Boolean);
+    void sendPushToMany(tokens, `New Job: ${job.title}`, `${job.department?.name ?? ''} — Apply now!`, { jobSlug: job.slug });
+  }
+
+  async notifyApplicationReceived(applicationId: string, candidateName: string, jobTitle: string) {
+    // Notify all HR users
+    const hrUsers = await prisma.user.findMany({
+      where: { deletedAt: null, fcmToken: { not: null } },
+      select: { fcmToken: true },
+    });
+    const tokens = hrUsers.map((u) => u.fcmToken!).filter(Boolean);
+    void sendPushToMany(tokens, 'New Application', `${candidateName} applied for ${jobTitle}`, { applicationId });
+  }
+
+  async notifyStatusChanged(candidateId: string, newStatus: string, jobTitle: string) {
+    const candidate = await prisma.candidate.findUnique({ where: { id: candidateId }, select: { fcmToken: true } });
+    if (candidate?.fcmToken) {
+      const statusLabel = newStatus.replace(/_/g, ' ');
+      void sendPushNotification(candidate.fcmToken, 'Application Update', `Your application for ${jobTitle} has moved to ${statusLabel}`);
+    }
+  }
+
+  async notifyInterviewScheduled(candidateId: string, jobTitle: string, scheduledAt: Date) {
+    const candidate = await prisma.candidate.findUnique({ where: { id: candidateId }, select: { fcmToken: true } });
+    if (candidate?.fcmToken) {
+      const dateStr = scheduledAt.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+      void sendPushNotification(candidate.fcmToken, 'Interview Scheduled', `Interview for ${jobTitle} on ${dateStr}`);
+    }
   }
 }
+
 
 export default new CandidateNotificationsService();

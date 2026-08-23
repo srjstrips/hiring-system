@@ -18,5 +18,6 @@ router.post('/logout-all', authenticate, authController.logoutAll);
 router.post('/forgot-password', validateBody(forgotPasswordSchema), authController.forgotPassword);
 router.post('/reset-password', validateBody(resetPasswordSchema), authController.resetPassword);
 router.get('/me', authenticate, authController.getMe);
+router.post('/fcm-token', authenticate, authController.saveFcmToken);
 
 export default router;

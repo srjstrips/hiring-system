@@ -88,6 +88,14 @@ export class CandidateAuthController {
     );
     return ApiResponse.success(res, result, 'Certificate removed');
   });
+
+  saveFcmToken = asyncHandler(async (req: CandidateAuthRequest, res: Response) => {
+    const { token } = req.body as { token: string };
+    if (token) {
+      await candidateAuthService.saveFcmToken(req.candidate!.id, token);
+    }
+    return ApiResponse.success(res, null, 'FCM token saved');
+  });
 }
 
 export const candidateAuthController = new CandidateAuthController();

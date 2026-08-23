@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { authService } from '@/services/auth.service';
+import { requestNotificationPermission } from '@/lib/firebase';
+import { api } from '@/api/axios';
 import type { User } from '@/types';
 
 interface AuthContextValue {
@@ -39,6 +41,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('accessToken', result.accessToken);
     localStorage.setItem('refreshToken', result.refreshToken);
     setUser(result.user);
+    // Register FCM token after login
+    void requestNotificationPermission().then((token) => {
+      if (token) void api.post('/auth/fcm-token', { token });
+    });
   }, []);
 
   const logout = useCallback(async () => {

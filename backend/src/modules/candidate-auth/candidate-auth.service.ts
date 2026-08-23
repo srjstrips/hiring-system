@@ -223,6 +223,11 @@ export class CandidateAuthService {
     await candidateAuthRepository.deleteCertification(certificationId);
     return { id: certificationId };
   }
+
+  async saveFcmToken(candidateId: string, token: string) {
+    const { prisma } = await import('@/config/database');
+    await prisma.candidate.update({ where: { id: candidateId }, data: { fcmToken: token } });
+  }
 }
 
 function serializeProfile(c: any) {

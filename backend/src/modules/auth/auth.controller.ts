@@ -189,6 +189,14 @@ export class AuthController {
     const user = await authService.getMe(req.user!.id);
     return ApiResponse.success(res, user);
   });
+
+  saveFcmToken = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { token } = req.body as { token: string };
+    if (token) {
+      await authService.saveFcmToken(req.user!.id, token);
+    }
+    return ApiResponse.success(res, null, 'FCM token saved');
+  });
 }
 
 export const authController = new AuthController();

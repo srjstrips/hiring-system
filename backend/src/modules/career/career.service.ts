@@ -1,6 +1,7 @@
 import { prisma } from '@/config/database';
 import { AppError } from '@/utils/errors';
 import { emailService } from '@/services/email.service';
+import candidateNotificationsService from '@/modules/candidate-notifications/candidate-notifications.service';
 import type { ApplyJobDto, PublicJobQueryDto } from './career.validator';
 
 const publicJobSelect = {
@@ -111,6 +112,11 @@ class CareerService {
       department: job.department?.name,
       location: [job.location?.city, job.location?.state].filter(Boolean).join(', ') || undefined,
     });
+    void candidateNotificationsService.notifyApplicationReceived(
+      application.id,
+      `${candidate.firstName} ${candidate.lastName}`.trim(),
+      job.title,
+    );
 
     return {
       applicationId: application.id,
