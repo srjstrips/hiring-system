@@ -39,4 +39,5 @@ export const offersApi = {
   reject: (id: string, reason?: string) => api.post<{ success: boolean; data: Offer }>(`/offers/${id}/reject`, { reason }),
   getSummary: (params?: Record<string, unknown>) =>
     api.get('/offers/summary', { params }).then((r) => r.data),
+  delete: (id: string) => api.delete(`/offers/${id}`),
 };

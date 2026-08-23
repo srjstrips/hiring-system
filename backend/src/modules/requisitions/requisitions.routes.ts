@@ -15,5 +15,6 @@ router.post('/:id/submit', authorize('requisitions:update'), requisitionsControl
 router.post('/:id/close', authorize('requisitions:approve'), requisitionsController.close);
 router.post('/:id/approve', authorize('requisitions:approve'), requisitionsController.approve);
 router.post('/:id/reject', authorize('requisitions:approve'), requisitionsController.reject);
+router.delete('/:id', authorize('requisitions:delete'), requisitionsController.delete);
 
 export default router;

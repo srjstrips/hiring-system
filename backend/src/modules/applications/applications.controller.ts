@@ -21,6 +21,11 @@ class ApplicationsController {
     res.json({ success: true, data: app, message: 'Status updated' });
   }
 
+  async delete(req: AuthRequest, res: Response) {
+    await applicationsService.delete(req.params['id'] as string);
+    res.json({ success: true, message: 'Application deleted' });
+  }
+
   async getPipelineStats(req: AuthRequest, res: Response) {
     const { jobId } = req.query as { jobId?: string };
     const stats = await applicationsService.getPipelineStats(jobId);

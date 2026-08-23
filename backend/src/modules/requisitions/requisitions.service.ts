@@ -159,6 +159,14 @@ class RequisitionsService {
     });
   }
 
+  async delete(id: string) {
+    const r = await this.getById(id);
+    if (!['DRAFT', 'REJECTED', 'CLOSED'].includes(r.approvalStatus)) {
+      throw new AppError('Only DRAFT, REJECTED, or CLOSED requisitions can be deleted', 400);
+    }
+    await prisma.manpowerRequisition.update({ where: { id }, data: { deletedAt: new Date() } });
+  }
+
   async close(id: string, reason?: string) {
     const r = await this.getById(id);
     if (['REJECTED', 'CLOSED'].includes(r.approvalStatus)) {

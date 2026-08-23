@@ -17,5 +17,6 @@ router.get('/analytics', authorize('applications:read'), applicationsController.
 router.get('/:id', authorize('applications:read'), applicationsController.getById);
 router.patch('/:id/status', validateBody(UpdateStatusSchema), authorize('applications:update'), applicationsController.updateStatus);
 router.post('/:id/send-email', validateBody(SendEmailSchema), authorize('applications:update'), emailTemplatesController.sendForApplication);
+router.delete('/:id', authorize('applications:delete'), applicationsController.delete);
 
 export default router;

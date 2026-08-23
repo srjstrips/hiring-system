@@ -41,4 +41,5 @@ export const requisitionsApi = {
     api.post<{ success: boolean; data: Requisition }>(`/requisitions/${id}/reject`, { reason }),
   getSummary: (params?: Record<string, unknown>) =>
     api.get('/requisitions/summary', { params }).then((r) => r.data),
+  delete: (id: string) => api.delete(`/requisitions/${id}`),
 };

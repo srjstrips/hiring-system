@@ -57,6 +57,14 @@ class OffersService {
     return offer;
   }
 
+  async delete(id: string) {
+    const offer = await this.getById(id);
+    if (!['DRAFT', 'REJECTED', 'EXPIRED', 'WITHDRAWN'].includes(offer.status)) {
+      throw new AppError('Only DRAFT, REJECTED, EXPIRED, or WITHDRAWN offers can be deleted', 400);
+    }
+    await prisma.offer.delete({ where: { id } });
+  }
+
   async create(dto: any, createdById: string) {
     const app = await prisma.application.findUnique({ where: { id: dto.applicationId } });
     if (!app) throw new AppError('Application not found', 404);

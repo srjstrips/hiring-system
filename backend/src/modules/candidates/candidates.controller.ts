@@ -14,6 +14,11 @@ class CandidatesController {
     res.json({ success: true, data });
   }
 
+  async delete(req: AuthRequest, res: Response) {
+    await candidatesService.delete(req.params['id'] as string);
+    res.json({ success: true, message: 'Candidate deleted' });
+  }
+
   async exportExcel(req: AuthRequest, res: Response) {
     const buffer = await candidatesService.exportExcel(req.query as unknown as any);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

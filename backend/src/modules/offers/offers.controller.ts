@@ -48,6 +48,11 @@ class OffersController {
     res.json({ success: true, data });
   }
 
+  async delete(req: AuthRequest, res: Response) {
+    await offersService.delete(req.params['id'] as string);
+    res.json({ success: true, message: 'Offer deleted' });
+  }
+
   async getSummary(req: AuthRequest, res: Response) {
     const data = await offersService.getSummary(req.query, req.user!.id, req.user!.roleName);
     res.json({ success: true, data });

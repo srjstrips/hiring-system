@@ -7,7 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Eye, FileText, Briefcase, Clock, Mail, Filter, X, Users, Download } from 'lucide-react';
+import { Search, Eye, FileText, Briefcase, Clock, Mail, Filter, X, Users, Download, Trash2 } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/hooks/useToast';
 
 type DraftFilters = {
   experienceRange: string;
@@ -131,6 +133,18 @@ export default function CandidatesPage() {
   const [draft, setDraft] = useState<DraftFilters>(() => draftFromParams(searchParams));
   const [applied, setApplied] = useState<DraftFilters>(() => draftFromParams(searchParams));
   const [downloading, setDownloading] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: candidatesApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['candidates'] });
+      toast({ title: 'Candidate deleted', variant: 'success' });
+      setDeleteId(null);
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
+  });
 
   const { data: designations = [] } = useQuery({
     queryKey: ['desig-active'],
@@ -572,6 +586,9 @@ export default function CandidatesPage() {
                       <Button variant="ghost" size="icon" title="View" className="h-9 w-9 text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#FF6B00]" asChild>
                         <Link to={`/candidates/${c.id}`}><Eye className="h-4 w-4" /></Link>
                       </Button>
+                      <Button variant="ghost" size="icon" title="Delete" className="h-9 w-9 text-rose-500 hover:bg-[#FFF1F2] hover:text-rose-700" onClick={() => setDeleteId(c.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -587,6 +604,21 @@ export default function CandidatesPage() {
             </div>
           )}
         </>
+      )}
+
+      {deleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-base font-semibold text-[#111827]">Delete Candidate?</h3>
+            <p className="mt-2 text-sm text-[#64748B]">This will permanently remove the candidate profile. This action cannot be undone.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="outline" className="rounded-xl border-[#E2E8F0]" onClick={() => setDeleteId(null)}>Cancel</Button>
+              <Button className="rounded-xl bg-rose-600 text-white hover:bg-rose-700" onClick={() => deleteMutation.mutate(deleteId)} disabled={deleteMutation.isPending}>
+                {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

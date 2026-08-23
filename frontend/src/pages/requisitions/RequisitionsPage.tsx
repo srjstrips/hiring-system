@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/useToast';
-import { Plus, CheckCircle2, XCircle, X, Search, Pencil, ClipboardList } from 'lucide-react';
+import { Plus, CheckCircle2, XCircle, X, Search, Pencil, ClipboardList, Trash2 } from 'lucide-react';
 import { api } from '@/api/axios';
 
 const APPROVAL_COLORS: Record<string, string> = {
@@ -109,6 +109,7 @@ export default function RequisitionsPage() {
   const [form, setForm] = useState(emptyForm);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
 
@@ -184,6 +185,16 @@ export default function RequisitionsPage() {
       toast({ title: 'Requisition rejected' });
       setRejectId(null);
       setRejectReason('');
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: requisitionsApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['requisitions'] });
+      toast({ title: 'Requisition deleted', variant: 'success' });
+      setDeleteId(null);
     },
     onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
   });
@@ -378,6 +389,21 @@ export default function RequisitionsPage() {
         </Card>
       )}
 
+      {deleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-base font-semibold text-[#111827]">Delete Requisition?</h3>
+            <p className="mt-2 text-sm text-[#64748B]">This will permanently delete the requisition. This action cannot be undone.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="outline" className="rounded-xl border-[#E2E8F0]" onClick={() => setDeleteId(null)}>Cancel</Button>
+              <Button className="rounded-xl bg-rose-600 text-white hover:bg-rose-700" onClick={() => deleteMutation.mutate(deleteId)} disabled={deleteMutation.isPending}>
+                {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {rejectId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <Card className={`w-full max-w-md ${cardClass}`}>
@@ -496,6 +522,11 @@ export default function RequisitionsPage() {
                           <XCircle className="h-4 w-4" />
                         </Button>
                       </>
+                    )}
+                    {['DRAFT', 'REJECTED', 'CLOSED'].includes(r.approvalStatus) && (
+                      <Button size="icon" variant="ghost" title="Delete" className="h-9 w-9 text-rose-500 hover:bg-[#FFF1F2] hover:text-rose-700" onClick={() => setDeleteId(r.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     )}
                   </div>
                 </div>

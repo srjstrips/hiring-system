@@ -65,4 +65,5 @@ export const applicationsApi = {
     ),
   getAnalytics: (params?: Record<string, unknown>) =>
     api.get('/applications/analytics', { params }).then((r) => r.data),
+  delete: (id: string) => api.delete(`/applications/${id}`),
 };

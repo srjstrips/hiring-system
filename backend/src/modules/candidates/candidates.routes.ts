@@ -11,5 +11,6 @@ router.use(authenticate);
 router.get('/export/excel', authorize('candidates:read'), validateQuery(CandidateQuerySchema), candidatesController.exportExcel);
 router.get('/', authorize('candidates:read'), validateQuery(CandidateQuerySchema), candidatesController.getAll);
 router.get('/:id', authorize('candidates:read'), candidatesController.getById);
+router.delete('/:id', authorize('candidates:delete'), candidatesController.delete);
 
 export default router;

@@ -12,7 +12,7 @@ import {
   ArrowLeft, FileText, Link2, Mail, Phone, Briefcase,
   Clock, Star, CheckCircle2, XCircle, ChevronRight, User,
   Calendar, DollarSign, Building2, Send, Search, Users,
-  ShieldCheck, Gift, UserCheck, PauseCircle, Hourglass, Video, Lock,
+  ShieldCheck, Gift, UserCheck, PauseCircle, Hourglass, Video, Lock, Trash2,
 } from 'lucide-react';
 import {
   PIPELINE_ORDER as PIPELINE,
@@ -100,6 +100,7 @@ export default function ApplicationDetailPage() {
   const queryClient = useQueryClient();
 
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [stageNotes, setStageNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
@@ -145,6 +146,15 @@ export default function ApplicationDetailPage() {
       invalidateApplication();
       toast({ title: `Stage moved to ${stageLabel(res.data.data.status)}`, variant: 'success' });
       resetStageForm();
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => applicationsApi.delete(id!),
+    onSuccess: () => {
+      toast({ title: 'Application deleted', variant: 'success' });
+      navigate(filterJobId ? `/applications?jobId=${encodeURIComponent(filterJobId)}` : '/applications');
     },
     onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
   });
@@ -246,11 +256,34 @@ export default function ApplicationDetailPage() {
           >
             <Send className="mr-1.5 h-3.5 w-3.5" /> Send Email
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 rounded-xl border-rose-200 text-rose-600 hover:bg-[#FFF1F2] hover:text-rose-700"
+            onClick={() => setShowDeleteDialog(true)}
+          >
+            <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
+          </Button>
           <div className={`rounded-full px-4 py-1.5 text-sm font-semibold ${stageColor[app.status] ?? 'bg-[#F1F5F9] text-[#64748B]'}`}>
             {stageLabel(app.status)}
           </div>
         </div>
       </div>
+
+      {showDeleteDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-base font-semibold text-[#111827]">Delete Application?</h3>
+            <p className="mt-2 text-sm text-[#64748B]">This will permanently delete this application and all its history. This action cannot be undone.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="outline" className="rounded-xl border-[#E2E8F0]" onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
+              <Button className="rounded-xl bg-rose-600 text-white hover:bg-rose-700" onClick={() => deleteMutation.mutate()} disabled={deleteMutation.isPending}>
+                {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showEmailModal && (
         <SendEmailModal

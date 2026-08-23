@@ -61,6 +61,11 @@ class RequisitionsController {
     const data = await requisitionsService.approve(req.params['id'] as string, req.user!.id, 'reject', reason);
     res.json({ success: true, data });
   }
+
+  async delete(req: AuthRequest, res: Response) {
+    await requisitionsService.delete(req.params['id'] as string);
+    res.json({ success: true, message: 'Requisition deleted' });
+  }
 }
 
 export default new RequisitionsController();

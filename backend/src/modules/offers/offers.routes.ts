@@ -14,5 +14,6 @@ router.put('/:id', authorize('offers:update'), offersController.update);
 router.post('/:id/send', authorize('offers:update'), offersController.send);
 router.post('/:id/accept', authorize('offers:update'), offersController.accept);
 router.post('/:id/reject', authorize('offers:update'), offersController.reject);
+router.delete('/:id', authorize('offers:delete'), offersController.delete);
 
 export default router;

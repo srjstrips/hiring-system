@@ -166,6 +166,12 @@ class CandidatesService {
     return mapCandidate(c);
   }
 
+  async delete(id: string) {
+    const c = await prisma.candidate.findUnique({ where: { id, deletedAt: null } });
+    if (!c) throw new AppError('Candidate not found', 404);
+    await prisma.candidate.update({ where: { id }, data: { deletedAt: new Date() } });
+  }
+
   async exportExcel(query: CandidateQueryDto): Promise<Buffer> {
     // Reuse same where-building logic but fetch all rows (no pagination)
     const {

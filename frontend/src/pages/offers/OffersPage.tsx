@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/useToast';
-import { Plus, Send, CheckCircle2, XCircle, X, Search, Gift, MapPin, Calendar, Building2 } from 'lucide-react';
+import { Plus, Send, CheckCircle2, XCircle, X, Search, Gift, MapPin, Calendar, Building2, Trash2 } from 'lucide-react';
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-[#F1F5F9] text-[#64748B]',
@@ -39,6 +39,7 @@ export default function OffersPage() {
   const [form, setForm] = useState(emptyForm);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['offers', search, statusFilter],
@@ -81,6 +82,16 @@ export default function OffersPage() {
       toast({ title: 'Offer marked as rejected' });
       setRejectId(null);
       setRejectReason('');
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: offersApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['offers'] });
+      toast({ title: 'Offer deleted', variant: 'success' });
+      setDeleteId(null);
     },
     onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
   });
@@ -210,6 +221,21 @@ export default function OffersPage() {
             </form>
           </CardContent>
         </Card>
+      )}
+
+      {deleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-base font-semibold text-[#111827]">Delete Offer?</h3>
+            <p className="mt-2 text-sm text-[#64748B]">This will permanently delete the offer letter. This action cannot be undone.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="outline" className="rounded-xl border-[#E2E8F0]" onClick={() => setDeleteId(null)}>Cancel</Button>
+              <Button className="rounded-xl bg-rose-600 text-white hover:bg-rose-700" onClick={() => deleteMutation.mutate(deleteId)} disabled={deleteMutation.isPending}>
+                {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {rejectId && (
@@ -369,6 +395,16 @@ export default function OffersPage() {
                     <span className="text-xs text-[#64748B]">
                       Created {new Date(offer.createdAt).toLocaleDateString()}
                     </span>
+                    {['DRAFT', 'REJECTED', 'EXPIRED', 'WITHDRAWN'].includes(offer.status) && (
+                      <button
+                        type="button"
+                        title="Delete offer"
+                        className="text-rose-500 hover:text-rose-700"
+                        onClick={() => setDeleteId(offer.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </CardContent>

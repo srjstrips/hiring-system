@@ -112,6 +112,12 @@ class ApplicationsService {
     return withLegacyAssessmentAttempt(app);
   }
 
+  async delete(id: string) {
+    const app = await prisma.application.findUnique({ where: { id } });
+    if (!app) throw new AppError('Application not found', 404);
+    await prisma.application.delete({ where: { id } });
+  }
+
   async updateStatus(id: string, dto: UpdateStatusDto, updatedById: string) {
     const app = await this.getById(id);
 
