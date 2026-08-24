@@ -9,6 +9,17 @@ import { Label } from '@/components/ui/label';
 
 const REMEMBERED_EMAIL_KEY = 'hr_login_email';
 
+function SrjWordmark() {
+  return (
+    <div className="flex flex-col items-center">
+      <img src="/career-assets/srj-logo-dark.png" alt="SRJ" className="h-16 w-auto sm:h-20" />
+      <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#FF6B00]">
+        Building Tomorrow Together
+      </p>
+    </div>
+  );
+}
+
 function safeInternalPath(raw: string | null): string | null {
   if (!raw) return null;
   const path = raw.trim();
@@ -35,6 +46,9 @@ function readRememberedEmail() {
     return '';
   }
 }
+
+const inputClass =
+  'h-11 rounded-xl border-[#E2E8F0] bg-white pl-10 text-[#111827] placeholder:text-slate-400 focus-visible:border-[#FF6B00] focus-visible:ring-[#FF6B00]/25 focus-visible:ring-offset-0';
 
 /** Canonical login UI for both candidates and HR/staff. */
 export default function CandidateLoginPage() {
@@ -104,39 +118,25 @@ export default function CandidateLoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-white text-[#111827] overflow-x-hidden">
-      {/* Background Image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: 'url(/career-assets/login-bg.png)',
-        }}
-      />
-      {/* Dark Overlay */}
-      <div className="absolute inset-0 bg-black/20" />
+    <div className="grid min-h-screen bg-white text-[#111827] md:grid-cols-[7fr_3fr]">
+      <div className="relative hidden md:block">
+        <img
+          src="/career-assets/signup-login-bg.png"
+          alt="SRJ — building tomorrow together"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      </div>
 
-      {/* Content */}
-      <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-12 sm:px-8">
+      <div className="flex items-center justify-center px-4 py-12 sm:px-8">
         <section className="w-full max-w-md">
-          <div className="rounded-3xl bg-white p-8 sm:p-10 shadow-2xl">
-            <div className="mb-8 text-center">
-              <p className="text-[#FF6B00] font-semibold text-sm tracking-wide mb-2">
-                Welcome Back!
-              </p>
-              <h2 className="text-3xl font-bold text-[#1a1a2e] mb-3">
-                HR Portal
-              </h2>
-              <p className="text-sm text-[#6B7280]">
-                Sign in to continue to the Recruitment
-                <br />
-                Management System
-              </p>
-            </div>
-
-            {/* Orange Divider */}
-            <div className="mb-8 h-1 w-12 bg-[#FF6B00] mx-auto" />
-
-            <div className="space-y-6">
+          <div className="mb-8 flex justify-center">
+            <SrjWordmark />
+          </div>
+          <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.06)] sm:p-8">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-[#111827]">Login</h2>
+                <p className="mt-1 text-sm text-[#64748B]">Enter your credentials to access your account</p>
+              </div>
 
               {error && (
                 <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -144,20 +144,19 @@ export default function CandidateLoginPage() {
                 </p>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Email Field */}
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="block text-sm font-semibold text-[#1a1a2e]">
+                  <Label htmlFor="email" className="text-[#111827]">
                     Email Address
                   </Label>
                   <div className="relative">
-                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#9CA3AF]" />
+                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#FF6B00]" />
                     <Input
                       id="email"
                       type="email"
                       placeholder="Enter your email"
                       autoComplete="email"
-                      className="h-11 rounded-lg border-[#E5E7EB] bg-[#F3F4F6] pl-12 text-[#1a1a2e] placeholder:text-[#9CA3AF] focus-visible:border-[#FF6B00] focus-visible:ring-[#FF6B00]/20 focus-visible:ring-offset-0"
+                      className={inputClass}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
@@ -165,19 +164,18 @@ export default function CandidateLoginPage() {
                   </div>
                 </div>
 
-                {/* Password Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="block text-sm font-semibold text-[#1a1a2e]">
+                  <Label htmlFor="password" className="text-[#111827]">
                     Password
                   </Label>
                   <div className="relative">
-                    <Lock className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#9CA3AF]" />
+                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#FF6B00]" />
                     <Input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="Enter your password"
                       autoComplete="current-password"
-                      className="h-11 rounded-lg border-[#E5E7EB] bg-[#F3F4F6] pl-12 pr-12 text-[#1a1a2e] placeholder:text-[#9CA3AF] focus-visible:border-[#FF6B00] focus-visible:ring-[#FF6B00]/20 focus-visible:ring-offset-0"
+                      className={`${inputClass} pr-10`}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
@@ -185,78 +183,47 @@ export default function CandidateLoginPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#1a1a2e] transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-[#111827]"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
 
-                {/* Remember Me & Forgot Password */}
                 <div className="flex items-center justify-between">
-                  <label className="flex cursor-pointer items-center gap-2 text-sm text-[#1a1a2e]">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm text-[#64748B]">
                     <input
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      className="h-4 w-4 rounded border-[#E5E7EB] accent-[#FF6B00] cursor-pointer"
+                      className="h-3.5 w-3.5 accent-[#FF6B00]"
                     />
                     Remember me
                   </label>
-                  <Link
-                    to="/forgot-password"
-                    className="text-sm font-semibold text-[#FF6B00] hover:text-[#e86000] transition-colors"
-                  >
+                  <Link to="/forgot-password" className="text-sm font-medium text-[#FF6B00] hover:underline">
                     Forgot password?
                   </Link>
                 </div>
 
-                {/* Sign In Button */}
                 <Button
                   type="submit"
                   loading={loading}
-                  className="h-11 w-full rounded-lg bg-[#FF6B00] text-white font-semibold hover:bg-[#e86000] transition-colors text-base flex items-center justify-center gap-2"
+                  className="h-11 w-full rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000]"
                 >
-                  Sign In
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 7l5 5m0 0l-5 5m5-5H6"
-                    />
-                  </svg>
+                  Login
                 </Button>
+
+                <p className="text-center text-sm text-[#64748B]">
+                  Don&apos;t have an account?{' '}
+                  <Link
+                    to={redirect ? `/careers/signup?redirect=${encodeURIComponent(redirect)}` : '/careers/signup'}
+                    className="font-semibold text-[#FF6B00] hover:underline"
+                  >
+                    Sign up
+                  </Link>
+                </p>
               </form>
-
-              {/* Divider */}
-              <div className="my-6 flex items-center gap-3">
-                <div className="h-px flex-1 bg-[#E5E7EB]" />
-                <span className="text-sm text-[#9CA3AF]">or</span>
-                <div className="h-px flex-1 bg-[#E5E7EB]" />
-              </div>
-
-              {/* Support Text */}
-              <p className="text-center text-sm text-[#6B7280]">
-                Need help? Contact{' '}
-                <Link
-                  to="#"
-                  className="font-semibold text-[#FF6B00] hover:text-[#e86000] transition-colors"
-                >
-                  HR Support
-                </Link>
-              </p>
-            </div>
           </div>
         </section>
       </div>
