@@ -243,7 +243,7 @@ export default function AssessmentQuestionsPage() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+            accept=".xlsx,.xls,.csv,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             className="hidden"
             onChange={(e) => handleUploadFile(e.target.files?.[0])}
           />
@@ -270,7 +270,8 @@ export default function AssessmentQuestionsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-red-700/90 mb-2">
-              Expected columns: question, option1, option2, option3, option4, correctAnswer, marks (type optional, default MCQ).
+              Excel format: Expected columns: question, option1, option2, option3, option4, correctAnswer, marks (type optional, default MCQ).<br/>
+              Word format: Questions should be formatted with question text, followed by options (A), (B), (C), (D), and correct answer indicator.
             </p>
             <ul className="space-y-1 text-sm text-red-700 max-h-40 overflow-y-auto">
               {uploadErrors.map((err, i) => (
