@@ -78,7 +78,6 @@ class OffersService {
         offerNumber: generateOfferNumber(),
         applicationId: dto.applicationId,
         ctc: dto.ctc,
-        joiningBonus: dto.joiningBonus,
         joiningDate: dto.joiningDate ? new Date(dto.joiningDate) : undefined,
         designation: dto.designation,
         department: dto.department,

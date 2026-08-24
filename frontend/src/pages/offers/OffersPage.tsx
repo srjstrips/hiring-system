@@ -26,7 +26,7 @@ const textareaClass =
 const labelClass = 'mb-1.5 block text-xs font-medium text-[#64748B]';
 
 const emptyForm = {
-  applicationId: '', ctc: '', joiningBonus: '',
+  applicationId: '', ctc: '',
   joiningDate: '', designation: '', department: '',
   location: '', terms: '', expiresAt: '',
 };
@@ -104,7 +104,6 @@ export default function OffersPage() {
     createMutation.mutate({
       ...form,
       ctc: Number(form.ctc),
-      joiningBonus: form.joiningBonus ? Number(form.joiningBonus) : undefined,
       joiningDate: form.joiningDate || undefined,
       expiresAt: form.expiresAt || undefined,
     });
@@ -162,14 +161,10 @@ export default function OffersPage() {
 
               <div>
                 <p className="mb-3 text-sm font-medium text-[#111827]">Financial Information</p>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <label className={labelClass}>CTC (Annual ₹) *</label>
-                    <Input type="number" className={fieldClass} value={form.ctc} onChange={set('ctc')} placeholder="1200000" required />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Joining Bonus (₹)</label>
-                    <Input type="number" className={fieldClass} value={form.joiningBonus} onChange={set('joiningBonus')} placeholder="50000" />
+                    <label className={labelClass}>CTC (Monthly ₹) *</label>
+                    <Input type="number" className={fieldClass} value={form.ctc} onChange={set('ctc')} placeholder="100000" required />
                   </div>
                   <div>
                     <label className={labelClass}>Joining Date</label>
@@ -337,10 +332,7 @@ export default function OffersPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                      <span className="font-semibold text-green-700">₹{(Number(offer.ctc) / 100000).toFixed(1)}L CTC</span>
-                      {offer.joiningBonus && (
-                        <span className="text-[#64748B]">+ ₹{(Number(offer.joiningBonus) / 100000).toFixed(1)}L bonus</span>
-                      )}
+                      <span className="font-semibold text-green-700">₹{Number(offer.ctc).toLocaleString('en-IN')} CTC/month</span>
                       {offer.joiningDate && (
                         <span className="flex items-center gap-1 text-[#64748B]">
                           <Calendar className="h-3.5 w-3.5" />

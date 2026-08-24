@@ -5,7 +5,6 @@ export interface Offer {
   offerNumber: string;
   status: string;
   ctc: number;
-  joiningBonus?: number;
   joiningDate?: string;
   designation: string;
   department: string;
