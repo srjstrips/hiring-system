@@ -91,84 +91,84 @@ export default function CareerJobsPage() {
   return (
     <div className="bg-white">
       {/* Hero */}
-      <section
-        className="relative border-b border-[#E5E7EB] bg-cover bg-[75%_center] px-5 py-14 lg:px-8 lg:py-16"
-        style={{ backgroundImage: "url('/career-assets/steel-pipes.png')" }}
-      >
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.97)_0%,rgba(255,255,255,0.88)_42%,rgba(255,255,255,0.3)_100%)]" />
-        <div className="relative mx-auto max-w-7xl">
-          <h1 className="text-3xl font-extrabold text-[#111827] sm:text-4xl">Open Positions</h1>
-          <p className="mt-2 max-w-md text-sm leading-6 text-[#475569] sm:text-base">
-            Find the right opportunity and build a stronger tomorrow with us.
+      <section className="border-b border-[#E5E7EB] bg-white px-5 py-12 lg:px-8 lg:py-16">
+        <div className="mx-auto max-w-7xl">
+          <h1 className="text-center text-3xl font-bold text-[#111827] sm:text-4xl">Discover Your Next Opportunity</h1>
+          <p className="mt-3 text-center text-[#475569]">
+            Find the perfect role that matches your skills and passion.
           </p>
-          <span className="mt-4 block h-0.5 w-10 bg-[#f97316]" />
         </div>
       </section>
 
       {/* Content */}
-      <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
-        <div className="flex flex-col gap-8 lg:flex-row">
-          {/* Filters */}
-          <aside className="w-full shrink-0 space-y-6 lg:w-64">
-            <p className="text-sm font-semibold text-[#f97316]">
-              {data?.total ?? 0} {data?.total === 1 ? 'job' : 'jobs'} found
+      <div className="mx-auto max-w-7xl px-5 py-12 lg:px-8">
+        <div className="space-y-6">
+          {/* Filters Row */}
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase text-[#475569]">Department</label>
+                <FilterSelect
+                  icon={Briefcase}
+                  value={departmentId}
+                  onChange={(v) => { setDepartmentId(v); setPage(1); }}
+                  placeholder="All Departments"
+                  options={(filtersData?.departments ?? []).map((d: any) => ({ id: d.id, label: d.name }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase text-[#475569]">Location</label>
+                <FilterSelect
+                  icon={MapPin}
+                  value={locationId}
+                  onChange={(v) => { setLocationId(v); setPage(1); }}
+                  placeholder="All Locations"
+                  options={(filtersData?.locations ?? []).map((l: any) => ({ id: l.id, label: l.city }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold uppercase text-[#475569]">Employment Type</label>
+                <FilterSelect
+                  icon={User}
+                  value={employmentTypeId}
+                  onChange={(v) => { setEmploymentTypeId(v); setPage(1); }}
+                  placeholder="All Types"
+                  options={(filtersData?.employmentTypes ?? []).map((e: any) => ({ id: e.id, label: e.name }))}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
+            <Input
+              className="h-11 rounded-lg border-[#E5E7EB] pl-9 text-sm focus-visible:ring-[#f97316]"
+              placeholder="Search by job title, keywords, or skills..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            />
+          </div>
+
+          {/* Results Count and Clear */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-[#475569]">
+              <span className="font-semibold text-[#111827]">{data?.total ?? 0}</span> {data?.total === 1 ? 'job' : 'jobs'} found
             </p>
+            {(search || departmentId || locationId || employmentTypeId) && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="inline-flex items-center gap-1 text-sm text-[#475569] transition-colors hover:text-[#f97316]"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Clear Filters
+              </button>
+            )}
+          </div>
 
-            <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-[#111827]">Department</label>
-              <FilterSelect
-                icon={Briefcase}
-                value={departmentId}
-                onChange={(v) => { setDepartmentId(v); setPage(1); }}
-                placeholder="All Departments"
-                options={(filtersData?.departments ?? []).map((d: any) => ({ id: d.id, label: d.name }))}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-[#111827]">Location</label>
-              <FilterSelect
-                icon={MapPin}
-                value={locationId}
-                onChange={(v) => { setLocationId(v); setPage(1); }}
-                placeholder="All Locations"
-                options={(filtersData?.locations ?? []).map((l: any) => ({ id: l.id, label: l.city }))}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-[#111827]">Employment Type</label>
-              <FilterSelect
-                icon={User}
-                value={employmentTypeId}
-                onChange={(v) => { setEmploymentTypeId(v); setPage(1); }}
-                placeholder="All Types"
-                options={(filtersData?.employmentTypes ?? []).map((e: any) => ({ id: e.id, label: e.name }))}
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#E5E7EB] bg-white text-sm font-medium text-[#475569] transition-colors hover:border-[#f97316]/50 hover:text-[#f97316]"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Clear Filters
-            </button>
-          </aside>
-
-          {/* Jobs */}
-          <div className="flex-1 space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A3B8]" />
-              <Input
-                className="h-11 rounded-lg border-[#E5E7EB] pl-9 text-sm focus-visible:ring-[#f97316]"
-                placeholder="Search by job title, keywords or department..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              />
-            </div>
-
+          {/* Jobs List */}
+          <div className="space-y-4">
             {isLoading ? (
               <div className="py-12 text-center text-[#64748B]">Loading...</div>
             ) : jobs.length === 0 ? (
@@ -178,41 +178,34 @@ export default function CareerJobsPage() {
                 {jobs.map((job: any) => (
                   <Card
                     key={job.id}
-                    className="cursor-pointer rounded-xl border-[#E5E7EB] transition-shadow hover:shadow-md"
+                    className="cursor-pointer rounded-lg border-[#E5E7EB] transition-shadow hover:shadow-md"
                     onClick={() => navigate(`/careers/jobs/${job.slug}`)}
                   >
-                    <CardContent className="pb-5 pt-5">
+                    <CardContent className="p-5">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
-                          <h3 className="text-lg font-semibold leading-tight text-[#111827] transition-colors hover:text-[#f97316]">
+                          <h3 className="text-base font-semibold text-[#111827] transition-colors hover:text-[#f97316]">
                             {job.title}
                           </h3>
-                          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[#64748B]">
-                            <span className="flex items-center gap-1"><Briefcase className="h-3.5 w-3.5" />{job.department.name}</span>
-                            <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{job.location.city}, {job.location.state}</span>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#64748B]">
+                            <span className="flex items-center gap-1"><Briefcase className="h-3 w-3" />{job.department.name}</span>
+                            <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{job.location.city}, {job.location.state}</span>
                             {job.closingDate && (
-                              <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />Closes {new Date(job.closingDate).toLocaleDateString()}</span>
+                              <span className="flex items-center gap-1"><Clock className="h-3 w-3" />Closes {new Date(job.closingDate).toLocaleDateString()}</span>
                             )}
                           </div>
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {job.employmentType && <Badge variant="info">{job.employmentType.name}</Badge>}
-                            {job.experienceLevel && <Badge variant="secondary">{job.experienceLevel.name}</Badge>}
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {job.employmentType && <Badge variant="info" className="text-xs">{job.employmentType.name}</Badge>}
+                            {job.experienceLevel && <Badge variant="secondary" className="text-xs">{job.experienceLevel.name}</Badge>}
                             {job.showSalary && job.salaryMin && (
-                              <Badge variant="outline">
+                              <Badge variant="outline" className="text-xs">
                                 ₹{(Number(job.salaryMin) / 100000).toFixed(1)}L
                                 {job.salaryMax ? ` – ₹${(Number(job.salaryMax) / 100000).toFixed(1)}L` : '+'}
                               </Badge>
                             )}
                           </div>
-                          <p className="mt-2 line-clamp-2 text-sm text-[#64748B]">{job.description}</p>
                         </div>
-                        <button
-                          type="button"
-                          aria-label="View job"
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#E5E7EB] text-[#64748B] transition-colors hover:border-[#f97316]/60 hover:text-[#f97316]"
-                        >
-                          <ArrowRight className="h-4 w-4" />
-                        </button>
+                        <ArrowRight className="h-5 w-5 shrink-0 text-[#64748B] transition-colors group-hover:text-[#f97316]" />
                       </div>
                     </CardContent>
                   </Card>
