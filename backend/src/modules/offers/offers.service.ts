@@ -84,7 +84,6 @@ class OffersService {
         location: dto.location,
         salaryBreakdown: dto.salaryBreakdown,
         terms: dto.terms,
-        expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
         createdById,
       },
       include: offerInclude,

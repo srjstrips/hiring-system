@@ -28,7 +28,7 @@ const labelClass = 'mb-1.5 block text-xs font-medium text-[#64748B]';
 const emptyForm = {
   applicationId: '', ctc: '',
   joiningDate: '', designation: '', department: '',
-  location: '', terms: '', expiresAt: '',
+  location: '', terms: '',
 };
 
 export default function OffersPage() {
@@ -105,7 +105,6 @@ export default function OffersPage() {
       ...form,
       ctc: Number(form.ctc),
       joiningDate: form.joiningDate || undefined,
-      expiresAt: form.expiresAt || undefined,
     });
   };
 
@@ -189,11 +188,6 @@ export default function OffersPage() {
                     <Input className={fieldClass} value={form.location} onChange={set('location')} placeholder="Bangalore" required />
                   </div>
                 </div>
-              </div>
-
-              <div>
-                <label className={labelClass}>Offer Expires On</label>
-                <Input type="date" className={`${fieldClass} max-w-xs`} value={form.expiresAt} onChange={set('expiresAt')} />
               </div>
 
               <div>
@@ -337,11 +331,6 @@ export default function OffersPage() {
                         <span className="flex items-center gap-1 text-[#64748B]">
                           <Calendar className="h-3.5 w-3.5" />
                           Join: {new Date(offer.joiningDate).toLocaleDateString()}
-                        </span>
-                      )}
-                      {offer.expiresAt && (
-                        <span className="text-[#64748B]">
-                          Expires: {new Date(offer.expiresAt).toLocaleDateString()}
                         </span>
                       )}
                     </div>

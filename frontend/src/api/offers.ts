@@ -11,7 +11,6 @@ export interface Offer {
   location: string;
   salaryBreakdown?: any;
   terms?: string;
-  expiresAt?: string;
   sentAt?: string;
   acceptedAt?: string;
   rejectedAt?: string;
