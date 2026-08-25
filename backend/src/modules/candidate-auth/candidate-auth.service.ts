@@ -183,8 +183,11 @@ export class CandidateAuthService {
 
   async updateProfile(candidateId: string, dto: Record<string, unknown>) {
     // Empty strings from the form should clear the column (and never reach an enum as '').
+    // Strip relation fields that cannot be set via a plain update.
+    const RELATION_FIELDS = new Set(['certifications', 'skills', 'experiences', 'educations', 'tags']);
     const data: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(dto)) {
+      if (RELATION_FIELDS.has(k)) continue;
       data[k] = v === '' ? null : v;
     }
     const candidate = await candidateAuthRepository.updateProfile(candidateId, data);
