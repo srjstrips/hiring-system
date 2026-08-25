@@ -11,6 +11,7 @@ const dirs = [
   `${env.UPLOAD_DIR}/resumes`,
   `${env.UPLOAD_DIR}/photos`,
   `${env.UPLOAD_DIR}/documents`,
+  `${env.UPLOAD_DIR}/certifications`,
   `${env.UPLOAD_DIR}/assessment-recordings-private`,
   env.LOG_DIR,
 ];
