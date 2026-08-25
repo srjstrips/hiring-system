@@ -62,21 +62,6 @@ const stageIcon: Record<string, ComponentType<{ className?: string }>> = {
   ON_HOLD: PauseCircle,
 };
 
-const stageIconTone: Record<string, string> = {
-  APPLIED: 'bg-[#FFF7ED] text-[#FF6B00]',
-  SCREENING: 'bg-emerald-50 text-emerald-600',
-  SHORTLISTED: 'bg-purple-50 text-purple-600',
-  INTERVIEW_ROUND_1: 'bg-orange-50 text-orange-600',
-  INTERVIEW_ROUND_2: 'bg-amber-50 text-amber-600',
-  HR_ROUND: 'bg-[#FFF7ED] text-[#F97316]',
-  SELECTED: 'bg-green-50 text-green-600',
-  OFFER_SENT: 'bg-green-50 text-green-600',
-  OFFER_ACCEPTED: 'bg-green-50 text-green-600',
-  JOINED: 'bg-green-50 text-green-600',
-  REJECTED: 'bg-red-50 text-red-600',
-  WITHDRAWN: 'bg-gray-50 text-gray-600',
-  ON_HOLD: 'bg-gray-50 text-gray-600',
-};
 
 export default function ApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { pipelineStagesApi, PipelineStage } from '@/api/pipeline-stages';
+import { pipelineStagesApi } from '@/api/pipeline-stages';
+import type { PipelineStage } from '@/api/pipeline-stages';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
