@@ -51,6 +51,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: 'Users', to: '/users', permission: 'users:read' },
       { label: 'Roles', to: '/roles', permission: 'roles:read' },
       { label: 'Email Templates', to: '/settings/email-templates', permission: 'email-templates:read' },
+      { label: 'Email Branding', to: '/settings/email-branding', permission: 'email-templates:read' },
     ],
   },
 ];

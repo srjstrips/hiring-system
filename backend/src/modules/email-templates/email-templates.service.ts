@@ -3,6 +3,7 @@ import { prisma } from '@/config/database';
 import { AppError } from '@/utils/errors';
 import { buildCandidateAssessmentUrl } from '@/modules/assessments/assessment-url';
 import { env } from '@/config/env';
+import { wrapEmail } from '@/services/email-wrapper';
 import type { CreateEmailTemplateDto, UpdateEmailTemplateDto, SendEmailDto } from './email-templates.validator';
 
 function resolvePlaceholders(text: string, vars: Record<string, string>): string {
@@ -183,12 +184,14 @@ class EmailTemplatesService {
 
     const fromEmail = process.env['EMAIL_FROM'] ?? process.env['SMTP_USER'];
     const companyName = process.env['COMPANY_NAME'] ?? 'SRJ Group';
+    const bodyHtml = resolvedBody.replace(/\n/g, '<br/>');
+    const wrappedHtml = await wrapEmail(bodyHtml);
     await transporter.sendMail({
       from: `"${companyName}" <${fromEmail}>`,
       to: toEmail,
       subject: resolvedSubject,
       text: resolvedBody,
-      html: resolvedBody.replace(/\n/g, '<br/>'),
+      html: wrappedHtml,
     });
 
     return { sent: true, to: toEmail, subject: resolvedSubject };

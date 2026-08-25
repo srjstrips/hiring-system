@@ -35,6 +35,7 @@ import AssessmentResultDetailPage from '@/pages/assessments/AssessmentResultDeta
 import ApplicationsPage from '@/pages/applications/ApplicationsPage';
 import ApplicationDetailPage from '@/pages/applications/ApplicationDetailPage';
 import EmailTemplatesPage from '@/pages/settings/EmailTemplatesPage';
+import EmailBrandingPage from '@/pages/settings/EmailBrandingPage';
 import CandidatesPage from '@/pages/candidates/CandidatesPage';
 import CandidateDetailPage from '@/pages/candidates/CandidateDetailPage';
 import OffersPage from '@/pages/offers/OffersPage';
@@ -153,6 +154,7 @@ export const router = createBrowserRouter([
           { path: '/profile', element: <ComingSoon title="My Profile" /> },
           { path: '/settings', element: <ComingSoon title="Settings" /> },
           { path: '/settings/email-templates', element: <EmailTemplatesPage /> },
+          { path: '/settings/email-branding', element: <EmailBrandingPage /> },
         ],
       },
     ],

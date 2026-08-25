@@ -1371,6 +1371,20 @@ model EmailTemplate {
   @@map("email_templates")
 }
 
+// ─── EMAIL BRANDING ──────────────────────────────────────────────────────────
+
+model EmailBranding {
+  id             String   @id @default(uuid())
+  companyName    String   @default("SRJ Group")
+  logoUrl        String?
+  primaryColor   String   @default("#b45309")
+  footerText     String?
+  websiteUrl     String?
+  updatedAt      DateTime @updatedAt
+
+  @@map("email_branding")
+}
+
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
 
 model Notification {
