@@ -12,13 +12,11 @@ import { cn } from '@/utils/cn';
 const TABS = [
   { id: 'hiring', label: 'Hiring Overview' },
   { id: 'onboarding', label: 'Onboarding' },
-  { id: 'retention', label: 'Retention' },
   { id: 'notice', label: 'Notice Period' },
   { id: 'inProgress', label: 'In Progress' },
   { id: 'backedOut', label: 'Backed Out' },
   { id: 'rejected', label: 'Rejected' },
   { id: 'onHold', label: 'On Hold' },
-  { id: 'companyLeft', label: 'Company Left' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -102,11 +100,6 @@ export default function InsightsPage() {
     queryFn: () => insightsApi.onboarding(params),
     enabled: tab === 'onboarding',
   });
-  const retention = useQuery({
-    queryKey: ['insights-retention', params],
-    queryFn: () => insightsApi.retention(params),
-    enabled: tab === 'retention',
-  });
   const notice = useQuery({
     queryKey: ['insights-notice', params],
     queryFn: () => insightsApi.noticePeriod(params),
@@ -132,11 +125,6 @@ export default function InsightsPage() {
     queryFn: () => insightsApi.onHold(params),
     enabled: tab === 'onHold',
   });
-  const companyLeft = useQuery({
-    queryKey: ['insights-company-left', params],
-    queryFn: () => insightsApi.companyLeft(params),
-    enabled: tab === 'companyLeft',
-  });
 
   const hiringRows = asRows(payload(hiring.data));
   const deptRows = asRows(payload(byDept.data));
@@ -147,12 +135,6 @@ export default function InsightsPage() {
   const onboardingSummary = onboardingPayload.summary ?? {};
   const onboardingRows = asRows(onboardingPayload.data ?? onboardingPayload);
 
-  const retentionPayload = payload(retention.data) ?? {};
-  const retentionSummary = retentionPayload.summary ?? {};
-  const retentionRows = asRows(
-    retentionPayload.byDepartment ?? retentionPayload.data ?? retentionPayload
-  );
-
   const noticePayload = payload(notice.data) ?? {};
   const noticeSummary = noticePayload.summary ?? {};
   const noticeRows = asRows(noticePayload.data ?? noticePayload);
@@ -161,7 +143,6 @@ export default function InsightsPage() {
   const backedOutPayload = payload(backedOut.data) ?? {};
   const rejectedPayload = payload(rejected.data) ?? {};
   const onHoldPayload = payload(onHold.data) ?? {};
-  const companyLeftPayload = payload(companyLeft.data) ?? {};
 
   const openApplication = (id: string) => navigate(`/applications/${id}`);
 
@@ -258,30 +239,6 @@ export default function InsightsPage() {
                   { key: 'offerDeclined', label: 'Offer Declined' },
                   { key: 'joined', label: 'Joined' },
                   { key: 'notJoined', label: 'Not Joined' },
-                ]}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {tab === 'retention' && (
-        <Card className={cardClass}>
-          <CardHeader>
-            <CardTitle className="text-base text-[#111827]">Retention Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <SummaryCards summary={retentionSummary} className="mb-4" />
-            <div className={tableWrapClass}>
-              <SimpleTable
-                loading={retention.isLoading}
-                rows={retentionRows}
-                columns={[
-                  { key: 'name', label: 'Department / Designation' },
-                  { key: 'joined', label: 'Joined' },
-                  { key: 'active', label: 'Still Active' },
-                  { key: 'left', label: 'Left' },
-                  { key: 'retentionPct', label: 'Retention %' },
                 ]}
               />
             </div>
@@ -487,41 +444,6 @@ export default function InsightsPage() {
                   { key: 'holdReason', label: 'Hold Reason' },
                 ]}
                 onRowClick={(row) => openApplication(row.id)}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {tab === 'companyLeft' && (
-        <Card className={cardClass}>
-          <CardHeader>
-            <CardTitle className="text-base text-[#111827]">Company Left Analytics</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <SummaryCards
-              summary={companyLeftPayload.summary ?? {}}
-              labels={{
-                totalCompanyLeft: 'Total Company Left',
-                voluntaryExit: 'Voluntary Exit',
-                involuntaryExit: 'Involuntary Exit',
-              }}
-              cols={3}
-            />
-            <div className={tableWrapClass}>
-              <InsightTable
-                loading={companyLeft.isLoading}
-                rows={asRows(companyLeftPayload.data)}
-                columns={[
-                  { key: 'employee', label: 'Employee' },
-                  { key: 'department', label: 'Department' },
-                  { key: 'designation', label: 'Designation' },
-                  { key: 'joiningDate', label: 'Joining Date', format: 'date' },
-                  { key: 'leavingDate', label: 'Leaving Date', format: 'date' },
-                  { key: 'tenure', label: 'Tenure' },
-                  { key: 'exitType', label: 'Exit Type' },
-                  { key: 'reason', label: 'Reason' },
-                ]}
               />
             </div>
           </CardContent>

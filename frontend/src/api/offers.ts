@@ -5,14 +5,12 @@ export interface Offer {
   offerNumber: string;
   status: string;
   ctc: number;
-  joiningBonus?: number;
   joiningDate?: string;
   designation: string;
   department: string;
   location: string;
   salaryBreakdown?: any;
   terms?: string;
-  expiresAt?: string;
   sentAt?: string;
   acceptedAt?: string;
   rejectedAt?: string;
