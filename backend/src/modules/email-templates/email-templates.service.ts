@@ -184,7 +184,9 @@ class EmailTemplatesService {
 
     const fromEmail = process.env['EMAIL_FROM'] ?? process.env['SMTP_USER'];
     const companyName = process.env['COMPANY_NAME'] ?? 'SRJ Group';
-    const bodyHtml = resolvedBody.replace(/\n/g, '<br/>');
+    // If body looks like HTML (contains a tag), use it as-is; otherwise convert newlines
+    const isHtml = /<[a-z][\s\S]*>/i.test(resolvedBody);
+    const bodyHtml = isHtml ? resolvedBody : resolvedBody.replace(/\n/g, '<br/>');
     const wrappedHtml = await wrapEmail(bodyHtml);
     await transporter.sendMail({
       from: `"${companyName}" <${fromEmail}>`,

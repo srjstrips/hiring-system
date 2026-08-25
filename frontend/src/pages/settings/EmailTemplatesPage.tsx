@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { emailTemplatesApi, type EmailTemplate } from '@/api/email-templates';
 import { toast } from '@/hooks/useToast';
-import { Plus, Pencil, Trash2, X, Info } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Info, Code, Eye } from 'lucide-react';
 
 const PLACEHOLDERS = [
   '{{candidate_name}}', '{{candidate_first_name}}', '{{candidate_email}}',
@@ -44,6 +44,7 @@ export default function EmailTemplatesPage() {
   const [editing, setEditing] = useState<EmailTemplate | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [showPlaceholders, setShowPlaceholders] = useState(false);
+  const [htmlPreview, setHtmlPreview] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['email-templates'],
@@ -154,11 +155,29 @@ export default function EmailTemplatesPage() {
                   <input type="text" required value={form.subject} onChange={set('subject')} placeholder="e.g. Congratulations {{candidate_name}} — Next Steps" className={inputCls} />
                 </div>
                 <div>
-                  <div className="mb-2 flex items-center justify-between">
+                  <div className="mb-2 flex items-center justify-between gap-2 flex-wrap">
                     <label className={labelCls + ' mb-0'}>Body <span className="text-[#EF4444]">*</span></label>
-                    <button type="button" onClick={() => setShowPlaceholders(!showPlaceholders)} className="flex items-center gap-1 text-xs font-medium text-[#F97316] hover:text-[#EA580C]">
-                      <Info className="h-3 w-3" /> Available placeholders
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => setShowPlaceholders(!showPlaceholders)} className="flex items-center gap-1 text-xs font-medium text-[#F97316] hover:text-[#EA580C]">
+                        <Info className="h-3 w-3" /> Placeholders
+                      </button>
+                      <div className="flex items-center rounded-[8px] border border-[#E5E7EB] overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setHtmlPreview(false)}
+                          className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium transition-colors ${!htmlPreview ? 'bg-[#F97316] text-white' : 'bg-white text-[#64748B] hover:bg-[#F8FAFC]'}`}
+                        >
+                          <Code className="h-3 w-3" /> HTML
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHtmlPreview(true)}
+                          className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium transition-colors ${htmlPreview ? 'bg-[#F97316] text-white' : 'bg-white text-[#64748B] hover:bg-[#F8FAFC]'}`}
+                        >
+                          <Eye className="h-3 w-3" /> Preview
+                        </button>
+                      </div>
+                    </div>
                   </div>
                   {showPlaceholders && (
                     <div className="mb-3 rounded-[8px] border border-[#E5E7EB] bg-[#F8FAFC] p-3">
@@ -177,14 +196,31 @@ export default function EmailTemplatesPage() {
                       </div>
                     </div>
                   )}
-                  <textarea
-                    rows={10}
-                    required
-                    value={form.body}
-                    onChange={set('body')}
-                    placeholder={`Dear {{candidate_name}},\n\nThank you for applying for the {{job_title}} position at {{company_name}}.\n\n...`}
-                    className="w-full resize-y rounded-[8px] border border-[#E5E7EB] bg-white px-3 py-2.5 font-mono text-sm text-[#0F172A] outline-none placeholder:text-[#94A3B8] focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20"
-                  />
+                  {htmlPreview ? (
+                    <div className="w-full min-h-[260px] rounded-[8px] border border-[#E5E7EB] bg-white overflow-auto">
+                      {form.body.trim() ? (
+                        <iframe
+                          srcDoc={form.body}
+                          title="Email preview"
+                          className="w-full min-h-[260px] border-0"
+                          sandbox="allow-same-origin"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-[260px] text-[#94A3B8] text-sm">Nothing to preview yet — write some HTML first.</div>
+                      )}
+                    </div>
+                  ) : (
+                    <textarea
+                      rows={16}
+                      required
+                      value={form.body}
+                      onChange={set('body')}
+                      placeholder={`<!-- You can write full HTML here -->\n<h2>Dear {{candidate_name}},</h2>\n<p>Thank you for applying for <strong>{{job_title}}</strong> at {{company_name}}.</p>\n<p><a href="{{portal_link}}">Visit our careers portal</a></p>`}
+                      className="w-full resize-y rounded-[8px] border border-[#E5E7EB] bg-[#0F172A] px-3 py-2.5 font-mono text-sm text-[#e2e8f0] outline-none placeholder:text-[#475569] focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20"
+                      spellCheck={false}
+                    />
+                  )}
+                  <p className="mt-1.5 text-xs text-[#64748B]">Write plain text or full HTML. Use <code className="bg-[#F1F5F9] px-1 rounded">{'{{placeholders}}'}</code> anywhere. The branded email wrapper (logo, header, footer) is added automatically.</p>
                 </div>
               </div>
               <div className="flex items-center justify-between gap-4 border-t border-[#E5E7EB] px-7 py-5">
