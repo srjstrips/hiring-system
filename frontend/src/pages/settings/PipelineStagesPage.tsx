@@ -114,7 +114,8 @@ export default function PipelineStagesPage() {
   const handleCreate = () => {
     if (!newStage.label.trim()) return toast({ title: 'Label is required', variant: 'destructive' });
     const maxOrder = stages.length ? Math.max(...stages.map((s) => s.stageOrder)) : 0;
-    createMutation.mutate({ ...newStage, stageOrder: maxOrder + 1 });
+    const key = newStage.label.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
+    createMutation.mutate({ ...newStage, key, stageOrder: maxOrder + 1 });
   };
 
   const sorted = [...stages].sort((a, b) => a.stageOrder - b.stageOrder);
