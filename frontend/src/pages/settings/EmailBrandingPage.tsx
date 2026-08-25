@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { emailBrandingApi, type EmailBranding } from '@/api/email-branding';
-import { toast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/useToast';
 import { Palette, Image, Globe, Building2, FileText, Save, Eye } from 'lucide-react';
 
 export default function EmailBrandingPage() {
