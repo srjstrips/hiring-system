@@ -29,6 +29,7 @@ const limiter = rateLimit({
   max: env.RATE_LIMIT_MAX_REQUESTS,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   skip: (req) => req.originalUrl.includes('/public/interviews/'),
   message: {
     success: false,
@@ -40,6 +41,7 @@ const limiter = rateLimit({
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
+  validate: { xForwardedForHeader: false },
   message: {
     success: false,
     message: 'Too many login attempts. Please try again in 15 minutes.',
