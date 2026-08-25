@@ -9,6 +9,7 @@ import publicAssessmentRoutes from '../modules/assessments/public-assessments.ro
 import careerRoutes from '../modules/career/career.routes';
 import emailTemplateRoutes from '../modules/email-templates/email-templates.routes';
 import emailBrandingRoutes from '../modules/email-branding/email-branding.routes';
+import pipelineStagesRoutes from '../modules/pipeline-stages/pipeline-stages.routes';
 import candidateRoutes from '../modules/candidates/candidates.routes';
 import offerRoutes from '../modules/offers/offers.routes';
 import requisitionRoutes from '../modules/requisitions/requisitions.routes';
@@ -32,6 +33,7 @@ router.use('/public/assessments', publicAssessmentRoutes);
 router.use('/career', careerRoutes);
 router.use('/email-templates', emailTemplateRoutes);
 router.use('/email-branding', emailBrandingRoutes);
+router.use('/pipeline-stages', pipelineStagesRoutes);
 router.use('/candidates', candidateRoutes);
 router.use('/offers', offerRoutes);
 router.use('/requisitions', requisitionRoutes);

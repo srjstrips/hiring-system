@@ -52,6 +52,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: 'Roles', to: '/roles', permission: 'roles:read' },
       { label: 'Email Templates', to: '/settings/email-templates', permission: 'email-templates:read' },
       { label: 'Email Branding', to: '/settings/email-branding', permission: 'email-templates:read' },
+      { label: 'Pipeline Stages', to: '/settings/pipeline-stages', permission: 'email-templates:read' },
     ],
   },
 ];

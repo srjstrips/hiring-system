@@ -36,6 +36,7 @@ import ApplicationsPage from '@/pages/applications/ApplicationsPage';
 import ApplicationDetailPage from '@/pages/applications/ApplicationDetailPage';
 import EmailTemplatesPage from '@/pages/settings/EmailTemplatesPage';
 import EmailBrandingPage from '@/pages/settings/EmailBrandingPage';
+import PipelineStagesPage from '@/pages/settings/PipelineStagesPage';
 import CandidatesPage from '@/pages/candidates/CandidatesPage';
 import CandidateDetailPage from '@/pages/candidates/CandidateDetailPage';
 import OffersPage from '@/pages/offers/OffersPage';
@@ -155,6 +156,7 @@ export const router = createBrowserRouter([
           { path: '/settings', element: <ComingSoon title="Settings" /> },
           { path: '/settings/email-templates', element: <EmailTemplatesPage /> },
           { path: '/settings/email-branding', element: <EmailBrandingPage /> },
+          { path: '/settings/pipeline-stages', element: <PipelineStagesPage /> },
         ],
       },
     ],

@@ -58,21 +58,8 @@ enum JobPositionStatus {
   CLOSED
 }
 
-enum CandidateStatus {
-  APPLIED
-  SCREENING
-  SHORTLISTED
-  INTERVIEW_ROUND_1
-  INTERVIEW_ROUND_2
-  HR_ROUND
-  SELECTED
-  OFFER_SENT
-  OFFER_ACCEPTED
-  JOINED
-  REJECTED
-  WITHDRAWN
-  ON_HOLD
-}
+// CandidateStatus kept for reference — application.status is now String (dynamic pipeline stages)
+// enum CandidateStatus { APPLIED SCREENING SHORTLISTED INTERVIEW_ROUND_1 INTERVIEW_ROUND_2 HR_ROUND SELECTED OFFER_SENT OFFER_ACCEPTED JOINED REJECTED WITHDRAWN ON_HOLD }
 
 enum InterviewStatus {
   SCHEDULED
@@ -878,6 +865,22 @@ model CandidateTag {
   @@map("candidate_tags")
 }
 
+// ─── PIPELINE STAGES ─────────────────────────────────────────────────────────
+
+model PipelineStage {
+  key         String   @id                // e.g. "APPLIED", "APTITUDE_TEST", "INTERVIEW_ROUND_1"
+  label       String                      // e.g. "Applied", "Aptitude Test", "Interview Round 1"
+  color       String   @default("#6b7280") // hex color for badge
+  type        String   @default("CUSTOM") // FIXED | TEST | INTERVIEW | CUSTOM
+  stageOrder  Int                         // sort order in pipeline
+  isActive    Boolean  @default(true)
+  isFixed     Boolean  @default(false)    // fixed stages cannot be deleted
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("pipeline_stages")
+}
+
 // ─── APPLICATIONS ─────────────────────────────────────────────────────────────
 
 model Application {
@@ -886,7 +889,7 @@ model Application {
   jobId           String
   sourceId        String?
   ownedById       String?
-  status          CandidateStatus @default(APPLIED)
+  status          String          @default("APPLIED")
   coverLetter     String?
   currentStageId  String?
   rejectionReason String?
@@ -914,8 +917,8 @@ model Application {
 model ApplicationTimeline {
   id            String          @id @default(uuid())
   applicationId String
-  fromStatus    CandidateStatus?
-  toStatus      CandidateStatus
+  fromStatus    String?
+  toStatus      String
   notes         String?
   createdAt     DateTime        @default(now())
   createdById   String?

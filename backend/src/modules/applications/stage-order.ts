@@ -1,63 +1,78 @@
-import type { CandidateStatus } from '@prisma/client';
 import { AppError } from '@/utils/errors';
+import { prisma } from '@/config/database';
 
-/** Linear recruiting pipeline, in forward order. Once an application passes a stage, it is locked. */
-export const PIPELINE_ORDER: CandidateStatus[] = [
-  'APPLIED',
-  'SCREENING',
-  'SHORTLISTED',
-  'INTERVIEW_ROUND_1',
-  'INTERVIEW_ROUND_2',
-  'HR_ROUND',
-  'SELECTED',
-  'OFFER_SENT',
-  'OFFER_ACCEPTED',
-  'JOINED',
-];
+/** Stages that permanently end the pipeline — can never move again. */
+export const TERMINAL_STATUSES = ['REJECTED', 'WITHDRAWN'];
 
-/** Terminal outcomes — end the pipeline permanently, from any active stage. */
-export const TERMINAL_STATUSES: CandidateStatus[] = ['REJECTED', 'WITHDRAWN'];
+/** Stages that are side-exits — pause/outcome, not part of linear order. */
+export const SIDE_EXIT_STATUSES = ['REJECTED', 'WITHDRAWN', 'ON_HOLD'];
 
-function isPipelineStage(status: CandidateStatus): boolean {
-  return PIPELINE_ORDER.includes(status);
+/** Fixed terminal stages that drive business logic (offers, joining, etc.) */
+export const FIXED_STAGES = {
+  APPLIED: 'APPLIED',
+  SELECTED: 'SELECTED',
+  OFFER_SENT: 'OFFER_SENT',
+  OFFER_ACCEPTED: 'OFFER_ACCEPTED',
+  JOINED: 'JOINED',
+  REJECTED: 'REJECTED',
+  WITHDRAWN: 'WITHDRAWN',
+  ON_HOLD: 'ON_HOLD',
+} as const;
+
+/** Cached ordered pipeline (refreshed every 60s) */
+let pipelineCache: string[] = [];
+let pipelineCachedAt = 0;
+const CACHE_TTL = 60_000;
+
+export async function getPipelineOrder(): Promise<string[]> {
+  if (pipelineCache.length && Date.now() - pipelineCachedAt < CACHE_TTL) {
+    return pipelineCache;
+  }
+  const stages = await prisma.pipelineStage.findMany({
+    where: { isActive: true, key: { notIn: SIDE_EXIT_STATUSES } },
+    orderBy: { stageOrder: 'asc' },
+    select: { key: true },
+  });
+  pipelineCache = stages.map((s) => s.key);
+  pipelineCachedAt = Date.now();
+  return pipelineCache;
 }
 
-/**
- * Resolves where an application sits in the linear pipeline. ON_HOLD is a pause, not
- * a stage of its own, so it resolves to the last real pipeline stage reached before
- * the hold (found by scanning timeline history). Terminal statuses have no forward
- * position — they can never move again.
- */
+export function clearPipelineCache() {
+  pipelineCache = [];
+}
+
+/** Fallback synchronous pipeline order (used only when async context unavailable) */
+export const PIPELINE_ORDER_FALLBACK = [
+  'APPLIED', 'SCREENING', 'SHORTLISTED',
+  'INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2', 'HR_ROUND',
+  'SELECTED', 'OFFER_SENT', 'OFFER_ACCEPTED', 'JOINED',
+];
+
 export function getEffectiveStageIndex(
-  currentStatus: CandidateStatus,
-  timeline: { toStatus: CandidateStatus }[]
+  currentStatus: string,
+  timeline: { toStatus: string }[],
+  pipelineOrder: string[]
 ): number {
-  if (isPipelineStage(currentStatus)) {
-    return PIPELINE_ORDER.indexOf(currentStatus);
-  }
+  const idx = pipelineOrder.indexOf(currentStatus);
+  if (idx !== -1) return idx;
+
   if (currentStatus === 'ON_HOLD') {
-    for (let i = timeline.length - 1; i >= 0; i -= 1) {
+    for (let i = timeline.length - 1; i >= 0; i--) {
       const prior = timeline[i]!.toStatus;
-      if (isPipelineStage(prior)) return PIPELINE_ORDER.indexOf(prior);
+      const priorIdx = pipelineOrder.indexOf(prior);
+      if (priorIdx !== -1) return priorIdx;
     }
     return 0;
   }
   return -1;
 }
 
-/**
- * Throws unless moving from currentStatus to targetStatus is a valid forward move.
- * - Terminal statuses (REJECTED/WITHDRAWN) can never be moved from.
- * - Moving to a terminal status or to ON_HOLD is always allowed (side exits/pauses,
- *   not part of the linear order).
- * - Moving between pipeline stages must strictly advance (skipping ahead is fine;
- *   moving to the current or an earlier stage is not — that stage is locked).
- */
-export function assertForwardTransition(
-  currentStatus: CandidateStatus,
-  targetStatus: CandidateStatus,
-  timeline: { toStatus: CandidateStatus }[]
-): void {
+export async function assertForwardTransition(
+  currentStatus: string,
+  targetStatus: string,
+  timeline: { toStatus: string }[]
+): Promise<void> {
   if (TERMINAL_STATUSES.includes(currentStatus)) {
     throw new AppError(
       `This application is already ${currentStatus} and cannot be moved to another stage.`,
@@ -66,12 +81,11 @@ export function assertForwardTransition(
     );
   }
 
-  if (TERMINAL_STATUSES.includes(targetStatus) || targetStatus === 'ON_HOLD') {
-    return;
-  }
+  if (SIDE_EXIT_STATUSES.includes(targetStatus)) return;
 
-  const currentIndex = getEffectiveStageIndex(currentStatus, timeline);
-  const targetIndex = PIPELINE_ORDER.indexOf(targetStatus);
+  const pipelineOrder = await getPipelineOrder();
+  const currentIndex = getEffectiveStageIndex(currentStatus, timeline, pipelineOrder);
+  const targetIndex = pipelineOrder.indexOf(targetStatus);
 
   if (targetIndex === -1) {
     throw new AppError(`Unknown pipeline stage: ${targetStatus}`, 400);
@@ -79,21 +93,20 @@ export function assertForwardTransition(
 
   if (targetIndex <= currentIndex) {
     throw new AppError(
-      `Cannot move back to "${targetStatus}" — the candidate has already passed this stage and it is locked. Only forward moves are allowed.`,
+      `Cannot move back to "${targetStatus}" — the candidate has already passed this stage.`,
       400,
       'STAGE_LOCKED'
     );
   }
 }
 
-/** Non-throwing check, for call sites where an invalid move should be silently skipped rather than failing the whole request. */
-export function isValidForwardTransition(
-  currentStatus: CandidateStatus,
-  targetStatus: CandidateStatus,
-  timeline: { toStatus: CandidateStatus }[]
-): boolean {
+export async function isValidForwardTransition(
+  currentStatus: string,
+  targetStatus: string,
+  timeline: { toStatus: string }[]
+): Promise<boolean> {
   try {
-    assertForwardTransition(currentStatus, targetStatus, timeline);
+    await assertForwardTransition(currentStatus, targetStatus, timeline);
     return true;
   } catch {
     return false;

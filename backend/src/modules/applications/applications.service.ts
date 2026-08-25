@@ -122,7 +122,7 @@ class ApplicationsService {
   async updateStatus(id: string, dto: UpdateStatusDto, updatedById: string) {
     const app = await this.getById(id);
 
-    assertForwardTransition(app.status, dto.status, app.timeline);
+    await assertForwardTransition(app.status, dto.status, app.timeline);
 
     await prisma.$transaction([
       prisma.application.update({

@@ -220,12 +220,9 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
     }
 
     const nextStatus = ROUND_TO_STATUS[interview.round];
-    if (
-      updateApplicationStatus &&
-      nextStatus &&
-      app.status !== nextStatus &&
-      isValidForwardTransition(app.status, nextStatus, app.timeline)
-    ) {
+    const canAdvance = nextStatus && app.status !== nextStatus &&
+      await isValidForwardTransition(app.status, nextStatus, app.timeline);
+    if (updateApplicationStatus && canAdvance) {
       await prisma.$transaction([
         prisma.application.update({
           where: { id: applicationId },

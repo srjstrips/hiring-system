@@ -15,14 +15,11 @@ import {
   ShieldCheck, Gift, UserCheck, PauseCircle, Hourglass, Video, Lock, Trash2,
 } from 'lucide-react';
 import {
-  PIPELINE_ORDER as PIPELINE,
   isStageLocked,
-  getEffectiveStageIndex,
-  getSelectableStages,
   stageLabel,
 } from '@/utils/applicationStages';
-
-const INTERVIEW_STAGES = ['INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2', 'HR_ROUND'] as const;
+import { pipelineStagesApi } from '@/api/pipeline-stages';
+import type { PipelineStage } from '@/api/pipeline-stages';
 
 function defaultInterviewDateTime() {
   const d = new Date();
@@ -38,21 +35,10 @@ function interviewRoundFromStatus(status: string) {
   return 1;
 }
 
-const stageColor: Record<string, string> = {
-  APPLIED: 'bg-[#FFF7ED] text-[#EA580C]',
-  SCREENING: 'bg-[#FFF7ED] text-[#FF6B00]',
-  SHORTLISTED: 'bg-[#F5F3FF] text-violet-700',
-  INTERVIEW_ROUND_1: 'bg-[#FFF7ED] text-[#FF6B00]',
-  INTERVIEW_ROUND_2: 'bg-[#FFF7ED] text-[#FF6B00]',
-  HR_ROUND: 'bg-[#FFF7ED] text-[#EA580C]',
-  SELECTED: 'bg-[#F0FDF4] text-green-700',
-  OFFER_SENT: 'bg-[#F0FDF4] text-green-700',
-  OFFER_ACCEPTED: 'bg-[#F0FDF4] text-green-700',
-  JOINED: 'bg-[#F0FDFA] text-teal-700',
-  REJECTED: 'bg-[#FFF1F2] text-rose-700',
-  WITHDRAWN: 'bg-[#F1F5F9] text-[#64748B]',
-  ON_HOLD: 'bg-[#FFF7ED] text-amber-700',
-};
+function stageBadgeStyle(stage: PipelineStage | undefined): React.CSSProperties {
+  if (!stage) return { backgroundColor: '#F1F5F9', color: '#64748B' };
+  return { backgroundColor: stage.color + '22', color: stage.color };
+}
 
 const cardClass = 'rounded-xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]';
 const fieldClass =
@@ -116,6 +102,21 @@ export default function ApplicationDetailPage() {
     retry: 1,
   });
 
+  const { data: stagesData } = useQuery({
+    queryKey: ['pipeline-stages'],
+    queryFn: () => pipelineStagesApi.getAll().then((r) => r.data.data),
+    staleTime: 60_000,
+  });
+  const stages = stagesData ?? [];
+  const stageMap = Object.fromEntries(stages.map((s) => [s.key, s]));
+  // Pipeline: active non-side-exit stages in order
+  const PIPELINE = stages
+    .filter((s) => s.isActive && !['REJECTED', 'WITHDRAWN', 'ON_HOLD'].includes(s.key))
+    .sort((a, b) => a.stageOrder - b.stageOrder)
+    .map((s) => s.key);
+  // Interview stages are type=INTERVIEW in DB
+  const INTERVIEW_STAGE_KEYS = new Set(stages.filter((s) => s.type === 'INTERVIEW').map((s) => s.key));
+
   const invalidateApplication = () => {
     queryClient.invalidateQueries({ queryKey: ['application', id] });
     queryClient.invalidateQueries({ queryKey: ['applications'] });
@@ -169,7 +170,7 @@ export default function ApplicationDetailPage() {
     onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
   });
 
-  const isInterviewStage = INTERVIEW_STAGES.includes(newStatus as (typeof INTERVIEW_STAGES)[number]);
+  const isInterviewStage = INTERVIEW_STAGE_KEYS.has(newStatus);
   const isSaving = statusMutation.isPending || scheduleMutation.isPending;
 
   const handleMoveStage = () => {
@@ -219,10 +220,27 @@ export default function ApplicationDetailPage() {
   }
   if (!app) return <div className="py-20 text-center text-sm text-[#64748B]">Application not found</div>;
 
-  const currentStageIdx = getEffectiveStageIndex(app.status, app.timeline);
   const isFinalOutcome = isStageLocked(app.status);
   const isOnHold = app.status === 'ON_HOLD';
-  const selectableStages = getSelectableStages(app.status, app.timeline);
+  // Compute effective pipeline index (ON_HOLD resolves to last real stage)
+  const currentStageIdx = (() => {
+    const idx = PIPELINE.indexOf(app.status);
+    if (idx >= 0) return idx;
+    if (app.status === 'ON_HOLD') {
+      for (let i = app.timeline.length - 1; i >= 0; i--) {
+        const k = PIPELINE.indexOf(app.timeline[i]!.toStatus);
+        if (k >= 0) return k;
+      }
+    }
+    return -1;
+  })();
+  // Selectable stages = forward pipeline + side exits (minus current)
+  const selectableStages = isFinalOutcome
+    ? []
+    : [
+        ...PIPELINE.filter((_, i) => i > currentStageIdx),
+        ...['REJECTED', 'WITHDRAWN', 'ON_HOLD'].filter((s) => s !== app.status),
+      ];
   const CurrentStageIcon = app.status === 'SCREENING'
     ? Hourglass
     : (stageIcon[app.status] ?? Clock);
@@ -264,8 +282,9 @@ export default function ApplicationDetailPage() {
           >
             <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
           </Button>
-          <div className={`rounded-full px-4 py-1.5 text-sm font-semibold ${stageColor[app.status] ?? 'bg-[#F1F5F9] text-[#64748B]'}`}>
-            {stageLabel(app.status)}
+          <div className="rounded-full px-4 py-1.5 text-sm font-semibold"
+            style={stageBadgeStyle(stageMap[app.status])}>
+            {stageMap[app.status]?.label ?? stageLabel(app.status)}
           </div>
         </div>
       </div>
@@ -460,8 +479,9 @@ export default function ApplicationDetailPage() {
                               <ChevronRight className="h-3 w-3 text-[#64748B]" />
                             </>
                           )}
-                          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${stageColor[t.toStatus] ?? 'bg-[#F1F5F9] text-[#64748B]'}`}>
-                            {stageLabel(t.toStatus)}
+                          <span className="rounded-full px-2 py-0.5 text-xs font-medium"
+                            style={stageBadgeStyle(stageMap[t.toStatus])}>
+                            {stageMap[t.toStatus]?.label ?? stageLabel(t.toStatus)}
                           </span>
                         </div>
                         {t.notes && <p className="mt-0.5 text-xs text-[#64748B]">{t.notes}</p>}
@@ -485,9 +505,10 @@ export default function ApplicationDetailPage() {
             <CardContent className="space-y-3">
               <div>
                 <label className="mb-1.5 block text-xs text-[#64748B]">Current Stage</label>
-                <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${stageColor[app.status] ?? 'bg-[#F1F5F9] text-[#64748B]'}`}>
+                <div className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                  style={stageBadgeStyle(stageMap[app.status])}>
                   <CurrentStageIcon className="h-3.5 w-3.5" />
-                  {stageLabel(app.status).toUpperCase()}
+                  {(stageMap[app.status]?.label ?? stageLabel(app.status)).toUpperCase()}
                 </div>
               </div>
 
@@ -503,9 +524,10 @@ export default function ApplicationDetailPage() {
                     Past stages are locked. You can only move the candidate forward.
                   </p>
                   <div className="max-h-56 divide-y divide-[#E2E8F0] overflow-y-auto rounded-xl border border-[#E2E8F0] bg-white">
-                    {selectableStages.map((s) => {
+                    {selectableStages.map((s: string) => {
                       const isSelected = newStatus === s;
                       const Icon = stageIcon[s] ?? Clock;
+                      const stage = stageMap[s];
                       return (
                         <button
                           key={s}
@@ -523,11 +545,14 @@ export default function ApplicationDetailPage() {
                             >
                               {isSelected && <span className="h-2 w-2 rounded-full bg-[#FF6B00]" />}
                             </span>
-                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${stageIconTone[s] ?? 'bg-[#F1F5F9] text-[#64748B]'}`}>
+                            <span
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+                              style={stage ? { backgroundColor: stage.color + '22', color: stage.color } : { backgroundColor: '#F1F5F9', color: '#64748B' }}
+                            >
                               <Icon className="h-4 w-4" />
                             </span>
                             <span className="text-xs font-semibold uppercase tracking-wide text-[#111827]">
-                              {stageLabel(s)}
+                              {stage?.label ?? stageLabel(s)}
                             </span>
                           </div>
                         </button>

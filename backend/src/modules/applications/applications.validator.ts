@@ -1,33 +1,17 @@
 import { z } from 'zod';
 
-const CandidateStatusEnum = z.enum([
-  'APPLIED', 'SCREENING', 'SHORTLISTED',
-  'INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2', 'HR_ROUND',
-  'SELECTED', 'OFFER_SENT', 'OFFER_ACCEPTED', 'JOINED',
-  'REJECTED', 'WITHDRAWN', 'ON_HOLD',
-]);
+/** Accept any non-empty string as a stage key — validated against DB at service layer */
+const stageKey = z.string().min(1).max(100);
 
-/** Treat missing/empty query values as undefined */
 const emptyToUndefined = (v: unknown) => {
   if (v === undefined || v === null || v === '') return undefined;
   if (Array.isArray(v)) return emptyToUndefined(v[0]);
   return v;
 };
 
-const optionalUuid = z.preprocess(
-  emptyToUndefined,
-  z.string().uuid().optional(),
-);
-
-const optionalStatus = z.preprocess(
-  emptyToUndefined,
-  CandidateStatusEnum.optional(),
-);
-
-const optionalSearch = z.preprocess(
-  emptyToUndefined,
-  z.string().optional(),
-);
+const optionalUuid = z.preprocess(emptyToUndefined, z.string().uuid().optional());
+const optionalStatus = z.preprocess(emptyToUndefined, stageKey.optional());
+const optionalSearch = z.preprocess(emptyToUndefined, z.string().optional());
 
 const pageParam = z.preprocess(
   emptyToUndefined,
@@ -52,7 +36,7 @@ export const ApplicationPipelineStatsQuerySchema = z.object({
 });
 
 export const UpdateStatusSchema = z.object({
-  status: CandidateStatusEnum,
+  status: stageKey,
   notes: z.string().optional(),
   rejectionReason: z.string().optional(),
 });

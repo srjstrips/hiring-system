@@ -2,31 +2,44 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { applicationsApi } from '@/api/applications';
+import { pipelineStagesApi, PipelineStage } from '@/api/pipeline-stages';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from '@/hooks/useToast';
 import { Eye, Search, FileText, Star, Mail, Briefcase, Clock, Calendar, Users, Lock } from 'lucide-react';
-import { PIPELINE_ORDER, OUTCOME_STATUSES, isStageLocked, getSelectableStages } from '@/utils/applicationStages';
+import { isStageLocked } from '@/utils/applicationStages';
 
-/** Filter dropdown lists every stage — filtering is not a stage change, so no forward-only restriction applies here. */
-const STAGES = [...PIPELINE_ORDER, ...OUTCOME_STATUSES];
+function stageBadgeStyle(stage: PipelineStage | undefined): React.CSSProperties {
+  if (!stage) return { backgroundColor: '#F1F5F9', color: '#64748B' };
+  const hex = stage.color || '#6b7280';
+  return { backgroundColor: hex + '22', color: hex };
+}
 
-const STAGE_BADGE: Record<string, string> = {
-  APPLIED: 'bg-[#FFF7ED] text-[#EA580C]',
-  SCREENING: 'bg-[#FFF7ED] text-[#FF6B00]',
-  SHORTLISTED: 'bg-[#F5F3FF] text-violet-700',
-  INTERVIEW_ROUND_1: 'bg-[#FFF7ED] text-[#FF6B00]',
-  INTERVIEW_ROUND_2: 'bg-[#FFF7ED] text-[#FF6B00]',
-  HR_ROUND: 'bg-[#FFF7ED] text-[#EA580C]',
-  SELECTED: 'bg-[#F0FDF4] text-green-700',
-  OFFER_SENT: 'bg-[#F0FDF4] text-green-700',
-  OFFER_ACCEPTED: 'bg-[#F0FDF4] text-green-700',
-  JOINED: 'bg-[#F0FDFA] text-teal-700',
-  REJECTED: 'bg-[#FFF1F2] text-rose-700',
-  WITHDRAWN: 'bg-[#F1F5F9] text-[#64748B]',
-  ON_HOLD: 'bg-[#F1F5F9] text-[#64748B]',
-};
+function getSelectableFromStages(
+  currentStatus: string,
+  timeline: Array<{ toStatus: string }>,
+  stages: PipelineStage[],
+): string[] {
+  if (isStageLocked(currentStatus)) return [];
+  const pipeline = stages.filter((s) => s.isActive && !['REJECTED', 'WITHDRAWN', 'ON_HOLD'].includes(s.key))
+    .sort((a, b) => a.stageOrder - b.stageOrder);
+  const currentIdx = pipeline.findIndex((s) => s.key === currentStatus);
+  const effectiveIdx = currentIdx >= 0
+    ? currentIdx
+    : (() => {
+        if (currentStatus === 'ON_HOLD') {
+          for (let i = timeline.length - 1; i >= 0; i--) {
+            const idx = pipeline.findIndex((s) => s.key === timeline[i]!.toStatus);
+            if (idx >= 0) return idx;
+          }
+        }
+        return -1;
+      })();
+  const forward = pipeline.filter((_, i) => i > effectiveIdx).map((s) => s.key);
+  const outcomes = ['REJECTED', 'WITHDRAWN', 'ON_HOLD'].filter((s) => s !== currentStatus);
+  return [...forward, ...outcomes];
+}
 
 const cardClass = 'rounded-xl border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]';
 
@@ -64,6 +77,14 @@ export default function ApplicationsPage() {
     queryFn: () => applicationsApi.getPipelineStats(jobId).then((r) => r.data.data),
   });
 
+  const { data: stagesData } = useQuery({
+    queryKey: ['pipeline-stages'],
+    queryFn: () => pipelineStagesApi.getAll().then((r) => r.data.data),
+    staleTime: 60_000,
+  });
+  const stages = stagesData ?? [];
+  const stageMap = Object.fromEntries(stages.map((s) => [s.key, s]));
+
   const statusMutation = useMutation({
     mutationFn: ({ id, newStatus }: { id: string; newStatus: string }) =>
       applicationsApi.updateStatus(id, { status: newStatus }),
@@ -78,16 +99,10 @@ export default function ApplicationsPage() {
   // Defensive: only show applications belonging to the selected Job Opening when jobId is present.
   const apps = (data?.data ?? []).filter((app) => !jobId || app.job.id === jobId);
 
-  const SUMMARY_STAGES = ['APPLIED', 'SCREENING', 'SHORTLISTED', 'INTERVIEW_ROUND_1', 'SELECTED', 'REJECTED'] as const;
-
-  const stageAccent: Record<string, { count: string; active: string }> = {
-    APPLIED: { count: 'text-[#EA580C]', active: 'border-[#FED7AA] bg-[#FFF7ED]' },
-    SCREENING: { count: 'text-[#FF6B00]', active: 'border-[#FF6B00]/30 bg-[#FFF7ED]' },
-    SHORTLISTED: { count: 'text-violet-700', active: 'border-violet-200 bg-[#F5F3FF]' },
-    INTERVIEW_ROUND_1: { count: 'text-[#FF6B00]', active: 'border-[#FF6B00]/30 bg-[#FFF7ED]' },
-    SELECTED: { count: 'text-green-700', active: 'border-green-200 bg-[#F0FDF4]' },
-    REJECTED: { count: 'text-rose-700', active: 'border-rose-200 bg-[#FFF1F2]' },
-  };
+  // First 5 active pipeline stages + REJECTED for the summary strip
+  const pipelineSorted = stages.filter((s) => s.isActive && !['REJECTED', 'WITHDRAWN', 'ON_HOLD'].includes(s.key))
+    .sort((a, b) => a.stageOrder - b.stageOrder);
+  const SUMMARY_STAGES = [...pipelineSorted.slice(0, 5).map((s) => s.key), 'REJECTED'];
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -98,30 +113,27 @@ export default function ApplicationsPage() {
         </p>
       </div>
 
-      {statsData && (
+      {statsData && SUMMARY_STAGES.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {SUMMARY_STAGES.map((s) => {
             const count = statsData.find((x) => x.status === s)?.count ?? 0;
-            const accent = stageAccent[s];
+            const stage = stageMap[s];
+            const color = stage?.color ?? '#6b7280';
             const isActive = status === s;
             return (
               <button
                 key={s}
                 type="button"
                 onClick={() => setStatus(status === s ? '' : s)}
-                className={`rounded-xl border bg-white px-3 py-4 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all ${
-                  isActive
-                    ? accent.active
-                    : 'border-[#E2E8F0] hover:border-[#FF6B00]/25 hover:shadow-md'
-                }`}
+                className="rounded-xl border bg-white px-3 py-4 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-all hover:shadow-md"
+                style={isActive ? { borderColor: color + '66', backgroundColor: color + '15' } : { borderColor: '#E2E8F0' }}
               >
-                <div className={`text-2xl font-bold leading-none ${isActive ? accent.count : 'text-[#111827]'}`}>
+                <div className="text-2xl font-bold leading-none" style={{ color: isActive ? color : '#111827' }}>
                   {count}
                 </div>
-                <div className={`mt-2 text-[11px] font-medium uppercase tracking-wide leading-tight ${
-                  isActive ? accent.count : 'text-[#64748B]'
-                }`}>
-                  {s === 'INTERVIEW_ROUND_1' ? 'Interview R1' : s.replace(/_/g, ' ')}
+                <div className="mt-2 text-[11px] font-medium uppercase tracking-wide leading-tight"
+                  style={{ color: isActive ? color : '#64748B' }}>
+                  {stage?.label ?? s.replace(/_/g, ' ')}
                 </div>
               </button>
             );
@@ -146,7 +158,9 @@ export default function ApplicationsPage() {
             onChange={(e) => setStatus(e.target.value)}
           >
             <option value="">All Stages</option>
-            {STAGES.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
+            {stages.sort((a, b) => a.stageOrder - b.stageOrder).map((s) => (
+              <option key={s.key} value={s.key}>{s.label}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -186,8 +200,9 @@ export default function ApplicationsPage() {
                       <h3 className="font-semibold text-[#111827]">
                         {app.candidate.firstName} {app.candidate.lastName}
                       </h3>
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STAGE_BADGE[app.status] ?? 'bg-[#F1F5F9] text-[#64748B]'}`}>
-                        {app.status.replace(/_/g, ' ')}
+                      <span className="rounded-full px-2.5 py-0.5 text-xs font-medium"
+                        style={stageBadgeStyle(stageMap[app.status])}>
+                        {stageMap[app.status]?.label ?? app.status.replace(/_/g, ' ')}
                       </span>
                       {app.assessmentAttempt?.submittedAt && (
                         <span className="inline-flex items-center gap-1 rounded-full border border-[#FF6B00]/30 bg-[#FFF7ED] px-2.5 py-0.5 text-xs font-medium text-[#FF6B00]">
@@ -242,8 +257,8 @@ export default function ApplicationsPage() {
                             onChange={(e) => e.target.value && statusMutation.mutate({ id: app.id, newStatus: e.target.value })}
                           >
                             <option value="" disabled>Move to...</option>
-                            {getSelectableStages(app.status, app.timeline).map((s) => (
-                              <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
+                            {getSelectableFromStages(app.status, app.timeline, stages).map((s) => (
+                              <option key={s} value={s}>{stageMap[s]?.label ?? s.replace(/_/g, ' ')}</option>
                             ))}
                           </select>
                           <Button variant="ghost" size="sm" className="text-[#64748B]" onClick={() => setMovingId(null)}>✕</Button>
