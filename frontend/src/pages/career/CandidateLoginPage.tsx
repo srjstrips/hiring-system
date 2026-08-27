@@ -56,6 +56,30 @@ export default function CandidateLoginPage() {
   const [rememberMe, setRememberMe] = useState(Boolean(rememberedEmail));
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // 'unknown' until email gives a hint; updated after failed login attempts too
+  const [portalHint, setPortalHint] = useState<'hr' | 'candidate' | 'unknown'>('unknown');
+
+  // Detect portal type from email as user types
+  const handleEmailChange = (val: string) => {
+    setEmail(val);
+    const domain = val.split('@')[1]?.toLowerCase() ?? '';
+    if (!domain) { setPortalHint('unknown'); return; }
+    // Internal SRJ domains → HR
+    if (['srjsteel.in', 'srjgroup.in', 'srj.in', 'company.com'].some((d) => domain === d)) {
+      setPortalHint('hr');
+    } else if (domain.includes('.')) {
+      setPortalHint('candidate');
+    } else {
+      setPortalHint('unknown');
+    }
+  };
+
+  const portalTitle = portalHint === 'hr' ? 'HR Portal' : portalHint === 'candidate' ? 'Candidate Portal' : 'Sign In';
+  const portalSubtitle = portalHint === 'hr'
+    ? 'Sign in to continue to the Recruitment\nManagement System'
+    : portalHint === 'candidate'
+    ? 'Sign in to track your applications\nand explore opportunities'
+    : 'Sign in to your account';
 
   useEffect(() => {
     if (candidateLoading || hrLoading) return;
@@ -86,6 +110,7 @@ export default function CandidateLoginPage() {
 
     try {
       await candidateLogin(email, password);
+      setPortalHint('candidate');
       navigate(candidateDestination(redirect), { replace: true });
       return;
     } catch {
@@ -94,6 +119,7 @@ export default function CandidateLoginPage() {
 
     try {
       await hrLogin(email, password);
+      setPortalHint('hr');
       navigate(hrDestination(redirect), { replace: true });
       return;
     } catch {
@@ -123,13 +149,11 @@ export default function CandidateLoginPage() {
               <p className="text-sm font-semibold tracking-wide text-[#FF6B00]">
                 Welcome Back!
               </p>
-              <h1 className="mt-2 text-3xl font-bold text-[#1a1a2e]">
-                HR Portal
+              <h1 className="mt-2 text-3xl font-bold text-[#1a1a2e] transition-all duration-300">
+                {portalTitle}
               </h1>
-              <p className="mt-2 text-sm text-[#6B7280]">
-                Sign in to continue to the Recruitment
-                <br />
-                Management System
+              <p className="mt-2 text-sm text-[#6B7280] whitespace-pre-line transition-all duration-300">
+                {portalSubtitle}
               </p>
             </div>
 
@@ -161,7 +185,7 @@ export default function CandidateLoginPage() {
                     autoComplete="email"
                     className="h-11 rounded-lg border-[#E5E7EB] bg-[#F3F4F6] pl-11 text-[#111827] placeholder:text-[#9CA3AF] focus-visible:border-[#FF6B00] focus-visible:ring-[#FF6B00]/20 focus-visible:ring-offset-0"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => handleEmailChange(e.target.value)}
                     required
                   />
                 </div>
