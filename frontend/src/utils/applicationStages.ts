@@ -1,17 +1,25 @@
 /** Linear recruiting pipeline, in forward order. Mirrors backend/src/modules/applications/stage-order.ts. */
 export const PIPELINE_ORDER = [
-  'APPLIED', 'SCREENING', 'SHORTLISTED',
-  'INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2', 'HR_ROUND',
-  'SELECTED', 'OFFER_SENT', 'OFFER_ACCEPTED', 'JOINED',
+  'APPLIED', 'SCREENING', 'PERSONALITY_ASSESSMENT', 'DEPT_WORKING_TEST',
+  'HOD_HR_INTERVIEW', 'DIRECTOR_INTERVIEW', 'SHORTLISTED',
+  'DOCUMENT_VERIFICATION', 'OFFER_LETTER', 'OFFER_ACCEPTED',
+  'VERIFICATION_COMPLETED', 'JOINING',
 ] as const;
 
 export type PipelineStage = (typeof PIPELINE_ORDER)[number];
 
 /** Terminal outcomes — end the pipeline permanently, from any active stage. */
-export const TERMINAL_STATUSES = ['REJECTED', 'WITHDRAWN'] as const;
+export const TERMINAL_STATUSES = [
+  'REJECTED', 'WITHDRAWN', 'OFFER_DECLINED',
+  'VERIFICATION_FAILED', 'DID_NOT_JOIN', 'POSITION_CLOSED', 'CANDIDATE_UNRESPONSIVE',
+] as const;
 
-/** Non-pipeline statuses always offered in "Change Stage" (side exits/pauses, not part of the linear order). */
-export const OUTCOME_STATUSES = ['REJECTED', 'WITHDRAWN', 'ON_HOLD'] as const;
+/** Non-pipeline statuses always offered in "Change Stage" (side exits/pauses). */
+export const OUTCOME_STATUSES = [
+  'REJECTED', 'WITHDRAWN', 'ON_HOLD',
+  'OFFER_DECLINED', 'VERIFICATION_FAILED', 'DID_NOT_JOIN',
+  'POSITION_CLOSED', 'CANDIDATE_UNRESPONSIVE',
+] as const;
 
 export const stageLabel = (s: string) => s.replace(/_/g, ' ');
 
@@ -46,8 +54,7 @@ export function getEffectiveStageIndex(
 
 /**
  * Every stage-change option to offer in a "Change Stage" control right now: pipeline
- * stages strictly ahead of the current one (skipping ahead is fine; past/current
- * stages are locked and omitted), plus the always-available side exits/pauses.
+ * stages strictly ahead of the current one, plus the always-available side exits.
  * Empty once the application has reached a terminal outcome.
  */
 export function getSelectableStages(

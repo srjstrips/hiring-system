@@ -12,7 +12,7 @@ import {
   ArrowLeft, FileText, Link2, Mail, Phone, Briefcase,
   Clock, Star, CheckCircle2, XCircle, ChevronRight, User,
   Calendar, DollarSign, Building2, Send, Search, Users,
-  ShieldCheck, Gift, UserCheck, PauseCircle, Hourglass, Video, Lock, Trash2,
+  ShieldCheck, Gift, UserCheck, PauseCircle, Video, Lock, Trash2,
 } from 'lucide-react';
 import {
   isStageLocked,
@@ -49,17 +49,24 @@ const textareaClass =
 const stageIcon: Record<string, ComponentType<{ className?: string }>> = {
   APPLIED: Send,
   SCREENING: Search,
+  PERSONALITY_ASSESSMENT: Star,
+  DEPT_WORKING_TEST: Briefcase,
+  HOD_HR_INTERVIEW: Calendar,
+  DIRECTOR_INTERVIEW: Calendar,
   SHORTLISTED: Users,
-  INTERVIEW_ROUND_1: Calendar,
-  INTERVIEW_ROUND_2: Calendar,
-  HR_ROUND: User,
-  SELECTED: ShieldCheck,
-  OFFER_SENT: Gift,
+  DOCUMENT_VERIFICATION: FileText,
+  OFFER_LETTER: Gift,
   OFFER_ACCEPTED: CheckCircle2,
-  JOINED: UserCheck,
+  VERIFICATION_COMPLETED: ShieldCheck,
+  JOINING: UserCheck,
   REJECTED: XCircle,
   WITHDRAWN: XCircle,
   ON_HOLD: PauseCircle,
+  OFFER_DECLINED: XCircle,
+  VERIFICATION_FAILED: XCircle,
+  DID_NOT_JOIN: XCircle,
+  POSITION_CLOSED: XCircle,
+  CANDIDATE_UNRESPONSIVE: XCircle,
 };
 
 
@@ -226,9 +233,7 @@ export default function ApplicationDetailPage() {
         ...PIPELINE.filter((_, i) => i > currentStageIdx),
         ...['REJECTED', 'WITHDRAWN', 'ON_HOLD'].filter((s) => s !== app.status),
       ];
-  const CurrentStageIcon = app.status === 'SCREENING'
-    ? Hourglass
-    : (stageIcon[app.status] ?? Clock);
+  const CurrentStageIcon = stageIcon[app.status] ?? Clock;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">

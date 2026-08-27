@@ -2,21 +2,32 @@ import { AppError } from '@/utils/errors';
 import { prisma } from '@/config/database';
 
 /** Stages that permanently end the pipeline — can never move again. */
-export const TERMINAL_STATUSES = ['REJECTED', 'WITHDRAWN'];
+export const TERMINAL_STATUSES = [
+  'REJECTED', 'WITHDRAWN', 'OFFER_DECLINED',
+  'VERIFICATION_FAILED', 'DID_NOT_JOIN', 'POSITION_CLOSED', 'CANDIDATE_UNRESPONSIVE',
+];
 
 /** Stages that are side-exits — pause/outcome, not part of linear order. */
-export const SIDE_EXIT_STATUSES = ['REJECTED', 'WITHDRAWN', 'ON_HOLD'];
+export const SIDE_EXIT_STATUSES = [
+  'REJECTED', 'WITHDRAWN', 'ON_HOLD',
+  'OFFER_DECLINED', 'VERIFICATION_FAILED', 'DID_NOT_JOIN',
+  'POSITION_CLOSED', 'CANDIDATE_UNRESPONSIVE',
+];
 
-/** Fixed terminal stages that drive business logic (offers, joining, etc.) */
+/** Fixed stages that drive business logic (offers, joining, etc.) */
 export const FIXED_STAGES = {
   APPLIED: 'APPLIED',
-  SELECTED: 'SELECTED',
-  OFFER_SENT: 'OFFER_SENT',
+  OFFER_LETTER: 'OFFER_LETTER',
   OFFER_ACCEPTED: 'OFFER_ACCEPTED',
-  JOINED: 'JOINED',
+  JOINING: 'JOINING',
   REJECTED: 'REJECTED',
   WITHDRAWN: 'WITHDRAWN',
   ON_HOLD: 'ON_HOLD',
+  OFFER_DECLINED: 'OFFER_DECLINED',
+  VERIFICATION_FAILED: 'VERIFICATION_FAILED',
+  DID_NOT_JOIN: 'DID_NOT_JOIN',
+  POSITION_CLOSED: 'POSITION_CLOSED',
+  CANDIDATE_UNRESPONSIVE: 'CANDIDATE_UNRESPONSIVE',
 } as const;
 
 /** Cached ordered pipeline (refreshed every 60s) */
@@ -44,9 +55,10 @@ export function clearPipelineCache() {
 
 /** Fallback synchronous pipeline order (used only when async context unavailable) */
 export const PIPELINE_ORDER_FALLBACK = [
-  'APPLIED', 'SCREENING', 'SHORTLISTED',
-  'INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2', 'HR_ROUND',
-  'SELECTED', 'OFFER_SENT', 'OFFER_ACCEPTED', 'JOINED',
+  'APPLIED', 'SCREENING', 'PERSONALITY_ASSESSMENT', 'DEPT_WORKING_TEST',
+  'HOD_HR_INTERVIEW', 'DIRECTOR_INTERVIEW', 'SHORTLISTED',
+  'DOCUMENT_VERIFICATION', 'OFFER_LETTER', 'OFFER_ACCEPTED',
+  'VERIFICATION_COMPLETED', 'JOINING',
 ];
 
 export function getEffectiveStageIndex(
