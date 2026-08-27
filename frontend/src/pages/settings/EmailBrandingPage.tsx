@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { emailBrandingApi, type EmailBranding } from '@/api/email-branding';
 import { toast } from '@/hooks/useToast';
-import { Palette, Image, Globe, Building2, FileText, Save, Eye } from 'lucide-react';
+import { Palette, Image, Globe, Building2, FileText, Save, Eye, ToggleLeft, ToggleRight } from 'lucide-react';
 
 export default function EmailBrandingPage() {
   const qc = useQueryClient();
@@ -36,9 +36,29 @@ export default function EmailBrandingPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Email Branding</h1>
-        <p className="text-muted-foreground mt-1">Customize how your emails look to candidates.</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Email Branding</h1>
+          <p className="text-muted-foreground mt-1">Customize how your emails look to candidates.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            const next = !(form.isEnabled ?? true);
+            setForm(f => ({ ...f, isEnabled: next }));
+            mutation.mutate({ ...form, isEnabled: next });
+          }}
+          className={`flex items-center gap-2 self-start rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
+            (form.isEnabled ?? true)
+              ? 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100'
+              : 'border-[#E2E8F0] bg-[#F8FAFC] text-[#64748B] hover:bg-[#F1F5F9]'
+          }`}
+        >
+          {(form.isEnabled ?? true)
+            ? <><ToggleRight className="h-5 w-5" /> Branding Enabled</>
+            : <><ToggleLeft className="h-5 w-5" /> Branding Disabled</>
+          }
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -140,7 +140,6 @@ export default function AssessmentFormPage() {
   const validate = () => {
     const next: Record<string, string> = {};
     if (!form.name.trim()) next.name = 'Assessment name is required';
-    if (!form.jobId) next.jobId = 'Job is required';
     if (!form.durationMins || Number(form.durationMins) <= 0) next.durationMins = 'Duration must be greater than 0';
     const pass = Number(form.passingScore);
     if (Number.isNaN(pass) || pass < 0 || pass > 100) next.passingScore = 'Passing score must be between 0 and 100';
@@ -158,7 +157,7 @@ export default function AssessmentFormPage() {
     saveMutation.mutate({
       name: form.name.trim(),
       description: form.description || undefined,
-      jobId: form.jobId,
+      jobId: form.jobId || undefined,
       designationId: form.designationId || undefined,
       durationMins: Number(form.durationMins),
       passingScore: Number(form.passingScore),
@@ -220,9 +219,9 @@ export default function AssessmentFormPage() {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className={labelClass}>Job *</label>
-                <select className={selectClass} value={form.jobId} onChange={set('jobId')} required>
-                  <option value="">Select job...</option>
+                <label className={labelClass}>Job <span className="text-[#94A3B8]">(optional — leave blank for all candidates)</span></label>
+                <select className={selectClass} value={form.jobId} onChange={set('jobId')}>
+                  <option value="">All Candidates / General</option>
                   {jobs?.map((j: any) => <option key={j.id} value={j.id}>{j.title}</option>)}
                 </select>
                 {errors.jobId && <p className={errorClass}>{errors.jobId}</p>}

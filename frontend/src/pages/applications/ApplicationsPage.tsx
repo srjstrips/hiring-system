@@ -4,11 +4,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { applicationsApi } from '@/api/applications';
 import { pipelineStagesApi } from '@/api/pipeline-stages';
 import type { PipelineStage } from '@/api/pipeline-stages';
+import { assessmentsApi } from '@/api/assessments';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from '@/hooks/useToast';
-import { Eye, Search, FileText, Star, Mail, Briefcase, Clock, Calendar, Users, Lock } from 'lucide-react';
+import { Eye, Search, FileText, Star, Mail, Briefcase, Clock, Calendar, Users, Lock, ClipboardList } from 'lucide-react';
 import { isStageLocked } from '@/utils/applicationStages';
 
 function stageBadgeStyle(stage: PipelineStage | undefined): React.CSSProperties {
@@ -53,12 +54,16 @@ export default function ApplicationsPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<string>('');
   const [movingId, setMovingId] = useState<string | null>(null);
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState('');
 
   // When switching Job Opening context, clear stage/search so filters stay scoped correctly.
   useEffect(() => {
     setStatus('');
     setSearch('');
     setMovingId(null);
+    setAssigningId(null);
+    setSelectedAssessmentId('');
   }, [jobId]);
 
   const listParams = {
@@ -86,6 +91,13 @@ export default function ApplicationsPage() {
   const stages = stagesData ?? [];
   const stageMap = Object.fromEntries(stages.map((s) => [s.key, s]));
 
+  const { data: assessmentsData } = useQuery({
+    queryKey: ['assessments-list'],
+    queryFn: () => assessmentsApi.getAll({ status: 'ACTIVE', limit: 200 }).then((r) => r.data.data),
+    staleTime: 60_000,
+  });
+  const activeAssessments = assessmentsData ?? [];
+
   const statusMutation = useMutation({
     mutationFn: ({ id, newStatus }: { id: string; newStatus: string }) =>
       applicationsApi.updateStatus(id, { status: newStatus }),
@@ -95,6 +107,18 @@ export default function ApplicationsPage() {
       setMovingId(null);
       toast({ title: 'Status updated' });
     },
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: ({ assessmentId, applicationId }: { assessmentId: string; applicationId: string }) =>
+      assessmentsApi.assignCandidates(assessmentId, [applicationId]),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      setAssigningId(null);
+      setSelectedAssessmentId('');
+      toast({ title: 'Assessment assigned', variant: 'success' });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message ?? 'Failed to assign assessment', variant: 'destructive' }),
   });
 
   // Defensive: only show applications belonging to the selected Job Opening when jobId is present.
@@ -230,7 +254,7 @@ export default function ApplicationsPage() {
                     <p className="mt-1 text-sm text-[#64748B]">{app.job.title} · {app.job.department.name}</p>
                   </div>
                   <div
-                    className="flex shrink-0 items-center gap-1"
+                    className="flex shrink-0 flex-wrap items-center gap-1"
                     onClick={(e) => e.stopPropagation()}
                     onKeyDown={(e) => e.stopPropagation()}
                   >
@@ -244,6 +268,39 @@ export default function ApplicationsPage() {
                     <Button variant="ghost" size="icon" title="View" className="h-9 w-9 text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#FF6B00]" asChild>
                       <Link to={`/applications/${app.id}`} state={{ filterJobId: jobId }}><Eye className="h-4 w-4" /></Link>
                     </Button>
+                    {assigningId === app.id ? (
+                      <div className="flex items-center gap-1">
+                        <select
+                          className="h-9 rounded-xl border border-[#E2E8F0] bg-white px-2 text-xs text-[#111827]"
+                          value={selectedAssessmentId}
+                          onChange={(e) => setSelectedAssessmentId(e.target.value)}
+                        >
+                          <option value="" disabled>Pick assessment...</option>
+                          {activeAssessments.map((a: any) => (
+                            <option key={a.id} value={a.id}>{a.name}</option>
+                          ))}
+                        </select>
+                        <Button
+                          size="sm"
+                          className="h-9 rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000]"
+                          disabled={!selectedAssessmentId || assignMutation.isPending}
+                          onClick={() => assignMutation.mutate({ assessmentId: selectedAssessmentId, applicationId: app.id })}
+                        >
+                          Send
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-[#64748B]" onClick={() => { setAssigningId(null); setSelectedAssessmentId(''); }}>✕</Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 rounded-xl border-[#E2E8F0]"
+                        title="Assign Assessment"
+                        onClick={() => { setAssigningId(app.id); setMovingId(null); setSelectedAssessmentId(''); }}
+                      >
+                        <ClipboardList className="mr-1 h-3.5 w-3.5" /> Assess
+                      </Button>
+                    )}
                     {movingId === app.id ? (
                       isStageLocked(app.status) ? (
                         <div className="flex items-center gap-1.5 text-xs text-[#64748B]">
@@ -266,7 +323,7 @@ export default function ApplicationsPage() {
                         </div>
                       )
                     ) : (
-                      <Button variant="outline" size="sm" className="h-9 rounded-xl border-[#E2E8F0]" onClick={() => setMovingId(app.id)}>
+                      <Button variant="outline" size="sm" className="h-9 rounded-xl border-[#E2E8F0]" onClick={() => { setMovingId(app.id); setAssigningId(null); }}>
                         Move Stage
                       </Button>
                     )}

@@ -100,11 +100,15 @@ export default function PipelineStagesPage() {
   };
 
   const moveStage = (key: string, direction: 'up' | 'down') => {
-    const sorted = [...stages].sort((a, b) => a.stageOrder - b.stageOrder);
-    const idx = sorted.findIndex((s) => s.key === key);
+    // Only reorder within the pipeline (exclude side-exit stages like REJECTED/WITHDRAWN/ON_HOLD)
+    const SIDE_EXITS = ['REJECTED', 'WITHDRAWN', 'ON_HOLD'];
+    const pipeline = [...stages]
+      .filter((s) => !SIDE_EXITS.includes(s.key))
+      .sort((a, b) => a.stageOrder - b.stageOrder);
+    const idx = pipeline.findIndex((s) => s.key === key);
     const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= sorted.length) return;
-    const updated = sorted.map((s) => ({ ...s }));
+    if (swapIdx < 0 || swapIdx >= pipeline.length) return;
+    const updated = pipeline.map((s) => ({ ...s }));
     const tmp = updated[idx]!.stageOrder;
     updated[idx]!.stageOrder = updated[swapIdx]!.stageOrder;
     updated[swapIdx]!.stageOrder = tmp;
@@ -113,12 +117,18 @@ export default function PipelineStagesPage() {
 
   const handleCreate = () => {
     if (!newStage.label.trim()) return toast({ title: 'Label is required', variant: 'destructive' });
-    const maxOrder = stages.length ? Math.max(...stages.map((s) => s.stageOrder)) : 0;
+    // Insert before side-exit stages (REJECTED/WITHDRAWN/ON_HOLD have stageOrder 97-99)
+    const pipelineStages = stages.filter((s) => !['REJECTED', 'WITHDRAWN', 'ON_HOLD'].includes(s.key));
+    const maxOrder = pipelineStages.length ? Math.max(...pipelineStages.map((s) => s.stageOrder)) : 0;
     const key = newStage.label.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
     createMutation.mutate({ ...newStage, key, stageOrder: maxOrder + 1 });
   };
 
-  const sorted = [...stages].sort((a, b) => a.stageOrder - b.stageOrder);
+  const SIDE_EXITS = ['REJECTED', 'WITHDRAWN', 'ON_HOLD'];
+  const sorted = [
+    ...[...stages].filter((s) => !SIDE_EXITS.includes(s.key)).sort((a, b) => a.stageOrder - b.stageOrder),
+    ...[...stages].filter((s) => SIDE_EXITS.includes(s.key)).sort((a, b) => a.stageOrder - b.stageOrder),
+  ];
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -221,22 +231,28 @@ export default function PipelineStagesPage() {
                 key={stage.key}
                 className={`flex items-center gap-3 px-4 py-3 ${!stage.isActive ? 'opacity-50' : ''}`}
               >
-                {/* Reorder */}
+                {/* Reorder — hidden for side-exit stages */}
                 <div className="flex flex-col gap-0.5">
-                  <button
-                    onClick={() => moveStage(stage.key, 'up')}
-                    disabled={idx === 0}
-                    className="rounded p-0.5 text-[#94A3B8] hover:text-[#64748B] disabled:opacity-25"
-                  >
-                    <ChevronUp className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={() => moveStage(stage.key, 'down')}
-                    disabled={idx === sorted.length - 1}
-                    className="rounded p-0.5 text-[#94A3B8] hover:text-[#64748B] disabled:opacity-25"
-                  >
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </button>
+                  {SIDE_EXITS.includes(stage.key) ? (
+                    <div className="w-5" />
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => moveStage(stage.key, 'up')}
+                        disabled={idx === 0 || SIDE_EXITS.includes(sorted[idx - 1]?.key ?? '')}
+                        className="rounded p-0.5 text-[#94A3B8] hover:text-[#64748B] disabled:opacity-25"
+                      >
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => moveStage(stage.key, 'down')}
+                        disabled={idx >= sorted.length - 1 || SIDE_EXITS.includes(sorted[idx + 1]?.key ?? '')}
+                        className="rounded p-0.5 text-[#94A3B8] hover:text-[#64748B] disabled:opacity-25"
+                      >
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 <GripVertical className="h-4 w-4 text-[#CBD5E1] shrink-0" />

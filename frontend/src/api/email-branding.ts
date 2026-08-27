@@ -7,6 +7,7 @@ export interface EmailBranding {
   primaryColor: string;
   footerText?: string | null;
   websiteUrl?: string | null;
+  isEnabled?: boolean;
   updatedAt: string;
 }
 
