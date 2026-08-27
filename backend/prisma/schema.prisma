@@ -1383,6 +1383,7 @@ model EmailBranding {
   primaryColor   String   @default("#b45309")
   footerText     String?
   websiteUrl     String?
+  isEnabled      Boolean  @default(true)
   updatedAt      DateTime @updatedAt
 
   @@map("email_branding")

@@ -1,0 +1,1 @@
+ALTER TABLE "email_branding" ADD COLUMN IF NOT EXISTS "isEnabled" BOOLEAN NOT NULL DEFAULT true;

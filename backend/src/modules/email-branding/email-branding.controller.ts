@@ -16,12 +16,13 @@ export const getBranding = asyncHandler(async (_req: AuthRequest, res: Response)
 });
 
 export const updateBranding = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { companyName, logoUrl, primaryColor, footerText, websiteUrl } = req.body as {
+  const { companyName, logoUrl, primaryColor, footerText, websiteUrl, isEnabled } = req.body as {
     companyName?: string;
     logoUrl?: string;
     primaryColor?: string;
     footerText?: string;
     websiteUrl?: string;
+    isEnabled?: boolean;
   };
 
   let row = await prisma.emailBranding.findFirst();
@@ -39,6 +40,7 @@ export const updateBranding = asyncHandler(async (req: AuthRequest, res: Respons
       ...(primaryColor !== undefined && { primaryColor }),
       ...(footerText !== undefined && { footerText: footerText || null }),
       ...(websiteUrl !== undefined && { websiteUrl: websiteUrl || null }),
+      ...(isEnabled !== undefined && { isEnabled }),
     },
   });
 
