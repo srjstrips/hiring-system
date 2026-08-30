@@ -55,6 +55,8 @@ export const CreateInterviewSchema = z
     notes: optionalText,
     interviewerIds: z.array(z.string().uuid()).optional().default([]),
     updateApplicationStatus: z.boolean().optional().default(true),
+    hodEmail: z.preprocess(emptyToNull, z.string().email().nullable().optional()),
+    hodName: z.preprocess(emptyToNull, z.string().max(100).nullable().optional()),
   })
   .superRefine(refineModeFields);
 
@@ -71,6 +73,8 @@ export const UpdateInterviewSchema = z
     notes: optionalText,
     interviewerIds: z.array(z.string().uuid()).optional(),
     status: InterviewStatusEnum.optional(),
+    hodEmail: z.preprocess(emptyToNull, z.string().email().nullable().optional()),
+    hodName: z.preprocess(emptyToNull, z.string().max(100).nullable().optional()),
   })
   .superRefine((data, ctx) => {
     if (data.mode) refineModeFields(data, ctx);

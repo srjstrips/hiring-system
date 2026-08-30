@@ -155,7 +155,7 @@ export async function getById(req: AuthRequest, res: Response, next: NextFunctio
 
 export async function create(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const body = req.body as CreateInterviewDto;
+    const dto = req.body as CreateInterviewDto;
     const {
       applicationId,
       interviewTypeId,
@@ -169,7 +169,9 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
       notes,
       interviewerIds = [],
       updateApplicationStatus = true,
-    } = body;
+      hodEmail,
+      hodName,
+    } = dto;
 
     const app = await prisma.application.findUnique({
       where: { id: applicationId },
@@ -196,6 +198,8 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
         location: location || null,
         meetingLink: mode === 'VIDEO' ? callUrl : (meetingLink || null),
         meetingToken,
+        hodEmail: hodEmail || null,
+        hodName: hodName || null,
         notes: notes || null,
         scheduledById: req.user!.id,
         interviewersList: {
@@ -216,6 +220,43 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
         interviewUrl: mode === 'VIDEO' ? (callUrl ?? '') : '',
         mode,
         location: location || null,
+      });
+    }
+
+    // Send HOD join link — no login required, they just click and join
+    if (hodEmail && callUrl) {
+      const scheduledDate = new Date(scheduledAt);
+      const displayName = hodName || 'HOD';
+      const companyName = process.env['COMPANY_NAME'] ?? 'SRJ Group';
+      const dateStr = scheduledDate.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' });
+      void emailService.send({
+        to: hodEmail,
+        subject: `Interview Invitation: ${app.candidate.firstName} ${app.candidate.lastName} — ${app.job.title}`,
+        html: `
+          <div style="font-family:sans-serif;max-width:580px;margin:0 auto;padding:32px 24px;color:#111827;">
+            <h2 style="margin:0 0 8px;font-size:20px;">Dear ${displayName},</h2>
+            <p style="margin:0 0 16px;color:#4b5563;">
+              You have been invited to conduct an interview for the <strong>${app.job.title}</strong> position at <strong>${companyName}</strong>.
+            </p>
+            <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+              <tr><td style="padding:8px 0;color:#6b7280;width:140px;">Candidate</td><td style="padding:8px 0;font-weight:600;">${app.candidate.firstName} ${app.candidate.lastName}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;">Position</td><td style="padding:8px 0;">${app.job.title}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;">Date &amp; Time</td><td style="padding:8px 0;">${dateStr} IST</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;">Duration</td><td style="padding:8px 0;">${durationMinutes} minutes</td></tr>
+            </table>
+            <div style="text-align:center;margin:32px 0;">
+              <a href="${callUrl}" style="background:#d97706;color:#fff;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:16px;">
+                Join Interview
+              </a>
+            </div>
+            <p style="margin:0 0 8px;color:#6b7280;font-size:13px;">
+              Click the button above at the scheduled time to join directly — no login required.
+              If the button doesn't work, copy this link: <a href="${callUrl}" style="color:#d97706;">${callUrl}</a>
+            </p>
+            <p style="margin:24px 0 0;color:#9ca3af;font-size:12px;">${companyName} HR Team</p>
+          </div>
+        `,
+        text: `Dear ${displayName}, you are invited to interview ${app.candidate.firstName} ${app.candidate.lastName} for ${app.job.title} on ${dateStr} IST. Join here: ${callUrl}`,
       });
     }
 

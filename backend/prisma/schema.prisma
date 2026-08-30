@@ -942,6 +942,8 @@ model Interview {
   location        String?
   meetingLink     String?
   meetingToken    String?         @unique
+  hodEmail        String?
+  hodName         String?
   status          InterviewStatus @default(SCHEDULED)
   notes           String?
   scheduledById   String

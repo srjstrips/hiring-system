@@ -86,6 +86,8 @@ export default function ApplicationDetailPage() {
   const [interviewDuration, setInterviewDuration] = useState('60');
   const [interviewMode, setInterviewMode] = useState<'VIDEO' | 'IN_PERSON'>('VIDEO');
   const [interviewLocation, setInterviewLocation] = useState('');
+  const [hodEmail, setHodEmail] = useState('');
+  const [hodName, setHodName] = useState('');
 
   const { data: app, isLoading, isError } = useQuery({
     queryKey: ['application', id],
@@ -187,6 +189,8 @@ export default function ApplicationDetailPage() {
         mode: interviewMode,
         location: interviewMode === 'IN_PERSON' ? interviewLocation.trim() : undefined,
         notes: stageNotes || undefined,
+        hodEmail: hodEmail.trim() || undefined,
+        hodName: hodName.trim() || undefined,
       });
       return;
     }
@@ -617,6 +621,31 @@ export default function ApplicationDetailPage() {
                         value={interviewLocation}
                         onChange={(e) => setInterviewLocation(e.target.value)}
                       />
+                    </div>
+                  )}
+                  {newStatus === 'HOD_HR_INTERVIEW' && (
+                    <div className="space-y-2 border-t border-[#FF6B00]/20 pt-3">
+                      <p className="text-xs font-medium text-[#FF6B00]">HOD Join Link (optional)</p>
+                      <p className="text-xs text-[#64748B]">Enter the HOD's email to send them a direct join link — no login required.</p>
+                      <div>
+                        <label className="mb-1 block text-xs text-[#64748B]">HOD Email</label>
+                        <Input
+                          type="email"
+                          className={fieldClass}
+                          placeholder="hod@srjsteel.in"
+                          value={hodEmail}
+                          onChange={(e) => setHodEmail(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs text-[#64748B]">HOD Name</label>
+                        <Input
+                          className={fieldClass}
+                          placeholder="e.g. Mr. Sharma"
+                          value={hodName}
+                          onChange={(e) => setHodName(e.target.value)}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
