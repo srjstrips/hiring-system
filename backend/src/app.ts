@@ -59,29 +59,35 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser(env.COOKIE_SECRET));
 
 // ─── Static Files ─────────────────────────────────────────────────────────────
-app.use('/uploads', express.static(env.UPLOAD_DIR));
+// Uploads require a valid JWT — they contain resumes and recordings.
+// The auth middleware is imported inline to avoid a circular dep at module level.
+app.use('/uploads', (req, res, next) => {
+  const auth = req.headers['authorization'];
+  if (!auth?.startsWith('Bearer ')) {
+    res.status(401).json({ success: false, message: 'Unauthorized' });
+    return;
+  }
+  import('./middlewares/authenticate').then(({ authenticate }) => authenticate(req, res, next)).catch(next);
+}, express.static(env.UPLOAD_DIR));
 
 // ─── Logging ──────────────────────────────────────────────────────────────────
 app.use(requestLogger);
 
-// ─── API Documentation ────────────────────────────────────────────────────────
-app.use(
-  '/api-docs',
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerSpec, {
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'Hiring System API',
-  })
-);
+// ─── API Documentation — internal only ───────────────────────────────────────
+if (env.NODE_ENV !== 'production') {
+  app.use(
+    '/api-docs',
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'Hiring System API',
+    })
+  );
+}
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
-  res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: env.NODE_ENV,
-  });
+  res.json({ status: 'ok' });
 });
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
