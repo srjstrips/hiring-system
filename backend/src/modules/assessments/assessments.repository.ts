@@ -367,7 +367,7 @@ export class AssessmentsRepository {
     if (!assessment) throw new Error('NOT_FOUND');
 
     const applications = await prisma.application.findMany({
-      where: { id: { in: applicationIds }, jobId: assessment.jobId },
+      where: { id: { in: applicationIds }, ...(assessment.jobId ? { jobId: assessment.jobId } : {}) },
       select: { id: true, candidateId: true, jobId: true },
     });
     if (applications.length === 0) throw new Error('NO_ELIGIBLE');

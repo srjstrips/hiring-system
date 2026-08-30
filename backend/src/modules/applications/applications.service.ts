@@ -5,6 +5,80 @@ import { getUserScope, applyApplicationScope } from '@/utils/scope';
 import { buildPagination } from '@/utils/response';
 import { assertForwardTransition } from './stage-order';
 import candidateNotificationsService from '@/modules/candidate-notifications/candidate-notifications.service';
+import crypto from 'crypto';
+
+// ─── TalentSignal auto-issue ──────────────────────────────────────────────────
+
+async function issueTalentSignalLink(applicationId: string, issuedById: string): Promise<void> {
+  try {
+    const { seedTalentSignalAssessment } = await import('../assessments/talent-signal-seeder');
+    const { emailService } = await import('@/services/email.service');
+
+    const assessmentId = await seedTalentSignalAssessment(issuedById);
+
+    const app = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: {
+        candidate: { select: { id: true, firstName: true, lastName: true, email: true } },
+        job: { select: { title: true } },
+      },
+    });
+    if (!app?.candidate?.email) return;
+
+    const secureToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    await prisma.assessmentAttempt.create({
+      data: {
+        assessmentId,
+        candidateId: app.candidate.id,
+        applicationId,
+        secureToken,
+        expiresAt,
+        status: 'NOT_STARTED',
+      },
+    });
+
+    const name = `${app.candidate.firstName ?? ''} ${app.candidate.lastName ?? ''}`.trim() || 'Candidate';
+    const baseUrl = process.env.APP_URL ?? 'https://careers.srjsteel.in';
+    const link = `${baseUrl}/assessment/${secureToken}`;
+
+    const html = `
+      <div style="font-family:sans-serif;max-width:580px;margin:0 auto;padding:32px 24px;color:#111827;">
+        <h2 style="margin:0 0 8px;font-size:22px;color:#111827;">Hi ${name},</h2>
+        <p style="margin:0 0 16px;color:#4b5563;">
+          As part of your application for <strong>${app.job.title}</strong> at SRJ Group,
+          you have been invited to complete a short personality assessment.
+        </p>
+        <p style="margin:0 0 16px;color:#4b5563;">
+          The assessment takes approximately <strong>45–60 minutes</strong> and must be completed within <strong>24 hours</strong>.
+          Please find a quiet, uninterrupted time before then.
+        </p>
+        <div style="text-align:center;margin:32px 0;">
+          <a href="${link}" style="background:#d97706;color:#fff;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:16px;">
+            Begin Assessment
+          </a>
+        </div>
+        <p style="margin:0 0 8px;color:#6b7280;font-size:13px;">
+          This link is personal to you and expires in 24 hours. Do not share it.
+          If you have any issues, reply to this email.
+        </p>
+        <p style="margin:24px 0 0;color:#9ca3af;font-size:12px;">SRJ Group Talent Acquisition</p>
+      </div>
+    `;
+
+    await emailService.send({
+      to: app.candidate.email,
+      subject: `Action required: Complete your personality assessment — ${app.job.title}`,
+      html,
+      text: `Hi ${name}, please complete your personality assessment for ${app.job.title} within 24 hours: ${link}`,
+    });
+  } catch (err) {
+    console.error('[TalentSignal] Failed to issue assessment link:', err);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 const applicationInclude = {
   candidate: {
@@ -150,6 +224,11 @@ class ApplicationsService {
       const emailTemplatesService = (await import('../email-templates/email-templates.service')).default;
       void emailTemplatesService.sendForStageChange(id, dto.status, hrName);
       void candidateNotificationsService.notifyStatusChanged(app.candidate.id, dto.status, app.job.title);
+
+      // Auto-issue TalentSignal assessment link when moved to PERSONALITY_ASSESSMENT stage
+      if (dto.status === 'PERSONALITY_ASSESSMENT') {
+        void issueTalentSignalLink(id, updatedById);
+      }
     }
 
     return this.getById(id);

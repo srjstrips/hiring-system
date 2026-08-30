@@ -489,9 +489,9 @@ const PART_C_ITEMS: LikertItem[] = [
 
 // ─── Seeder ───────────────────────────────────────────────────────────────────
 
-export async function seedTalentSignalAssessment(jobId: string, createdById: string): Promise<string> {
+export async function seedTalentSignalAssessment(createdById: string): Promise<string> {
   const existing = await prisma.assessment.findFirst({
-    where: { jobId, name: ASSESSMENT_NAME, deletedAt: null },
+    where: { name: ASSESSMENT_NAME, deletedAt: null },
   });
   if (existing) return existing.id;
 
@@ -502,11 +502,10 @@ export async function seedTalentSignalAssessment(jobId: string, createdById: str
         'A scientifically grounded HEXACO + SJT personality assessment for steel manufacturing roles. ' +
         'Measures Honesty-Humility, Emotional Stability, Extraversion, Agreeableness, Conscientiousness, and Openness ' +
         'via forced-choice tetrads, situational judgment scenarios, and contextualized Likert scales.',
-      jobId,
       durationMins: 57,
-      passingScore: 0, // no pass/fail for personality
+      passingScore: 0,
       maxAttempts: 1,
-      status: 'DRAFT',
+      status: 'ACTIVE',
       mode: 'PERSONALITY',
       createdById,
     },

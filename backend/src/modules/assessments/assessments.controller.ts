@@ -184,9 +184,7 @@ class AssessmentsController {
   }
 
   async seedTalentSignal(req: AuthRequest, res: Response) {
-    const { jobId } = req.body as { jobId: string };
-    if (!jobId) return res.status(400).json({ success: false, message: 'jobId is required' });
-    const id = await seedTalentSignalAssessment(jobId, req.user!.id);
+    const id = await seedTalentSignalAssessment(req.user!.id);
     return res.status(201).json({ success: true, data: { assessmentId: id } });
   }
 }
