@@ -60,7 +60,7 @@ async function buildApplicationEmailVars(applicationId: string, sentByName: stri
   });
   if (!app) throw new AppError('Application not found', 404);
 
-  const [latestInterview, latestAssignment] = await Promise.all([
+  const [latestInterview, latestAssignment, latestAttempt] = await Promise.all([
     prisma.interview.findFirst({
       where: { applicationId },
       orderBy: { scheduledAt: 'desc' },
@@ -83,13 +83,22 @@ async function buildApplicationEmailVars(applicationId: string, sentByName: stri
         assessment: { select: { name: true, durationMins: true } },
       },
     }),
+    // Personality assessment attempts use AssessmentAttempt (not AssessmentAssignment)
+    prisma.assessmentAttempt.findFirst({
+      where: { applicationId, submittedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        secureToken: true,
+        assessment: { select: { name: true, durationMins: true } },
+      },
+    }),
   ]);
 
   const meetingLink = buildMeetingUrl(latestInterview?.meetingToken, latestInterview?.meetingLink);
 
-  const assessmentLink = latestAssignment?.secureToken
-    ? buildCandidateAssessmentUrl(latestAssignment.secureToken)
-    : '';
+  const activeToken = latestAssignment?.secureToken ?? latestAttempt?.secureToken;
+  const activeAssessment = latestAssignment?.assessment ?? latestAttempt?.assessment;
+  const assessmentLink = activeToken ? buildCandidateAssessmentUrl(activeToken) : '';
 
   const currentStage = stage ?? app.status;
 
@@ -116,8 +125,8 @@ async function buildApplicationEmailVars(applicationId: string, sentByName: stri
       interview_duration: latestInterview ? String(latestInterview.durationMinutes) : '',
       assessment_link: assessmentLink,
       assessment_url: assessmentLink,
-      assessment_name: latestAssignment?.assessment?.name ?? '',
-      assessment_duration: latestAssignment?.assessment ? String(latestAssignment.assessment.durationMins) : '',
+      assessment_name: activeAssessment?.name ?? '',
+      assessment_duration: activeAssessment ? String(activeAssessment.durationMins) : '',
     } as Record<string, string>,
   };
 }
