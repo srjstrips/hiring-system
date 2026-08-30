@@ -25,6 +25,23 @@ async function issueTalentSignalLink(applicationId: string, issuedById: string):
     });
     if (!app?.candidate?.email) return;
 
+    // Don't issue a new link if candidate already has a pending or completed attempt
+    const existingAttempt = await prisma.assessmentAttempt.findFirst({
+      where: {
+        assessmentId,
+        applicationId,
+        submittedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+    if (existingAttempt) return;
+
+    // Also skip if already submitted
+    const submitted = await prisma.assessmentAttempt.findFirst({
+      where: { assessmentId, applicationId, submittedAt: { not: null } },
+    });
+    if (submitted) return;
+
     const secureToken = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
