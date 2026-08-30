@@ -58,6 +58,7 @@ export default function CandidateAssessmentTakePage() {
   const [status, setStatus] = useState<AttemptStatus | null>(null);
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [forcedChoiceAnswers, setForcedChoiceAnswers] = useState<Record<string, { mostId?: string; leastId?: string }>>({});
   const [remaining, setRemaining] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -354,6 +355,7 @@ export default function CandidateAssessmentTakePage() {
 
       setAttempt(data);
       setAnswers(merged);
+      setForcedChoiceAnswers(data.forcedChoiceAnswers ?? {});
       setRemaining(data.remainingSeconds);
       setCurrentQ(0);
       setPhase('test');
@@ -378,7 +380,23 @@ export default function CandidateAssessmentTakePage() {
     setAnswers(next);
     persistLocal(next, attempt.attemptId);
     try {
-      await publicAssessmentsApi.saveAnswer(secureToken, questionId, optionId);
+      await publicAssessmentsApi.saveAnswer(secureToken, { attemptQuestionId: questionId, selectedOptionId: optionId });
+      setSyncWarning('');
+    } catch {
+      setSyncWarning('Connection issue — answer saved locally and will retry.');
+    }
+  };
+
+  const saveForcedChoice = async (questionId: string, mostId: string | undefined, leastId: string | undefined) => {
+    if (!attempt) return;
+    const next = { ...forcedChoiceAnswers, [questionId]: { mostId, leastId } };
+    setForcedChoiceAnswers(next);
+    try {
+      await publicAssessmentsApi.saveAnswer(secureToken, {
+        attemptQuestionId: questionId,
+        selectedMostId: mostId,
+        selectedLeastId: leastId,
+      });
       setSyncWarning('');
     } catch {
       setSyncWarning('Connection issue — answer saved locally and will retry.');
@@ -456,9 +474,18 @@ export default function CandidateAssessmentTakePage() {
 
   const questions = attempt?.questions ?? [];
   const q = questions[currentQ];
+
+  const isAnswered = (qq: typeof questions[0]) => {
+    if (qq.questionType === 'FORCED_CHOICE') {
+      const fc = forcedChoiceAnswers[qq.id];
+      return !!(fc?.mostId && fc?.leastId);
+    }
+    return !!answers[qq.id];
+  };
+
   const answeredCount = useMemo(
-    () => questions.filter((qq) => answers[qq.id]).length,
-    [questions, answers]
+    () => questions.filter(isAnswered).length,
+    [questions, answers, forcedChoiceAnswers] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   if (phase === 'loading') {
@@ -697,28 +724,81 @@ export default function CandidateAssessmentTakePage() {
                 <div>
                   <p className="text-xs text-muted-foreground mb-2">Question {currentQ + 1} of {questions.length}</p>
                   <h2 className="text-lg font-medium whitespace-pre-wrap">{q.questionText}</h2>
-                  <p className="text-xs text-muted-foreground mt-1">Marks: {q.marks}</p>
+                  {q.marks > 0 && <p className="text-xs text-muted-foreground mt-1">Marks: {q.marks}</p>}
                 </div>
-                <div className="space-y-2">
-                  {q.options.map((opt) => {
-                    const selected = answers[q.id] === opt.id;
-                    return (
-                      <label
-                        key={opt.id}
-                        className={`flex items-start gap-3 border rounded-md p-3 cursor-pointer ${selected ? 'border-[#FF6B00] bg-[#FFF7ED]' : 'hover:bg-slate-50'}`}
-                      >
-                        <input
-                          type="radio"
-                          name={q.id}
-                          checked={selected}
-                          onChange={() => saveAnswer(q.id, opt.id)}
-                          className="mt-1"
-                        />
-                        <span className="text-sm">{opt.optionText}</span>
-                      </label>
-                    );
-                  })}
-                </div>
+
+                {/* ── Forced-choice tetrad (HEXACO) ── */}
+                {q.questionType === 'FORCED_CHOICE' && (() => {
+                  const fc = forcedChoiceAnswers[q.id] ?? {};
+                  return (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-center">
+                        <span className="text-[#b45309]">MOST like me</span>
+                        <span className="text-slate-500">LEAST like me</span>
+                      </div>
+                      {q.options.map((opt) => {
+                        const label = opt.optionText.replace(/\s*\[[A-Z]+\]$/, '');
+                        const isMost  = fc.mostId  === opt.id;
+                        const isLeast = fc.leastId === opt.id;
+                        return (
+                          <div key={opt.id} className={`flex items-center gap-3 border rounded-md p-3 ${isMost ? 'border-[#FF6B00] bg-[#FFF7ED]' : isLeast ? 'border-slate-400 bg-slate-50' : ''}`}>
+                            <input
+                              type="radio"
+                              name={`${q.id}-most`}
+                              checked={isMost}
+                              title="Most like me"
+                              onChange={() => {
+                                const newMost = isMost ? undefined : opt.id;
+                                const newLeast = fc.leastId === opt.id ? undefined : fc.leastId;
+                                void saveForcedChoice(q.id, newMost, newLeast);
+                              }}
+                              className="accent-[#FF6B00]"
+                            />
+                            <span className="flex-1 text-sm">{label}</span>
+                            <input
+                              type="radio"
+                              name={`${q.id}-least`}
+                              checked={isLeast}
+                              title="Least like me"
+                              onChange={() => {
+                                const newLeast = isLeast ? undefined : opt.id;
+                                const newMost = fc.mostId === opt.id ? undefined : fc.mostId;
+                                void saveForcedChoice(q.id, newMost, newLeast);
+                              }}
+                              className="accent-slate-500"
+                            />
+                          </div>
+                        );
+                      })}
+                      <p className="text-xs text-muted-foreground">Select one statement that is <strong>most</strong> like you (left column) and one that is <strong>least</strong> like you (right column).</p>
+                    </div>
+                  );
+                })()}
+
+                {/* ── Standard MCQ / SJT ── */}
+                {q.questionType !== 'FORCED_CHOICE' && q.questionType !== 'TEXT' && (
+                  <div className="space-y-2">
+                    {q.options.map((opt) => {
+                      const label = opt.optionText.replace(/^\d\s*-\s*/, '');
+                      const selected = answers[q.id] === opt.id;
+                      return (
+                        <label
+                          key={opt.id}
+                          className={`flex items-start gap-3 border rounded-md p-3 cursor-pointer ${selected ? 'border-[#FF6B00] bg-[#FFF7ED]' : 'hover:bg-slate-50'}`}
+                        >
+                          <input
+                            type="radio"
+                            name={q.id}
+                            checked={selected}
+                            onChange={() => saveAnswer(q.id, opt.id)}
+                            className="mt-1 accent-[#FF6B00]"
+                          />
+                          <span className="text-sm">{label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </>
             )}
             <div className="flex justify-between gap-2 pt-2">
@@ -739,7 +819,7 @@ export default function CandidateAssessmentTakePage() {
           <CardContent>
             <div className="grid grid-cols-5 gap-2">
               {questions.map((qq, i) => {
-                const answered = !!answers[qq.id];
+                const answered = isAnswered(qq);
                 const current = i === currentQ;
                 return (
                   <button

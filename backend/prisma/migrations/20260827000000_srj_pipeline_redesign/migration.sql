@@ -32,7 +32,7 @@ INSERT INTO "pipeline_stages" ("key","label","color","type","stageOrder","isFixe
 -- ── Email templates for all 30 trigger events ────────────────────────────────
 -- Using INSERT ... ON CONFLICT DO NOTHING so re-runs are safe.
 
-INSERT INTO "email_templates" ("id","name","subject","body","category","description","isActive") VALUES
+INSERT INTO "email_templates" ("id","name","subject","body","category","description","isActive","createdAt","updatedAt") VALUES
 
 -- 1. Application submitted → Candidate
 (gen_random_uuid(),
@@ -43,7 +43,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>Our team will review your profile and get back to you shortly. You can expect to hear from us within 5–7 business days.</p>
 <p>We appreciate your interest and wish you the best!</p>
 <p>Warm regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'APPLICATION', 'Sent automatically when a candidate submits an application', true),
+ 'APPLICATION', 'Sent automatically when a candidate submits an application', true, NOW(), NOW()),
 
 -- 2. Application submitted → HR notification
 (gen_random_uuid(),
@@ -58,7 +58,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
   <li><strong>Applied On:</strong> {{appliedDate}}</li>
 </ul>
 <p>Please review the application in the ATS.</p>',
- 'APPLICATION', 'HR notification when a new application is submitted', true),
+ 'APPLICATION', 'HR notification when a new application is submitted', true, NOW(), NOW()),
 
 -- 3. Screening passed → Candidate
 (gen_random_uuid(),
@@ -68,7 +68,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>Congratulations! You have successfully cleared the initial screening for the <strong>{{jobTitle}}</strong> role at <strong>{{companyName}}</strong>.</p>
 <p>We will be in touch shortly with the next steps in the process.</p>
 <p>Best regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'SCREENING', 'Sent when candidate passes screening stage', true),
+ 'SCREENING', 'Sent when candidate passes screening stage', true, NOW(), NOW()),
 
 -- 4. Screening failed → Candidate
 (gen_random_uuid(),
@@ -79,7 +79,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>After careful consideration, we regret to inform you that your profile does not match our requirements at this time.</p>
 <p>We encourage you to apply for future openings that match your profile. We wish you the very best in your career journey.</p>
 <p>Regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'SCREENING', 'Sent when candidate does not pass screening', true),
+ 'SCREENING', 'Sent when candidate does not pass screening', true, NOW(), NOW()),
 
 -- 5. Assessment assigned → Candidate
 (gen_random_uuid(),
@@ -95,7 +95,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p><a href="{{assessmentLink}}" style="background:#FF6B00;color:#fff;padding:10px 22px;border-radius:6px;text-decoration:none;font-weight:600;">Start Assessment</a></p>
 <p>Please complete this at the earliest. If you face any issues, reply to this email.</p>
 <p>Best regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'ASSESSMENT', 'Sent when personality assessment is assigned to candidate', true),
+ 'ASSESSMENT', 'Sent when personality assessment is assigned to candidate', true, NOW(), NOW()),
 
 -- 6. Assessment reminder → Candidate
 (gen_random_uuid(),
@@ -106,7 +106,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>Please complete it before <strong>{{endDate}}</strong>.</p>
 <p><a href="{{assessmentLink}}" style="background:#FF6B00;color:#fff;padding:10px 22px;border-radius:6px;text-decoration:none;font-weight:600;">Complete Assessment</a></p>
 <p>Best regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'ASSESSMENT', 'Reminder sent for pending personality assessment', true),
+ 'ASSESSMENT', 'Reminder sent for pending personality assessment', true, NOW(), NOW()),
 
 -- 7. Assessment completed → Candidate
 (gen_random_uuid(),
@@ -116,7 +116,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>Thank you for completing the Personality Assessment for <strong>{{jobTitle}}</strong> at <strong>{{companyName}}</strong>. We have received your submission.</p>
 <p>Our team will review the results and update you on your application status shortly.</p>
 <p>Best regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'ASSESSMENT', 'Sent when candidate submits personality assessment', true),
+ 'ASSESSMENT', 'Sent when candidate submits personality assessment', true, NOW(), NOW()),
 
 -- 8. Department working test assigned → Candidate
 (gen_random_uuid(),
@@ -132,7 +132,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p><a href="{{assessmentLink}}" style="background:#FF6B00;color:#fff;padding:10px 22px;border-radius:6px;text-decoration:none;font-weight:600;">Start Test</a></p>
 <p>Best of luck!</p>
 <p>Best regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'ASSESSMENT', 'Sent when department working test is assigned', true),
+ 'ASSESSMENT', 'Sent when department working test is assigned', true, NOW(), NOW()),
 
 -- 9. Department working test reminder → Candidate
 (gen_random_uuid(),
@@ -142,7 +142,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>This is a reminder that your <strong>Department Working Test</strong> for <strong>{{jobTitle}}</strong> is still pending. Please complete it before <strong>{{endDate}}</strong>.</p>
 <p><a href="{{assessmentLink}}" style="background:#FF6B00;color:#fff;padding:10px 22px;border-radius:6px;text-decoration:none;font-weight:600;">Complete Test</a></p>
 <p>Best regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'ASSESSMENT', 'Reminder for pending department working test', true),
+ 'ASSESSMENT', 'Reminder for pending department working test', true, NOW(), NOW()),
 
 -- 10. Working test passed → Candidate
 (gen_random_uuid(),
@@ -152,7 +152,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>We are pleased to inform you that you have <strong>successfully cleared</strong> the Department Working Test for <strong>{{jobTitle}}</strong> at <strong>{{companyName}}</strong>.</p>
 <p>We will be in touch with the next steps very soon.</p>
 <p>Best regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'ASSESSMENT', 'Sent when candidate passes the department working test', true),
+ 'ASSESSMENT', 'Sent when candidate passes the department working test', true, NOW(), NOW()),
 
 -- 11. Working test failed → Candidate
 (gen_random_uuid(),
@@ -162,7 +162,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>Thank you for completing the Department Working Test for <strong>{{jobTitle}}</strong> at <strong>{{companyName}}</strong>.</p>
 <p>After reviewing your results, we regret to inform you that we will not be moving forward with your application at this time. We appreciate the effort you put in and encourage you to apply for future opportunities.</p>
 <p>Best regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'ASSESSMENT', 'Sent when candidate does not pass the department working test', true),
+ 'ASSESSMENT', 'Sent when candidate does not pass the department working test', true, NOW(), NOW()),
 
 -- 12. HOD+HR interview scheduled → Candidate
 (gen_random_uuid(),
@@ -180,7 +180,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 </ul>
 <p>Please confirm your availability by replying to this email.</p>
 <p>Best regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'INTERVIEW', 'Sent when HOD + HR interview is scheduled', true),
+ 'INTERVIEW', 'Sent when HOD + HR interview is scheduled', true, NOW(), NOW()),
 
 -- 13. Interview reminder → Candidate
 (gen_random_uuid(),
@@ -197,7 +197,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 </ul>
 <p>Please be on time. We look forward to speaking with you!</p>
 <p>Best regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'INTERVIEW', 'Reminder sent before an interview', true),
+ 'INTERVIEW', 'Reminder sent before an interview', true, NOW(), NOW()),
 
 -- 14. HOD+HR interview completed → Candidate (optional)
 (gen_random_uuid(),
@@ -207,7 +207,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>Thank you for attending the HOD & HR Interview for the <strong>{{jobTitle}}</strong> position at <strong>{{companyName}}</strong>. We appreciate the time you invested.</p>
 <p>Our team is currently reviewing all candidates and will get back to you with an update soon.</p>
 <p>Best regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'INTERVIEW', 'Optional follow-up after HOD+HR interview is completed', true),
+ 'INTERVIEW', 'Optional follow-up after HOD+HR interview is completed', true, NOW(), NOW()),
 
 -- 15. Director interview scheduled → Candidate
 (gen_random_uuid(),
@@ -225,7 +225,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 </ul>
 <p>Please confirm your availability.</p>
 <p>Best regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'INTERVIEW', 'Sent when director interview is scheduled', true),
+ 'INTERVIEW', 'Sent when director interview is scheduled', true, NOW(), NOW()),
 
 -- 16. Selected / Shortlisted → Candidate
 (gen_random_uuid(),
@@ -236,7 +236,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>Our HR team will reach out to you shortly with further details on the next steps including document verification and offer formalities.</p>
 <p>Congratulations and welcome aboard!</p>
 <p>Warm regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'SELECTION', 'Sent when candidate is shortlisted/selected', true),
+ 'SELECTION', 'Sent when candidate is shortlisted/selected', true, NOW(), NOW()),
 
 -- 17. Rejected → Candidate
 (gen_random_uuid(),
@@ -247,7 +247,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>After careful consideration, we regret to inform you that we will not be moving forward with your application at this time.</p>
 <p>We will keep your profile in our database and may reach out if a suitable opportunity arises in the future. We wish you every success in your career.</p>
 <p>Regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'OUTCOME', 'Sent when an application is rejected', true),
+ 'OUTCOME', 'Sent when an application is rejected', true, NOW(), NOW()),
 
 -- 18. On Hold → Candidate
 (gen_random_uuid(),
@@ -258,7 +258,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>This does not reflect negatively on your profile. We are in the process of finalising our hiring plan and will be in touch as soon as we have an update.</p>
 <p>Thank you for your understanding.</p>
 <p>Regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'OUTCOME', 'Sent when application is put on hold', true),
+ 'OUTCOME', 'Sent when application is put on hold', true, NOW(), NOW()),
 
 -- 19. Document verification requested → Candidate
 (gen_random_uuid(),
@@ -275,7 +275,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 </ul>
 <p>Please share the documents at the earliest so we can proceed without delays.</p>
 <p>Regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'DOCUMENTS', 'Sent when document verification is initiated', true),
+ 'DOCUMENTS', 'Sent when document verification is initiated', true, NOW(), NOW()),
 
 -- 20. Documents incomplete → Candidate
 (gen_random_uuid(),
@@ -286,7 +286,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>Please submit all required documents at the earliest to avoid any delays in processing your offer.</p>
 <p>If you have any questions, feel free to reach out to us.</p>
 <p>Regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'DOCUMENTS', 'Sent as reminder when documents are still pending', true),
+ 'DOCUMENTS', 'Sent as reminder when documents are still pending', true, NOW(), NOW()),
 
 -- 21. Documents verified → Candidate
 (gen_random_uuid(),
@@ -296,7 +296,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>We are pleased to inform you that your documents have been successfully verified for the <strong>{{jobTitle}}</strong> position at <strong>{{companyName}}</strong>.</p>
 <p>We are now proceeding with the offer formalities. You will receive your offer letter shortly.</p>
 <p>Regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'DOCUMENTS', 'Sent when candidate documents are fully verified', true),
+ 'DOCUMENTS', 'Sent when candidate documents are fully verified', true, NOW(), NOW()),
 
 -- 22. Offer generated → Candidate
 (gen_random_uuid(),
@@ -307,7 +307,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>Please find your offer letter attached. Kindly review it and let us know your acceptance at the earliest.</p>
 <p>We look forward to welcoming you to our team!</p>
 <p>Warm regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'OFFER', 'Sent when offer letter is generated', true),
+ 'OFFER', 'Sent when offer letter is generated', true, NOW(), NOW()),
 
 -- 23. Offer accepted → Candidate
 (gen_random_uuid(),
@@ -318,7 +318,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>Our HR team will be in touch with your joining details shortly. Please keep an eye on your inbox.</p>
 <p>We look forward to having you on board!</p>
 <p>Warm regards,<br>{{companyName}} Talent Acquisition Team</p>',
- 'OFFER', 'Sent when candidate accepts the offer', true),
+ 'OFFER', 'Sent when candidate accepts the offer', true, NOW(), NOW()),
 
 -- 24. Offer declined → HR
 (gen_random_uuid(),
@@ -328,7 +328,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>This is to inform you that <strong>{{candidateName}}</strong> has <strong>declined the offer</strong> for the <strong>{{jobTitle}}</strong> position.</p>
 <p>Please update the ATS and decide on the next steps (re-open position, consider next candidate, etc.).</p>
 <p>Regards,<br>Hiring System</p>',
- 'OFFER', 'HR notification when a candidate declines the offer', true),
+ 'OFFER', 'HR notification when a candidate declines the offer', true, NOW(), NOW()),
 
 -- 25. Joining scheduled → Candidate
 (gen_random_uuid(),
@@ -351,7 +351,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 </ul>
 <p>We look forward to seeing you!</p>
 <p>Warm regards,<br>{{companyName}} HR Team</p>',
- 'JOINING', 'Sent when joining date is confirmed', true),
+ 'JOINING', 'Sent when joining date is confirmed', true, NOW(), NOW()),
 
 -- 26. Joining reminder → Candidate
 (gen_random_uuid(),
@@ -361,7 +361,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>This is a friendly reminder that your joining date for <strong>{{jobTitle}}</strong> at <strong>{{companyName}}</strong> is <strong>{{joiningDate}}</strong>.</p>
 <p>Please ensure you have all required documents ready. We look forward to welcoming you!</p>
 <p>Warm regards,<br>{{companyName}} HR Team</p>',
- 'JOINING', 'Reminder sent before candidate joining date', true),
+ 'JOINING', 'Reminder sent before candidate joining date', true, NOW(), NOW()),
 
 -- 27. Candidate joined → Candidate (Welcome)
 (gen_random_uuid(),
@@ -372,7 +372,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>Your journey with us begins today. Please connect with the HR team for any onboarding assistance.</p>
 <p>Wishing you a great start and a successful career ahead!</p>
 <p>Warm regards,<br>{{companyName}} HR Team</p>',
- 'JOINING', 'Sent on the day the candidate joins', true),
+ 'JOINING', 'Sent on the day the candidate joins', true, NOW(), NOW()),
 
 -- 28. Candidate withdrawn → Candidate
 (gen_random_uuid(),
@@ -382,7 +382,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>We have noted your request to withdraw your application for the <strong>{{jobTitle}}</strong> position at <strong>{{companyName}}</strong>.</p>
 <p>We respect your decision and hope you find the perfect opportunity. Should you wish to apply in the future, we would be happy to consider your profile.</p>
 <p>Best wishes,<br>{{companyName}} Talent Acquisition Team</p>',
- 'OUTCOME', 'Sent when candidate withdraws application', true),
+ 'OUTCOME', 'Sent when candidate withdraws application', true, NOW(), NOW()),
 
 -- 29. Verification failed → Candidate
 (gen_random_uuid(),
@@ -392,7 +392,7 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>We regret to inform you that we encountered issues during the document verification process for your application for <strong>{{jobTitle}}</strong> at <strong>{{companyName}}</strong>.</p>
 <p>As a result, we are unable to proceed with your application at this time. If you believe this is an error, please contact us immediately.</p>
 <p>Regards,<br>{{companyName}} HR Team</p>',
- 'OUTCOME', 'Sent when document verification fails', true),
+ 'OUTCOME', 'Sent when document verification fails', true, NOW(), NOW()),
 
 -- 30. Did not join → Candidate
 (gen_random_uuid(),
@@ -402,6 +402,6 @@ INSERT INTO "email_templates" ("id","name","subject","body","category","descript
 <p>We noticed that you did not join on the scheduled date for the <strong>{{jobTitle}}</strong> position at <strong>{{companyName}}</strong>.</p>
 <p>If there was an unavoidable circumstance, please reach out to us immediately so we can discuss next steps. Otherwise, we wish you all the best in your future endeavours.</p>
 <p>Regards,<br>{{companyName}} HR Team</p>',
- 'JOINING', 'Sent when candidate does not show up on joining date', true)
+ 'JOINING', 'Sent when candidate does not show up on joining date', true, NOW(), NOW())
 
 ON CONFLICT (name) DO NOTHING;

@@ -1,6 +1,7 @@
 import type { Response } from 'express';
 import type { AuthRequest } from '@/types';
 import assessmentsService from './assessments.service';
+import { seedTalentSignalAssessment } from './talent-signal-seeder';
 import type {
   AssignCandidatesSchema,
   CreateAssessmentDto,
@@ -180,6 +181,13 @@ class AssessmentsController {
     const applicationId = req.params['applicationId'] as string;
     const attempt = await assessmentsService.getAttemptResult(applicationId);
     res.json({ success: true, data: attempt });
+  }
+
+  async seedTalentSignal(req: AuthRequest, res: Response) {
+    const { jobId } = req.body as { jobId: string };
+    if (!jobId) return res.status(400).json({ success: false, message: 'jobId is required' });
+    const id = await seedTalentSignalAssessment(jobId, req.user!.id);
+    return res.status(201).json({ success: true, data: { assessmentId: id } });
   }
 }
 

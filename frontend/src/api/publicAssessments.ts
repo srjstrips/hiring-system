@@ -41,6 +41,8 @@ export interface AttemptPayload {
   remainingSeconds: number;
   questions: AttemptQuestion[];
   answers: Record<string, string>;
+  forcedChoiceAnswers: Record<string, { mostId?: string; leastId?: string }>;
+  assessmentMode: 'KNOWLEDGE' | 'PERSONALITY';
 }
 
 export interface AttemptStatus {
@@ -77,9 +79,21 @@ export const publicAssessmentsApi = {
     publicApi.post<{ success: boolean; data: AttemptPayload }>(`/public/assessments/t/${token}/start`),
   getAttempt: (token: string) =>
     publicApi.get<{ success: boolean; data: AttemptPayload }>(`/public/assessments/t/${token}/attempt`),
-  saveAnswer: (token: string, attemptQuestionId: string, selectedOptionId: string) =>
-    publicApi.post(`/public/assessments/t/${token}/answers`, { attemptQuestionId, selectedOptionId }),
-  saveAnswersBatch: (token: string, answers: Array<{ attemptQuestionId: string; selectedOptionId: string }>) =>
+  saveAnswer: (token: string, payload: {
+    attemptQuestionId: string;
+    selectedOptionId?: string;
+    selectedMostId?: string;
+    selectedLeastId?: string;
+    answerText?: string;
+  }) =>
+    publicApi.post(`/public/assessments/t/${token}/answers`, payload),
+  saveAnswersBatch: (token: string, answers: Array<{
+    attemptQuestionId: string;
+    selectedOptionId?: string;
+    selectedMostId?: string;
+    selectedLeastId?: string;
+    answerText?: string;
+  }>) =>
     publicApi.post(`/public/assessments/t/${token}/answers/batch`, { answers }),
   submit: (token: string) =>
     publicApi.post<{ success: boolean; data: AttemptStatus }>(`/public/assessments/t/${token}/submit`),

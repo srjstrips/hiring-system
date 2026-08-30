@@ -1084,6 +1084,12 @@ enum QuestionType {
   SHORT_ANSWER
   CODING
   DESCRIPTIVE
+  FORCED_CHOICE
+}
+
+enum AssessmentMode {
+  KNOWLEDGE
+  PERSONALITY
 }
 
 enum AssessmentStatus {
@@ -1112,6 +1118,7 @@ model Assessment {
   startAt        DateTime?
   endAt          DateTime?
   status         AssessmentStatus @default(DRAFT)
+  mode           AssessmentMode   @default(KNOWLEDGE)
   createdById    String
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
@@ -1140,6 +1147,11 @@ model AssessmentQuestion {
   displayOrder Int          @default(0)
   isActive     Boolean      @default(true)
   explanation  String?
+  trait        String?      // H|ES|X|A|C|O for FORCED_CHOICE statements
+  sjtPart      String?      // B1|B2|B3
+  sjtKey       Json?        // [{optionIndex, score}] for SJT scoring
+  validityScale String?     // IM|INF|CONS
+  isReversed   Boolean      @default(false)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -1215,10 +1227,11 @@ model AssessmentAttempt {
   assignment        AssessmentAssignment?      @relation(fields: [assignmentId], references: [id])
   candidate         Candidate                  @relation(fields: [candidateId], references: [id])
   application       Application                @relation(fields: [applicationId], references: [id])
-  answers           AssessmentAnswer[]
-  questionSnapshots AssessmentAttemptQuestion[]
-  recordings        AssessmentRecording[]
-  recordingEvents   AssessmentRecordingEvent[]
+  answers            AssessmentAnswer[]
+  questionSnapshots  AssessmentAttemptQuestion[]
+  recordings         AssessmentRecording[]
+  recordingEvents    AssessmentRecordingEvent[]
+  personalityResult  AssessmentPersonalityResult?
 
   @@index([applicationId])
   @@index([assignmentId])
@@ -1311,6 +1324,11 @@ model AssessmentAttemptQuestion {
   questionType       QuestionType @default(MCQ)
   marks              Int      @default(1)
   displayOrder       Int      @default(0)
+  trait              String?
+  sjtPart            String?
+  sjtKey             Json?
+  validityScale      String?
+  isReversed         Boolean  @default(false)
   createdAt          DateTime @default(now())
 
   attempt AssessmentAttempt         @relation(fields: [attemptId], references: [id], onDelete: Cascade)
@@ -1345,6 +1363,9 @@ model AssessmentAnswer {
   answerText        String?
   isCorrect         Boolean?
   marksGiven        Int?
+  selectedMostId    String?  // FORCED_CHOICE Most selection (attemptOption id)
+  selectedLeastId   String?  // FORCED_CHOICE Least selection (attemptOption id)
+  sjtScore          Int?     // SJT scored value (+2/+1/0/-1)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -1356,6 +1377,76 @@ model AssessmentAnswer {
   @@unique([attemptId, questionId])
   @@unique([attemptId, attemptQuestionId])
   @@map("assessment_answers")
+}
+
+model AssessmentPersonalityResult {
+  id            String  @id @default(uuid())
+  attemptId     String  @unique
+  assessmentId  String
+  candidateId   String
+  applicationId String
+
+  // HEXACO T-scores
+  tH   Float?
+  tES  Float?
+  tX   Float?
+  tA   Float?
+  tC   Float?
+  tO   Float?
+
+  // SJT sub-scores (T)
+  sjtWork       Float?
+  sjtSafety     Float?
+  sjtLeadership Float?
+
+  // Likert content scales (T)
+  tRES Float?
+  tADA Float?
+  tACH Float?
+
+  // GMA (optional Part D)
+  tGMA Float?
+
+  // Validity
+  imScore       Int?
+  imFlagged     Boolean @default(false)
+  infFlagged    Boolean @default(false)
+  consFlagged   Boolean @default(false)
+  confidenceScore Int   @default(100)
+
+  // Composite scores
+  compLeadership        Float?
+  compDecisionStyle     String?
+  compLearningAgility   Float?
+  compAccountability    Float?
+  compIntegrity         Float?
+  compTeamCompatibility Float?
+  compCommStyle         String?
+  compEmotionalResilience Float?
+  compAdaptability      Float?
+  compRiskAppetite      Float?
+  compConflictStyle     String?
+  compStressBand        String?
+
+  // Derailer flags JSON array e.g. ["Integrity risk","Volatility"]
+  derailerFlags Json @default("[]")
+
+  // Archetype
+  archetype String?
+
+  // Role-fit scores JSON e.g. {"Operations":78,"Quality":72}
+  roleFitScores Json @default("{}")
+
+  fitBand String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attempt AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@index([assessmentId])
+  @@map("assessment_personality_results")
 }
 
 // ─── EMAIL TEMPLATES ─────────────────────────────────────────────────────────

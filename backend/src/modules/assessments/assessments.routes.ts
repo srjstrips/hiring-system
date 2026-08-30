@@ -62,4 +62,7 @@ router.get('/jobs/:jobId/results', authorize('assessments:read'), assessmentsCon
 
 router.get('/applications/:applicationId/result', authorize('assessments:read'), assessmentsController.getAttemptResult);
 
+// TalentSignal seeder — creates the pre-built personality assessment for a job
+router.post('/seed-talent-signal', authorize('assessments:create'), assessmentsController.seedTalentSignal);
+
 export default router;

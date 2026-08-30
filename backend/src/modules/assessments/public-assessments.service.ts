@@ -1,5 +1,7 @@
 import { prisma } from '@/config/database';
 import { AppError } from '@/utils/errors';
+import { scorePersonalityAttempt } from './personality-scoring.service';
+import { sendCandidateAssessmentSummaryEmail } from './personality-email.service';
 import type { SaveAnswerDto, SaveAnswersBatchDto } from './public-assessments.validator';
 
 type GateCode =
@@ -149,6 +151,11 @@ class PublicAssessmentsService {
           questionType: q.questionType,
           marks: q.marks,
           displayOrder: q.displayOrder,
+          trait: q.trait,
+          sjtPart: q.sjtPart,
+          sjtKey: q.sjtKey ?? undefined,
+          validityScale: q.validityScale,
+          isReversed: q.isReversed,
           options: {
             create: q.optionItems.map((o) => ({
               originalOptionId: o.id,
@@ -229,7 +236,7 @@ class PublicAssessmentsService {
     const attempt = await prisma.assessmentAttempt.findUnique({
       where: { id: attemptId },
       include: {
-        assessment: { select: { id: true, name: true, durationMins: true, passingScore: true } },
+        assessment: { select: { id: true, name: true, durationMins: true, passingScore: true, mode: true } },
         assignment: { select: { id: true, status: true, maxAttempts: true, secureToken: true } },
         answers: true,
         questionSnapshots: {
@@ -249,9 +256,15 @@ class PublicAssessmentsService {
     const remainingSeconds = Math.max(0, Math.floor((endsAt.getTime() - now().getTime()) / 1000));
 
     const answers: Record<string, string> = {};
+    const forcedChoiceAnswers: Record<string, { mostId?: string; leastId?: string }> = {};
     for (const a of attempt.answers) {
-      if (a.attemptQuestionId && a.selectedOptionId) {
-        answers[a.attemptQuestionId] = a.selectedOptionId;
+      if (!a.attemptQuestionId) continue;
+      if (a.selectedOptionId) answers[a.attemptQuestionId] = a.selectedOptionId;
+      if (a.selectedMostId || a.selectedLeastId) {
+        forcedChoiceAnswers[a.attemptQuestionId] = {
+          mostId: a.selectedMostId ?? undefined,
+          leastId: a.selectedLeastId ?? undefined,
+        };
       }
     }
 
@@ -275,6 +288,8 @@ class PublicAssessmentsService {
         })
       ),
       answers,
+      forcedChoiceAnswers,
+      assessmentMode: attempt.assessment.mode,
     };
   }
 
@@ -298,35 +313,60 @@ class PublicAssessmentsService {
     });
     if (!snapshotQ) throw new AppError('Invalid question', 400);
 
-    const option = snapshotQ.options.find((o) => o.id === dto.selectedOptionId);
-    if (!option) throw new AppError('Invalid option', 400);
-
-    // Prefer unique on attemptQuestionId
     const existing = await prisma.assessmentAnswer.findFirst({
       where: { attemptId, attemptQuestionId: dto.attemptQuestionId },
     });
 
-    if (existing) {
-      return prisma.assessmentAnswer.update({
-        where: { id: existing.id },
-        data: {
-          selectedOptionId: dto.selectedOptionId,
-          answerText: option.optionText,
-          questionId: snapshotQ.originalQuestionId,
-          isCorrect: null,
-          marksGiven: null,
-        },
+    // ── Forced-choice block (Most + Least) ────────────────────────────────
+    if (snapshotQ.questionType === 'FORCED_CHOICE') {
+      const updateData = {
+        selectedMostId:  dto.selectedMostId  ?? existing?.selectedMostId  ?? null,
+        selectedLeastId: dto.selectedLeastId ?? existing?.selectedLeastId ?? null,
+        questionId: snapshotQ.originalQuestionId,
+      };
+      if (existing) {
+        return prisma.assessmentAnswer.update({ where: { id: existing.id }, data: updateData });
+      }
+      return prisma.assessmentAnswer.create({
+        data: { attemptId, attemptQuestionId: dto.attemptQuestionId, ...updateData },
       });
     }
 
-    return prisma.assessmentAnswer.create({
-      data: {
-        attemptId,
-        attemptQuestionId: dto.attemptQuestionId,
+    // ── SJT: score from key ───────────────────────────────────────────────
+    if (snapshotQ.sjtPart && dto.selectedOptionId) {
+      const option = snapshotQ.options.find((o) => o.id === dto.selectedOptionId);
+      if (!option) throw new AppError('Invalid option', 400);
+
+      const key = snapshotQ.sjtKey as { optionIndex: number; score: number }[] | null;
+      const sjtScore = key?.find((k) => k.optionIndex === option.displayOrder)?.score ?? 0;
+
+      const data = {
         selectedOptionId: dto.selectedOptionId,
         answerText: option.optionText,
         questionId: snapshotQ.originalQuestionId,
-      },
+        sjtScore,
+        isCorrect: sjtScore === 2,
+        marksGiven: null,
+      };
+      if (existing) return prisma.assessmentAnswer.update({ where: { id: existing.id }, data });
+      return prisma.assessmentAnswer.create({ data: { attemptId, attemptQuestionId: dto.attemptQuestionId, ...data } });
+    }
+
+    // ── Likert / standard MCQ ─────────────────────────────────────────────
+    const option = dto.selectedOptionId
+      ? snapshotQ.options.find((o) => o.id === dto.selectedOptionId)
+      : null;
+
+    const data = {
+      selectedOptionId: dto.selectedOptionId ?? null,
+      answerText: dto.answerText ?? option?.optionText ?? null,
+      questionId: snapshotQ.originalQuestionId,
+      isCorrect: option ? option.isCorrect : null,
+      marksGiven: null,
+    };
+    if (existing) return prisma.assessmentAnswer.update({ where: { id: existing.id }, data });
+    return prisma.assessmentAnswer.create({
+      data: { attemptId, attemptQuestionId: dto.attemptQuestionId, ...data },
     });
   }
 
@@ -339,10 +379,11 @@ class PublicAssessmentsService {
     const attempt = await prisma.assessmentAttempt.findUnique({
       where: { id: attemptId },
       include: {
-        assessment: true,
+        assessment: { include: { job: { select: { id: true } } } },
         assignment: true,
         answers: true,
         questionSnapshots: { include: { options: true } },
+        candidate: { select: { id: true, firstName: true, lastName: true, email: true } },
       },
     });
     if (!attempt) throw new AppError('Attempt not found', 404);
@@ -409,6 +450,16 @@ class PublicAssessmentsService {
           },
         });
       }
+    }
+
+    // ── Personality scoring (async, non-blocking) ─────────────────────────
+    if (attempt.assessment.mode === 'PERSONALITY') {
+      scorePersonalityAttempt(attemptId).catch((err) =>
+        console.error('[TalentSignal] Scoring error for attempt', attemptId, err)
+      );
+      sendCandidateAssessmentSummaryEmail(attemptId).catch((err) =>
+        console.error('[TalentSignal] Summary email error for attempt', attemptId, err)
+      );
     }
 
     return this.statusPayload(attempt.assignment!.secureToken);

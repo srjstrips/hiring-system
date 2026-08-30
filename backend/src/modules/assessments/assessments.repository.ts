@@ -688,6 +688,16 @@ export class AssessmentsRepository {
     const completedCount = attempts.filter((a) => a.completedAt).length;
     const hasOpenAttempt = attempts.some((a) => !a.completedAt);
 
+    // Fetch personality result for the latest completed attempt (if any)
+    let personalityResult = null;
+    const completedAttempts = assignment.attempts.filter((a) => a.submittedAt);
+    const latestCompleted = completedAttempts[completedAttempts.length - 1];
+    if (latestCompleted) {
+      personalityResult = await prisma.assessmentPersonalityResult.findUnique({
+        where: { attemptId: latestCompleted.id },
+      });
+    }
+
     return {
       assignment: {
         id: assignment.id,
@@ -711,6 +721,7 @@ export class AssessmentsRepository {
       passingPercentage: assignment.assessment.passingScore,
       attempts,
       latestAttempt: attempts.length ? attempts[attempts.length - 1] : null,
+      personalityResult,
     };
   }
 

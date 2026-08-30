@@ -13,6 +13,7 @@ const assessmentFields = {
   startAt: z.string().optional().nullable().or(z.literal('')),
   endAt: z.string().optional().nullable().or(z.literal('')),
   status: AssessmentStatusEnum.default('DRAFT'),
+  mode: z.enum(['KNOWLEDGE', 'PERSONALITY']).default('KNOWLEDGE'),
 };
 
 function refineAssessmentDates(data: { startAt?: string | null; endAt?: string | null }, ctx: z.RefinementCtx) {
@@ -43,6 +44,7 @@ export const UpdateAssessmentSchema = z
     startAt: assessmentFields.startAt,
     endAt: assessmentFields.endAt,
     status: AssessmentStatusEnum.optional(),
+    mode: z.enum(['KNOWLEDGE', 'PERSONALITY']).optional(),
   })
   .superRefine(refineAssessmentDates);
 

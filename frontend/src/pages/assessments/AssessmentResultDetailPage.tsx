@@ -7,8 +7,260 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { toast } from '@/hooks/useToast';
-import { ArrowLeft, CheckCircle2, Circle, Mail, RefreshCw, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Circle, Mail, RefreshCw, XCircle } from 'lucide-react';
 import { cn } from '@/utils/cn';
+
+// ─── Personality profile types ────────────────────────────────────────────────
+
+interface PersonalityResult {
+  tH: number | null; tES: number | null; tX: number | null;
+  tA: number | null; tC: number | null; tO: number | null;
+  sjtWork: number | null; sjtSafety: number | null; sjtLeadership: number | null;
+  tRES: number | null; tADA: number | null; tACH: number | null;
+  imFlagged: boolean; infFlagged: boolean; consFlagged: boolean;
+  confidenceScore: number;
+  compLeadership: number | null; compDecisionStyle: string | null;
+  compLearningAgility: number | null; compAccountability: number | null;
+  compIntegrity: number | null; compTeamCompatibility: number | null;
+  compCommStyle: string | null; compEmotionalResilience: number | null;
+  compAdaptability: number | null; compRiskAppetite: number | null;
+  compConflictStyle: string | null; compStressBand: string | null;
+  derailerFlags: string[];
+  archetype: string | null;
+  roleFitScores: Record<string, number>;
+  fitBand: string | null;
+}
+
+const TRAIT_META: Record<string, { label: string; color: string }> = {
+  H:  { label: 'Honesty-Humility',    color: '#7c3aed' },
+  ES: { label: 'Emotional Stability', color: '#0891b2' },
+  X:  { label: 'Extraversion',        color: '#d97706' },
+  A:  { label: 'Agreeableness',       color: '#16a34a' },
+  C:  { label: 'Conscientiousness',   color: '#b45309' },
+  O:  { label: 'Openness',            color: '#be185d' },
+};
+
+const DERAILER_COLORS: Record<string, string> = {
+  'Integrity risk': 'bg-red-100 text-red-700 border-red-200',
+  'Volatility': 'bg-orange-100 text-orange-700 border-orange-200',
+  'Abrasiveness': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  'Micromanagement / rigidity': 'bg-purple-100 text-purple-700 border-purple-200',
+  'Overpromising': 'bg-blue-100 text-blue-700 border-blue-200',
+  'Passivity': 'bg-slate-100 text-slate-700 border-slate-200',
+  'Recklessness': 'bg-red-100 text-red-700 border-red-200',
+  'Impression management': 'bg-amber-100 text-amber-700 border-amber-200',
+};
+
+function TraitBar({ label, t, color }: { label: string; t: number | null; color: string }) {
+  if (t == null) return null;
+  const pct = Math.round(((t - 20) / 60) * 100);
+  const normLow  = Math.round(((40 - 20) / 60) * 100);
+  const normHigh = Math.round(((60 - 20) / 60) * 100);
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-xs">
+        <span className="font-medium text-slate-700">{label}</span>
+        <span className="font-semibold" style={{ color }}>{t}</span>
+      </div>
+      <div className="relative h-4 bg-slate-100 rounded overflow-hidden">
+        {/* norm band */}
+        <div
+          className="absolute top-0 bottom-0 bg-slate-200/70"
+          style={{ left: `${normLow}%`, width: `${normHigh - normLow}%` }}
+        />
+        {/* score bar */}
+        <div
+          className="absolute top-0 bottom-0 rounded"
+          style={{ width: `${Math.max(2, pct)}%`, backgroundColor: color, opacity: 0.85 }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function PersonalityProfileCard({ result }: { result: PersonalityResult }) {
+  const traits = [
+    { key: 'H', t: result.tH }, { key: 'ES', t: result.tES }, { key: 'X', t: result.tX },
+    { key: 'A', t: result.tA }, { key: 'C', t: result.tC },  { key: 'O', t: result.tO },
+  ];
+
+  const composites = [
+    { label: 'Accountability',        v: result.compAccountability },
+    { label: 'Integrity & Ethics',    v: result.compIntegrity },
+    { label: 'Emotional Resilience',  v: result.compEmotionalResilience },
+    { label: 'Team Compatibility',    v: result.compTeamCompatibility },
+    { label: 'Learning Agility',      v: result.compLearningAgility },
+    { label: 'Adaptability',          v: result.compAdaptability },
+    { label: 'Leadership Potential',  v: result.compLeadership },
+    { label: 'Risk Appetite',         v: result.compRiskAppetite },
+  ].filter((c) => c.v != null);
+
+  const topRoles = Object.entries(result.roleFitScores)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5);
+
+  const fitColor = result.fitBand === 'Strong Fit' ? 'text-green-600'
+    : result.fitBand === 'Fit' ? 'text-blue-600'
+    : result.fitBand === 'Conditional' ? 'text-amber-600'
+    : 'text-red-600';
+
+  const confidenceColor = result.confidenceScore >= 80 ? 'text-green-600'
+    : result.confidenceScore >= 60 ? 'text-amber-600'
+    : 'text-red-600';
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <Card className="border-[#FF6B00]/30 bg-[#FFF7ED]">
+        <CardContent className="pt-5 pb-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-[#b45309] font-semibold mb-1">TalentSignal™ Profile</p>
+              <p className="text-2xl font-bold text-slate-800">{result.archetype ?? 'Profile'}</p>
+              <p className={cn('text-sm font-semibold mt-1', fitColor)}>{result.fitBand ?? '—'}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">Confidence Score</p>
+              <p className={cn('text-3xl font-bold', confidenceColor)}>{result.confidenceScore}/100</p>
+              {result.confidenceScore < 60 && (
+                <p className="text-xs text-red-600 mt-0.5">Interpret with caution — verify at interview</p>
+              )}
+            </div>
+          </div>
+          {/* Validity flags */}
+          {(result.imFlagged || result.infFlagged || result.consFlagged) && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {result.imFlagged && (
+                <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200">
+                  <AlertTriangle className="h-3 w-3" /> Impression Management flagged
+                </span>
+              )}
+              {result.infFlagged && (
+                <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border bg-red-50 text-red-700 border-red-200">
+                  <AlertTriangle className="h-3 w-3" /> Attention check failed
+                </span>
+              )}
+              {result.consFlagged && (
+                <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border bg-orange-50 text-orange-700 border-orange-200">
+                  <AlertTriangle className="h-3 w-3" /> Consistency flag
+                </span>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid md:grid-cols-2 gap-4">
+        {/* HEXACO Trait Bars */}
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">HEXACO Traits (T-scores)</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">Shaded band = norm range (T 40–60)</p>
+            {traits.map(({ key, t }) => (
+              <TraitBar
+                key={key}
+                label={TRAIT_META[key]!.label}
+                t={t}
+                color={TRAIT_META[key]!.color}
+              />
+            ))}
+            {result.sjtWork != null && (
+              <>
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">SJT Scores</p>
+                  <TraitBar label="Work Judgment" t={result.sjtWork} color="#64748b" />
+                  <div className="mt-2"><TraitBar label="Safety Judgment" t={result.sjtSafety} color="#0f766e" /></div>
+                  {result.sjtLeadership != null && (
+                    <div className="mt-2"><TraitBar label="Leadership Judgment" t={result.sjtLeadership} color="#7c3aed" /></div>
+                  )}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Composites + Styles */}
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">Composite Scores</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              {composites.map((c) => (
+                <div key={c.label} className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{c.label}</span>
+                  <span className="font-semibold tabular-nums">{Math.round(c.v!)}</span>
+                </div>
+              ))}
+              {result.compDecisionStyle && (
+                <div className="flex items-center justify-between text-sm pt-1 border-t">
+                  <span className="text-muted-foreground">Decision Style</span>
+                  <Badge variant="secondary">{result.compDecisionStyle}</Badge>
+                </div>
+              )}
+              {result.compCommStyle && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Communication Style</span>
+                  <Badge variant="secondary">{result.compCommStyle}</Badge>
+                </div>
+              )}
+              {result.compConflictStyle && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Conflict Style</span>
+                  <Badge variant="secondary">{result.compConflictStyle}</Badge>
+                </div>
+              )}
+              {result.compStressBand && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Stress Response</span>
+                  <Badge variant="secondary">{result.compStressBand}</Badge>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Role fit */}
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm">Role-Fit Scores</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              {topRoles.map(([role, score]) => (
+                <div key={role} className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground truncate pr-2">{role}</span>
+                  <span className={cn('font-semibold tabular-nums',
+                    score >= 70 ? 'text-green-600' : score >= 55 ? 'text-blue-600' : score >= 40 ? 'text-amber-600' : 'text-red-500'
+                  )}>{score}</span>
+                </div>
+              ))}
+              <p className="text-xs text-muted-foreground pt-1">≥70 Strong Fit · 55–69 Fit · 40–54 Conditional · &lt;40 Low Fit</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Derailer flags */}
+      {result.derailerFlags.length > 0 && (
+        <Card className="border-amber-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              Potential Risk Flags — Verify at Interview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {result.derailerFlags.map((flag) => (
+                <span key={flag} className={cn('text-xs px-2.5 py-1 rounded-full border font-medium', DERAILER_COLORS[flag] ?? 'bg-slate-100 text-slate-700')}>
+                  {flag}
+                </span>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              Flags indicate situational risks to probe at interview — not character verdicts. Each flag generates behavioural interview questions.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
 
 function formatDuration(seconds: number | null) {
   if (seconds == null) return '—';
@@ -187,7 +439,7 @@ export default function AssessmentResultDetailPage() {
   }
   if (!data) return <div className="py-12 text-center text-muted-foreground">Assignment not found</div>;
 
-  const { candidate, assessment, application, job, assignment, attempts, passingPercentage } = data;
+  const { candidate, assessment, application, job, assignment, attempts, passingPercentage, personalityResult } = data as typeof data & { personalityResult?: PersonalityResult | null };
 
   return (
     <div className="space-y-6">
@@ -353,6 +605,10 @@ export default function AssessmentResultDetailPage() {
           </Card>
 
           <AssessmentRecordingsSection assessmentId={id!} attempt={selectedAttempt} />
+
+          {personalityResult && selectedAttempt.isLatest && (
+            <PersonalityProfileCard result={personalityResult} />
+          )}
 
           <div className="space-y-3">
             <h2 className="text-lg font-semibold">Question Results</h2>
