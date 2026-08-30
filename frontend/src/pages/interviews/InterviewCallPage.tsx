@@ -3,7 +3,37 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { interviewCallApi } from '@/api/interviewCall';
 import { interviewsApi } from '@/api/dashboard';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Loader2, UserCircle2, CheckCircle2 } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Loader2, UserCircle2, CheckCircle2, Clock } from 'lucide-react';
+
+const EARLY_JOIN_MINUTES = 10; // allow joining this many minutes before scheduled time
+
+function useCountdown(scheduledAt: string | null | undefined) {
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!scheduledAt) return;
+    const target = new Date(scheduledAt).getTime() - EARLY_JOIN_MINUTES * 60 * 1000;
+
+    const tick = () => {
+      const diff = Math.ceil((target - Date.now()) / 1000);
+      setSecondsLeft(diff > 0 ? diff : 0);
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [scheduledAt]);
+
+  return secondsLeft;
+}
+
+function formatCountdown(secs: number) {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  if (h > 0) return `${h}h ${m}m ${s}s`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
 
 const ICE_SERVERS: RTCConfiguration = {
   iceServers: [
@@ -39,6 +69,7 @@ export default function InterviewCallPage() {
   const [room, setRoom] = useState<any>(null);
   const [error, setError] = useState('');
   const [joining, setJoining] = useState(false);
+  const secondsLeft = useCountdown(room?.scheduledAt);
   const [inCall, setInCall] = useState(false);
   const [status, setStatus] = useState('Waiting to join…');
   const [muted, setMuted] = useState(false);
@@ -470,27 +501,51 @@ export default function InterviewCallPage() {
 
         {!inCall ? (
           <div className="rounded-xl border border-white/10 bg-white/5 p-6 max-w-md space-y-4">
-            <p className="text-sm text-zinc-300">
-              Join this video room. When prompted, allow <strong>camera</strong> and <strong>microphone</strong> so
-              both of you can see and hear each other.
-            </p>
-            <input
-              className="w-full rounded-md bg-zinc-900 border border-white/10 px-3 py-2 text-sm"
-              placeholder={isHost ? 'Your name (HR / interviewer)' : 'Your name'}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            {error && <p className="text-sm text-red-300">{error}</p>}
-            <Button className="w-full bg-orange-500 hover:bg-orange-600" onClick={join} disabled={joining}>
-              {joining ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Joining…
-                </>
-              ) : (
-                'Join video call'
-              )}
-            </Button>
+            {secondsLeft !== null && secondsLeft > 0 ? (
+              // Waiting room — interview hasn't opened yet
+              <div className="text-center space-y-4 py-2">
+                <Clock className="h-10 w-10 text-orange-400 mx-auto" />
+                <div>
+                  <p className="text-sm text-zinc-300 mb-1">Interview opens in</p>
+                  <p className="text-3xl font-mono font-bold text-orange-400">{formatCountdown(secondsLeft)}</p>
+                </div>
+                {room?.scheduledAt && (
+                  <p className="text-xs text-zinc-500">
+                    Scheduled for {new Date(room.scheduledAt).toLocaleString('en-IN', {
+                      dateStyle: 'medium', timeStyle: 'short',
+                    })}
+                  </p>
+                )}
+                <p className="text-xs text-zinc-500">
+                  You can join {EARLY_JOIN_MINUTES} minutes before the scheduled time. Please stay on this page.
+                </p>
+              </div>
+            ) : (
+              // Join lobby — time has come
+              <>
+                <p className="text-sm text-zinc-300">
+                  Join this video room. When prompted, allow <strong>camera</strong> and <strong>microphone</strong> so
+                  both of you can see and hear each other.
+                </p>
+                <input
+                  className="w-full rounded-md bg-zinc-900 border border-white/10 px-3 py-2 text-sm"
+                  placeholder={isHost ? 'Your name (HR / interviewer)' : 'Your name'}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+                {error && <p className="text-sm text-red-300">{error}</p>}
+                <Button className="w-full bg-orange-500 hover:bg-orange-600" onClick={join} disabled={joining}>
+                  {joining ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Joining…
+                    </>
+                  ) : (
+                    'Join video call'
+                  )}
+                </Button>
+              </>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
