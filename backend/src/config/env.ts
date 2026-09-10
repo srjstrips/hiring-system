@@ -55,6 +55,7 @@ const envSchema = z.object({
   LINKEDIN_CLIENT_ID: z.string().optional().default(''),
   LINKEDIN_CLIENT_SECRET: z.string().optional().default(''),
   LINKEDIN_ACCESS_TOKEN: z.string().optional().default(''),
+  LINKEDIN_COMPANY_ID: z.string().optional().default(''),
   NAUKRI_API_BASE_URL: z.string().optional().default(''),
   NAUKRI_API_KEY: z.string().optional().default(''),
   NAUKRI_API_SECRET: z.string().optional().default(''),

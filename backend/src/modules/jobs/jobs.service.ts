@@ -5,6 +5,7 @@ import type { CreateJobDto, JobQueryDto } from './jobs.validator';
 import { getUserScope, applyJobScope } from '@/utils/scope';
 import { buildPagination } from '@/utils/response';
 import candidateNotificationsService from '@/modules/candidate-notifications/candidate-notifications.service';
+import jobSharingService from '@/modules/job-sharing/job-sharing.service';
 
 class JobsService {
   async getAll(query: JobQueryDto, userId?: string, roleName?: string) {
@@ -76,6 +77,8 @@ class JobsService {
     if (job.isPublished) throw new AppError('Job is already published', 400);
     const updated = await jobsRepository.publish(id, userId);
     await candidateNotificationsService.notifyJobPublished(job);
+    // Fire-and-forget: auto-post to LinkedIn; never block the publish response
+    jobSharingService.shareJob(id, 'LINKEDIN', userId).catch(() => {});
     return updated;
   }
 
