@@ -32,4 +32,11 @@ router.post(
   jobSharingController.share
 );
 
+router.delete(
+  '/:jobId',
+  authorizeAny('jobs:update', 'jobs:publish'),
+  validateBody(ShareJobBodySchema),
+  jobSharingController.remove
+);
+
 export default router;

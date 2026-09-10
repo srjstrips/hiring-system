@@ -54,4 +54,11 @@ export const jobSharesApi = {
         share: unknown;
       };
     }>(`/job-shares/${jobId}`, { platform }),
+
+  remove: (jobId: string, platform: JobSharePlatformCode) =>
+    api.delete<{
+      success: boolean;
+      message: string;
+      data: { removed: boolean; message: string; share: unknown };
+    }>(`/job-shares/${jobId}`, { data: { platform } }),
 };

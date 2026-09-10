@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Briefcase, MapPin, Calendar, AlertCircle, CheckCircle2, ExternalLink } from 'lucide-react';
+import { Briefcase, MapPin, Calendar, AlertCircle, CheckCircle2, ExternalLink, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,14 +32,18 @@ function PlatformIcon({ platform }: { platform: string }) {
 function PlatformCard({
   platform,
   onShare,
+  onRemove,
   isSharing,
+  isRemoving,
 }: {
   platform: JobSharePlatformInfo;
   onShare: (code: 'LINKEDIN' | 'NAUKRI') => void;
+  onRemove: (code: 'LINKEDIN' | 'NAUKRI') => void;
   isSharing: boolean;
+  isRemoving: boolean;
 }) {
   const isPosted = platform.sharingStatus === 'POSTED';
-  const canShare = !isPosted;
+  const busy = isSharing || isRemoving;
 
   return (
     <Card>
@@ -71,7 +75,7 @@ function PlatformCard({
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-xs text-[#FF6B00] hover:underline"
                 >
-                  View external post <ExternalLink className="h-3 w-3" />
+                  View post <ExternalLink className="h-3 w-3" />
                 </a>
               )}
               {platform.errorMessage && platform.sharingStatus !== 'POSTED' && (
@@ -83,19 +87,30 @@ function PlatformCard({
             </div>
           </div>
 
-          <div className="shrink-0">
+          <div className="shrink-0 flex flex-col gap-2 items-end">
             {isPosted ? (
-              <Button variant="outline" size="sm" disabled>
-                <CheckCircle2 className="h-4 w-4 mr-1 text-green-600" />
-                Posted
-              </Button>
+              <>
+                <Button variant="outline" size="sm" disabled>
+                  <CheckCircle2 className="h-4 w-4 mr-1 text-green-600" />
+                  Posted
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => onRemove(platform.platform)}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  {isRemoving ? 'Removing…' : 'Remove Post'}
+                </Button>
+              </>
             ) : (
               <Button
                 size="sm"
-                disabled={!canShare || isSharing}
+                disabled={busy}
                 onClick={() => onShare(platform.platform)}
               >
-                Share on {platform.displayName}
+                {isSharing ? 'Sharing…' : `Share on ${platform.displayName}`}
               </Button>
             )}
           </div>
@@ -125,7 +140,6 @@ export function ShareJobDialog({ jobId, open, onOpenChange }: ShareJobDialogProp
       if (result?.posted) {
         toast({ title: 'Job posted', description: result.message || payload.message, variant: 'success' });
       } else {
-        // Integration not configured / not actually posted — do not claim success
         toast({
           title: 'Sharing unavailable',
           description: result?.message || payload.message || 'External integration is not configured yet.',
@@ -139,6 +153,24 @@ export function ShareJobDialog({ jobId, open, onOpenChange }: ShareJobDialogProp
       toast({
         title: 'Unable to share',
         description: e?.response?.data?.message ?? 'Sharing failed',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (platform: 'LINKEDIN' | 'NAUKRI') => jobSharesApi.remove(jobId!, platform),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['job-share', jobId] });
+      refetch();
+      toast({ title: 'Post removed', description: res.data.message, variant: 'success' });
+    },
+    onError: (e: any) => {
+      queryClient.invalidateQueries({ queryKey: ['job-share', jobId] });
+      refetch();
+      toast({
+        title: 'Remove failed',
+        description: e?.response?.data?.message ?? 'Could not remove post',
         variant: 'destructive',
       });
     },
@@ -201,7 +233,9 @@ export function ShareJobDialog({ jobId, open, onOpenChange }: ShareJobDialogProp
                   key={p.platform}
                   platform={p}
                   isSharing={shareMutation.isPending}
+                  isRemoving={removeMutation.isPending}
                   onShare={(code) => shareMutation.mutate(code)}
+                  onRemove={(code) => removeMutation.mutate(code)}
                 />
               ))}
             </div>

@@ -184,6 +184,49 @@ class JobSharingService {
     };
   }
 
+  async removeJobFromPlatform(jobId: string, platformCode: JobSharePlatformCode, userId: string) {
+    const adapter = getPlatformAdapter(platformCode);
+    const platform = platformCode as JobSharePlatform;
+
+    const share = await prisma.jobShare.findUnique({
+      where: { jobId_platform: { jobId, platform } },
+    });
+
+    if (!share || share.status !== 'POSTED') {
+      throw new AppError('Job is not currently posted on this platform', 400);
+    }
+
+    const result = await adapter.removeJob(share.externalJobId ?? '');
+
+    if (!result.success) {
+      throw new AppError(
+        result.errorMessage ?? `Failed to remove job from ${adapter.displayName}`,
+        400,
+        result.errorCode ?? 'REMOVE_FAILED'
+      );
+    }
+
+    const [updated] = await prisma.$transaction([
+      prisma.jobShare.update({
+        where: { id: share.id },
+        data: { status: 'REMOVED', externalJobId: null, externalJobUrl: null, errorMessage: null },
+        include: jobShareInclude,
+      }),
+      prisma.jobShareHistory.create({
+        data: {
+          jobShareId: share.id,
+          jobId,
+          platform,
+          status: 'REMOVED',
+          action: 'SHARE_REMOVED',
+          actedById: userId,
+        },
+      }),
+    ]);
+
+    return { removed: true, message: `Job removed from ${adapter.displayName}.`, share: updated };
+  }
+
   private mapErrorCodeToMessage(code: string | undefined, platformName: string): string {
     switch (code) {
       case 'NOT_CONFIGURED':

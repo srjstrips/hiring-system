@@ -26,6 +26,17 @@ class JobSharingController {
       data: result,
     });
   }
+
+  async remove(req: AuthRequest, res: Response) {
+    const jobId = req.params['jobId'] as string;
+    const body = req.body as ShareJobBody;
+    const result = await jobSharingService.removeJobFromPlatform(jobId, body.platform, req.user!.id);
+    res.json({
+      success: true,
+      message: result.message,
+      data: result,
+    });
+  }
 }
 
 export default new JobSharingController();
