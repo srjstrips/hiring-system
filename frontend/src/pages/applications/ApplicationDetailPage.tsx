@@ -144,7 +144,7 @@ export default function ApplicationDetailPage() {
   };
 
   const statusMutation = useMutation({
-    mutationFn: (payload: { status: string; notes?: string; rejectionReason?: string }) =>
+    mutationFn: (payload: { status: string; notes?: string; rejectionReason?: string; assessmentId?: string }) =>
       applicationsApi.updateStatus(id!, payload),
     onSuccess: (res) => {
       invalidateApplication();
