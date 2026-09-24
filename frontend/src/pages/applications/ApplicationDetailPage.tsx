@@ -79,6 +79,7 @@ export default function ApplicationDetailPage() {
 
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showResendAssessmentDialog, setShowResendAssessmentDialog] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [stageNotes, setStageNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
@@ -167,8 +168,22 @@ export default function ApplicationDetailPage() {
   const isInterviewStage = INTERVIEW_STAGE_KEYS.has(newStatus);
   const isSaving = statusMutation.isPending || scheduleMutation.isPending;
 
+  const proceedMoveStage = () => {
+    statusMutation.mutate({
+      status: newStatus,
+      notes: stageNotes || undefined,
+      rejectionReason: (newStatus === 'REJECTED' ? rejectionReason : undefined),
+    });
+  };
+
   const handleMoveStage = () => {
     if (!newStatus || !app) return;
+
+    // If moving to Personality Assessment and an attempt already exists, confirm re-send
+    if (newStatus === 'PERSONALITY_ASSESSMENT' && app.assessmentAttempt) {
+      setShowResendAssessmentDialog(true);
+      return;
+    }
 
     if (isInterviewStage) {
       if (interviewMode === 'IN_PERSON' && !interviewLocation.trim()) {
@@ -195,11 +210,7 @@ export default function ApplicationDetailPage() {
       return;
     }
 
-    statusMutation.mutate({
-      status: newStatus,
-      notes: stageNotes || undefined,
-      rejectionReason: (newStatus === 'REJECTED' ? rejectionReason : undefined),
-    });
+    proceedMoveStage();
   };
 
   if (isLoading) return <div className="py-20 text-center text-sm text-[#64748B]">Loading...</div>;
@@ -292,6 +303,27 @@ export default function ApplicationDetailPage() {
               <Button variant="outline" className="rounded-xl border-[#E2E8F0]" onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
               <Button className="rounded-xl bg-rose-600 text-white hover:bg-rose-700" onClick={() => deleteMutation.mutate()} disabled={deleteMutation.isPending}>
                 {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showResendAssessmentDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="text-base font-semibold text-[#111827]">Resend Assessment Email?</h3>
+            <p className="mt-2 text-sm text-[#64748B]">
+              An assessment email has already been sent to this candidate. Sending again will issue a new link and email them a second time.
+            </p>
+            <p className="mt-2 text-sm text-[#64748B]">Are you sure you want to resend?</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="outline" className="rounded-xl border-[#E2E8F0]" onClick={() => setShowResendAssessmentDialog(false)}>Cancel</Button>
+              <Button
+                className="rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000]"
+                onClick={() => { setShowResendAssessmentDialog(false); proceedMoveStage(); }}
+              >
+                Yes, Resend
               </Button>
             </div>
           </div>
