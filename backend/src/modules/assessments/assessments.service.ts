@@ -254,6 +254,31 @@ class AssessmentsService {
   async getResultsByJob(jobId: string) {
     return assessmentsRepository.getResultsByJobId(jobId);
   }
+
+  // Trait Management (for Personality Assessments)
+  async addTrait(assessmentId: string, data: any) {
+    await this.getById(assessmentId);
+    return assessmentsRepository.createTrait(assessmentId, data);
+  }
+
+  async updateTrait(assessmentId: string, traitName: string, data: any) {
+    await this.getById(assessmentId);
+    return assessmentsRepository.updateTrait(assessmentId, traitName, data);
+  }
+
+  async removeTrait(assessmentId: string, traitName: string) {
+    await this.getById(assessmentId);
+    return assessmentsRepository.deleteTrait(assessmentId, traitName);
+  }
+
+  async getTraits(assessmentId: string) {
+    await this.getById(assessmentId);
+    return assessmentsRepository.getTraits(assessmentId);
+  }
+
+  async getTraitScores(attemptId: string) {
+    return assessmentsRepository.getTraitScores(attemptId);
+  }
 }
 
 export default new AssessmentsService();

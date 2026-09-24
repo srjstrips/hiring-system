@@ -301,6 +301,7 @@ model Department {
   manpowerRequisitions ManpowerRequisition[]
   employees            Employee[]
   subDepartments       SubDepartment[]
+  assessments          Assessment[]        @relation("AssessmentDepartment")
 
   @@map("departments")
 }
@@ -1087,11 +1088,31 @@ enum QuestionType {
   CODING
   DESCRIPTIVE
   FORCED_CHOICE
+  RATING_SCALE_5
 }
 
 enum AssessmentMode {
   KNOWLEDGE
   PERSONALITY
+}
+
+enum AssessmentType {
+  TECHNICAL
+  PERSONALITY
+  APTITUDE
+  DEPARTMENT
+  GENERAL
+  SITUATIONAL
+}
+
+enum PersonalityTrait {
+  LEADERSHIP
+  LEARNING_ADAPTABILITY
+  TEAMWORK
+  COMMUNICATION
+  RESPONSIBILITY
+  PROBLEM_SOLVING
+  WORK_DISCIPLINE
 }
 
 enum AssessmentStatus {
@@ -1113,10 +1134,14 @@ model Assessment {
   name           String
   description    String?
   jobId          String?
+  departmentId   String?
   designationId  String?
+  assessmentType AssessmentType   @default(GENERAL)
+  instructions   String?
   durationMins   Int              @default(30)
   passingScore   Int              @default(60)
   maxAttempts    Int              @default(1)
+  maxQuestions   Int?
   startAt        DateTime?
   endAt          DateTime?
   status         AssessmentStatus @default(DRAFT)
@@ -1127,14 +1152,18 @@ model Assessment {
   deletedAt      DateTime?
 
   job           Job?                    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  department    Department?             @relation("AssessmentDepartment", fields: [departmentId], references: [id], onDelete: SetNull)
   designation   Designation?            @relation(fields: [designationId], references: [id])
   createdBy     User                    @relation("AssessmentCreatedBy", fields: [createdById], references: [id])
   questions     AssessmentQuestion[]
   assignments   AssessmentAssignment[]
   attempts      AssessmentAttempt[]
+  traits        AssessmentTrait[]
 
   @@index([jobId])
+  @@index([departmentId])
   @@index([status])
+  @@index([assessmentType])
   @@map("assessments")
 }
 
@@ -1149,11 +1178,12 @@ model AssessmentQuestion {
   displayOrder Int          @default(0)
   isActive     Boolean      @default(true)
   explanation  String?
-  trait        String?      // H|ES|X|A|C|O for FORCED_CHOICE statements
+  trait        String?      // Personality trait (LEADERSHIP, TEAMWORK, etc) or H|ES|X|A|C|O for FORCED_CHOICE
   sjtPart      String?      // B1|B2|B3
   sjtKey       Json?        // [{optionIndex, score}] for SJT scoring
   validityScale String?     // IM|INF|CONS
   isReversed   Boolean      @default(false)
+  category     String?      // Skill/knowledge category for non-personality assessments
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -1162,6 +1192,7 @@ model AssessmentQuestion {
   answers    AssessmentAnswer[]
 
   @@index([assessmentId])
+  @@index([trait])
   @@map("assessment_questions")
 }
 
@@ -1176,6 +1207,48 @@ model AssessmentOption {
 
   @@index([questionId])
   @@map("assessment_options")
+}
+
+model AssessmentTrait {
+  id              String            @id @default(uuid())
+  assessmentId    String
+  traitName       PersonalityTrait
+  description     String?
+  minScore        Int               @default(1)      // Minimum score for 1-5 scale
+  maxScore        Int               @default(5)      // Maximum score for 1-5 scale
+  level1Label     String            @default("Very Low")
+  level2Label     String            @default("Low")
+  level3Label     String            @default("Moderate")
+  level4Label     String            @default("High")
+  level5Label     String            @default("Very High")
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, traitName])
+  @@index([assessmentId])
+  @@map("assessment_traits")
+}
+
+model AssessmentTraitScore {
+  id              String  @id @default(uuid())
+  attemptId       String
+  candidateId     String
+  assessmentId    String
+  traitName       String  // PersonalityTrait enum value
+  totalScore      Int     // Sum of responses for this trait
+  questionCount   Int     // Number of questions for this trait
+  averageScore    Float   // Average: totalScore / questionCount
+  level           Int     // Converted to Level 1-5 (1=Very Low, 5=Very High)
+  createdAt       DateTime @default(now())
+
+  @@unique([attemptId, traitName])
+  @@index([attemptId])
+  @@index([candidateId])
+  @@index([assessmentId])
+  @@map("assessment_trait_scores")
 }
 
 model AssessmentAssignment {

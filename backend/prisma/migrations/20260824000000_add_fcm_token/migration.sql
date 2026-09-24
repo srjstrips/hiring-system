@@ -1,2 +1,2 @@
-ALTER TABLE "User" ADD COLUMN "fcmToken" TEXT;
-ALTER TABLE "Candidate" ADD COLUMN "fcmToken" TEXT;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "fcmToken" TEXT;
+ALTER TABLE "candidates" ADD COLUMN IF NOT EXISTS "fcmToken" TEXT;

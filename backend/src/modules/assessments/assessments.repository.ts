@@ -158,18 +158,26 @@ export class AssessmentsRepository {
   }
 
   async create(data: CreateAssessmentDto, createdById: string) {
-    const job = await prisma.job.findFirst({ where: { id: data.jobId, deletedAt: null } });
-    if (!job) throw new Error('JOB_NOT_FOUND');
+    let designationId = data.designationId;
+    if (data.jobId) {
+      const job = await prisma.job.findFirst({ where: { id: data.jobId, deletedAt: null } });
+      if (!job) throw new Error('JOB_NOT_FOUND');
+      if (!designationId) designationId = job.designationId;
+    }
 
     return prisma.assessment.create({
       data: {
         name: data.name,
         description: data.description || null,
-        jobId: data.jobId,
-        designationId: data.designationId || job.designationId,
+        jobId: data.jobId || undefined,
+        departmentId: data.departmentId || undefined,
+        designationId,
+        assessmentType: data.assessmentType ?? 'GENERAL',
+        instructions: data.instructions || null,
         durationMins: data.durationMins,
         passingScore: data.passingScore,
         maxAttempts: data.maxAttempts ?? 1,
+        maxQuestions: data.maxQuestions || undefined,
         startAt: toDateOrNull(data.startAt as any),
         endAt: toDateOrNull(data.endAt as any),
         status: data.status ?? 'DRAFT',
@@ -237,7 +245,7 @@ export class AssessmentsRepository {
       _max: { displayOrder: true },
     });
     const displayOrder = (maxOrder._max.displayOrder ?? -1) + 1;
-    const correct = data.options.find((o) => o.isCorrect)?.optionText ?? null;
+    const correct = data.options?.find((o) => o.isCorrect)?.optionText ?? null;
 
     const question = await prisma.assessmentQuestion.create({
       data: {
@@ -248,10 +256,10 @@ export class AssessmentsRepository {
         isActive: data.isActive ?? true,
         explanation: data.explanation || null,
         displayOrder,
-        options: data.options.map((o) => o.optionText),
+        options: data.options?.map((o) => o.optionText) ?? [],
         correctAnswer: correct,
         optionItems: {
-          create: data.options.map((o, i) => ({
+          create: (data.options ?? []).map((o, i) => ({
             optionText: o.optionText,
             isCorrect: o.isCorrect,
             displayOrder: o.displayOrder ?? i,
@@ -1003,6 +1011,70 @@ export class AssessmentsRepository {
       where: { jobId, deletedAt: null, status: { in: ['ACTIVE', 'DRAFT'] } },
       orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
       select: { id: true, name: true, durationMins: true, passingScore: true, status: true },
+    });
+  }
+
+  // Trait Management Methods
+  async createTrait(assessmentId: string, data: any) {
+    return prisma.assessmentTrait.create({
+      data: {
+        assessmentId,
+        traitName: data.traitName,
+        description: data.description || null,
+        minScore: data.minScore ?? 1,
+        maxScore: data.maxScore ?? 5,
+        level1Label: data.level1Label || 'Very Low',
+        level2Label: data.level2Label || 'Low',
+        level3Label: data.level3Label || 'Moderate',
+        level4Label: data.level4Label || 'High',
+        level5Label: data.level5Label || 'Very High',
+      },
+    });
+  }
+
+  async updateTrait(assessmentId: string, traitName: any, data: any) {
+    const trait = await prisma.assessmentTrait.findFirst({
+      where: { assessmentId, traitName: traitName as any },
+    });
+    if (!trait) return null;
+
+    return prisma.assessmentTrait.update({
+      where: { id: trait.id },
+      data: {
+        ...(data.description !== undefined ? { description: data.description } : {}),
+        ...(data.minScore !== undefined ? { minScore: data.minScore } : {}),
+        ...(data.maxScore !== undefined ? { maxScore: data.maxScore } : {}),
+        ...(data.level1Label !== undefined ? { level1Label: data.level1Label } : {}),
+        ...(data.level2Label !== undefined ? { level2Label: data.level2Label } : {}),
+        ...(data.level3Label !== undefined ? { level3Label: data.level3Label } : {}),
+        ...(data.level4Label !== undefined ? { level4Label: data.level4Label } : {}),
+        ...(data.level5Label !== undefined ? { level5Label: data.level5Label } : {}),
+      },
+    });
+  }
+
+  async deleteTrait(assessmentId: string, traitName: any) {
+    const trait = await prisma.assessmentTrait.findFirst({
+      where: { assessmentId, traitName: traitName as any },
+    });
+    if (!trait) return null;
+
+    return prisma.assessmentTrait.delete({
+      where: { id: trait.id },
+    });
+  }
+
+  async getTraits(assessmentId: string) {
+    return prisma.assessmentTrait.findMany({
+      where: { assessmentId, isActive: true },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async getTraitScores(attemptId: string) {
+    return prisma.assessmentTraitScore.findMany({
+      where: { attemptId },
+      orderBy: { createdAt: 'asc' },
     });
   }
 }
