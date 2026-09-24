@@ -52,6 +52,7 @@ router.get('/:id/assignments', authorize('assessments:read'), assessmentsControl
 router.get('/:id/results', authorize('assessments:read'), assessmentsController.getResultsDashboard);
 router.get('/:id/assignments/:assignmentId/result', authorize('assessments:read'), assessmentsController.getAssignmentResultDetail);
 router.post('/:id/assignments/:assignmentId/resend', authorize('assessments:update'), assessmentsController.resendAssignmentInvite);
+router.get('/:id/assignments/:assignmentId/report.pdf', authorize('assessments:read'), assessmentsController.downloadReport);
 router.post('/:id/assignments/:assignmentId/retake', authorize('assessments:update'), assessmentsController.allowRetake);
 
 router.get(

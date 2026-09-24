@@ -126,6 +126,17 @@ class AssessmentsController {
     res.json({ success: true, data });
   }
 
+  async downloadReport(req: AuthRequest, res: Response) {
+    const id = req.params['id'] as string;
+    const assignmentId = req.params['assignmentId'] as string;
+    const { generatePersonalityReportPdf } = await import('./personality-report.service');
+    const buffer = await generatePersonalityReportPdf(id, assignmentId);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="personality-report-${assignmentId}.pdf"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.send(buffer);
+  }
+
   async resendAssignmentInvite(req: AuthRequest, res: Response) {
     const id = req.params['id'] as string;
     const assignmentId = req.params['assignmentId'] as string;

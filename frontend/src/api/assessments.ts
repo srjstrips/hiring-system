@@ -207,6 +207,11 @@ export const assessmentsApi = {
       { increaseMaxAttempts }
     ),
 
+  downloadReport: (id: string, assignmentId: string) =>
+    api.get(`/assessments/${id}/assignments/${assignmentId}/report.pdf`, {
+      responseType: 'blob',
+    }),
+
   // Legacy
   createTemplate: (data: any) => api.post<{ success: boolean; data: AssessmentTemplate }>('/assessments/templates', data),
   getTemplate: (jobId: string) => api.get<{ success: boolean; data: AssessmentTemplate }>(`/assessments/jobs/${jobId}/template`),

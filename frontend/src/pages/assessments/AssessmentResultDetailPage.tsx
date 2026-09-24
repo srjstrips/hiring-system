@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { toast } from '@/hooks/useToast';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Circle, Mail, RefreshCw, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Circle, Download, Mail, RefreshCw, XCircle } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
 // ─── Personality profile types ────────────────────────────────────────────────
@@ -392,6 +392,26 @@ export default function AssessmentResultDetailPage() {
   const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<'resend' | 'retake' | 'increase' | null>(null);
 
+  const [downloadingReport, setDownloadingReport] = useState(false);
+
+  const handleDownloadReport = async () => {
+    if (!id || !assignmentId) return;
+    setDownloadingReport(true);
+    try {
+      const res = await assessmentsApi.downloadReport(id, assignmentId);
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `personality-report-${assignmentId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast({ title: 'Download failed', description: 'Could not generate report. Ensure the candidate has completed the assessment.', variant: 'destructive' });
+    } finally {
+      setDownloadingReport(false);
+    }
+  };
+
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['assessment-assignment-result', id, assignmentId],
     queryFn: () => assessmentsApi.getAssignmentResult(id!, assignmentId!).then((r) => r.data.data),
@@ -456,6 +476,12 @@ export default function AssessmentResultDetailPage() {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
+          {personalityResult && (
+            <Button variant="outline" onClick={handleDownloadReport} disabled={downloadingReport}>
+              <Download className="h-4 w-4 mr-1.5" />
+              {downloadingReport ? 'Generating…' : 'Download Report'}
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setConfirm('resend')}>
             <Mail className="h-4 w-4 mr-1.5" /> Resend Assessment
           </Button>
