@@ -23,9 +23,6 @@ const router = Router();
 // Short-lived signed stream (no HR session cookie required for <video src>)
 router.get('/recordings/:recordingId/stream', recordingsController.stream);
 
-// One-time seeder — no auth required (idempotent, safe to run multiple times)
-router.post('/seed-work-style', assessmentsController.seedWorkStyle);
-
 router.use(authenticate);
 
 // Phase 1 HR Assessment Management
@@ -76,6 +73,9 @@ router.get('/applications/:applicationId/result', authorize('assessments:read'),
 
 // TalentSignal seeder — creates the pre-built personality assessment for a job
 router.post('/seed-talent-signal', authorize('assessments:create'), assessmentsController.seedTalentSignal);
+
+// Work Style seeder — creates the SRJ Work Style Check assessment
+router.post('/seed-work-style', authorize('assessments:create'), assessmentsController.seedWorkStyle);
 
 
 export default router;
