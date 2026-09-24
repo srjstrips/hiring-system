@@ -1,6 +1,36 @@
 import { api } from './axios';
 
 export type AssessmentStatus = 'DRAFT' | 'ACTIVE' | 'CLOSED';
+export type AssessmentType = 'TECHNICAL' | 'PERSONALITY' | 'APTITUDE' | 'DEPARTMENT' | 'GENERAL' | 'SITUATIONAL';
+export type PersonalityTrait =
+  | 'LEADERSHIP'
+  | 'LEARNING_ADAPTABILITY'
+  | 'TEAMWORK'
+  | 'COMMUNICATION'
+  | 'RESPONSIBILITY'
+  | 'PROBLEM_SOLVING'
+  | 'WORK_DISCIPLINE';
+
+export const ASSESSMENT_TYPE_LABELS: Record<AssessmentType, string> = {
+  TECHNICAL: 'Technical',
+  PERSONALITY: 'Personality',
+  APTITUDE: 'Aptitude',
+  DEPARTMENT: 'Department',
+  GENERAL: 'General',
+  SITUATIONAL: 'Situational',
+};
+
+export const PERSONALITY_TRAIT_LABELS: Record<PersonalityTrait, string> = {
+  LEADERSHIP: 'Leadership',
+  LEARNING_ADAPTABILITY: 'Learning & Adaptability',
+  TEAMWORK: 'Teamwork',
+  COMMUNICATION: 'Communication',
+  RESPONSIBILITY: 'Responsibility',
+  PROBLEM_SOLVING: 'Problem Solving',
+  WORK_DISCIPLINE: 'Work Discipline',
+};
+
+export const MAX_PERSONALITY_QUESTIONS = 25;
 
 export interface AssessmentOption {
   id?: string;
@@ -19,28 +49,51 @@ export interface AssessmentQuestion {
   orderIndex?: number;
   isActive: boolean;
   explanation?: string | null;
+  trait?: string | null;
+  category?: string | null;
   options?: string[];
   optionItems?: AssessmentOption[];
   correctAnswer?: string | null;
+}
+
+export interface AssessmentTraitConfig {
+  id: string;
+  assessmentId: string;
+  traitName: PersonalityTrait;
+  description?: string | null;
+  minScore: number;
+  maxScore: number;
+  level1Label: string;
+  level2Label: string;
+  level3Label: string;
+  level4Label: string;
+  level5Label: string;
+  isActive: boolean;
 }
 
 export interface Assessment {
   id: string;
   name: string;
   description?: string | null;
-  jobId: string;
+  jobId?: string | null;
+  departmentId?: string | null;
   designationId?: string | null;
+  assessmentType: AssessmentType;
+  instructions?: string | null;
   durationMins: number;
   passingScore: number;
   maxAttempts: number;
+  maxQuestions?: number | null;
   startAt?: string | null;
   endAt?: string | null;
   status: AssessmentStatus;
   createdAt: string;
   updatedAt?: string;
-  job?: { id: string; title: string };
+  job?: { id: string; title: string } | null;
+  department?: { id: string; name: string } | null;
   designation?: { id: string; name: string } | null;
   createdBy?: { id: string; firstName: string; lastName: string };
+  traits?: AssessmentTraitConfig[];
   questionCount?: number;
   candidatesAssigned?: number;
   candidatesCompleted?: number;
@@ -109,6 +162,16 @@ export const assessmentsApi = {
     api.delete(`/assessments/${id}/questions/${questionId}`),
   reorderQuestions: (id: string, orderedIds: string[]) =>
     api.put(`/assessments/${id}/questions/reorder`, { orderedIds }),
+
+  // Phase 2 — Personality trait management
+  getTraits: (id: string) =>
+    api.get<{ success: boolean; data: AssessmentTraitConfig[] }>(`/assessments/${id}/traits`),
+  addTrait: (id: string, data: Record<string, unknown>) =>
+    api.post<{ success: boolean; data: AssessmentTraitConfig }>(`/assessments/${id}/traits`, data),
+  updateTrait: (id: string, traitName: string, data: Record<string, unknown>) =>
+    api.put<{ success: boolean; data: AssessmentTraitConfig }>(`/assessments/${id}/traits/${traitName}`, data),
+  deleteTrait: (id: string, traitName: string) =>
+    api.delete(`/assessments/${id}/traits/${traitName}`),
 
   getEligibleCandidates: (id: string, params?: { search?: string }) =>
     api.get<{ success: boolean; data: EligibleApplication[] }>(`/assessments/${id}/eligible-candidates`, { params }),

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { assessmentsApi } from '@/api/assessments';
+import { assessmentsApi, ASSESSMENT_TYPE_LABELS, MAX_PERSONALITY_QUESTIONS, type AssessmentType } from '@/api/assessments';
 import { api } from '@/api/axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,14 +9,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/useToast';
 import { ArrowLeft } from 'lucide-react';
 
+const ASSESSMENT_TYPES = Object.keys(ASSESSMENT_TYPE_LABELS) as AssessmentType[];
+
 const emptyForm = {
   name: '',
   description: '',
+  instructions: '',
   jobId: '',
+  departmentId: '',
   designationId: '',
+  assessmentType: 'GENERAL' as AssessmentType,
   durationMins: '30',
   passingScore: '60',
   maxAttempts: '1',
+  maxQuestions: '',
   startAt: '',
   endAt: '',
   status: 'DRAFT',
@@ -65,6 +71,11 @@ export default function AssessmentFormPage() {
     queryFn: () => api.get('/masters/designations?limit=200').then((r) => r.data.data),
   });
 
+  const { data: departments } = useQuery({
+    queryKey: ['departments-for-assessment'],
+    queryFn: () => api.get('/masters/departments?limit=200').then((r) => r.data.data),
+  });
+
   const { data: existing } = useQuery({
     queryKey: ['assessment', id],
     queryFn: () => assessmentsApi.getById(id!).then((r) => r.data.data),
@@ -83,11 +94,15 @@ export default function AssessmentFormPage() {
       setForm({
         name: existing.name,
         description: existing.description ?? '',
-        jobId: existing.jobId,
+        instructions: existing.instructions ?? '',
+        jobId: existing.jobId ?? '',
+        departmentId: existing.departmentId ?? '',
         designationId: existing.designationId ?? '',
+        assessmentType: existing.assessmentType ?? 'GENERAL',
         durationMins: String(existing.durationMins),
         passingScore: String(existing.passingScore),
         maxAttempts: String(existing.maxAttempts ?? 1),
+        maxQuestions: existing.maxQuestions != null ? String(existing.maxQuestions) : '',
         startAt: toLocalInput(existing.startAt),
         endAt: toLocalInput(existing.endAt),
         status: existing.status,
@@ -147,6 +162,16 @@ export default function AssessmentFormPage() {
     if (form.startAt && form.endAt && new Date(form.endAt) < new Date(form.startAt)) {
       next.endAt = 'End date cannot be earlier than start date';
     }
+    if (form.maxQuestions && Number(form.maxQuestions) < 1) {
+      next.maxQuestions = 'Maximum questions must be at least 1';
+    }
+    if (
+      form.assessmentType === 'PERSONALITY' &&
+      form.maxQuestions &&
+      Number(form.maxQuestions) > MAX_PERSONALITY_QUESTIONS
+    ) {
+      next.maxQuestions = `Personality assessments cannot have more than ${MAX_PERSONALITY_QUESTIONS} questions`;
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -157,8 +182,12 @@ export default function AssessmentFormPage() {
     saveMutation.mutate({
       name: form.name.trim(),
       description: form.description || undefined,
+      instructions: form.instructions || undefined,
       jobId: form.jobId || undefined,
+      departmentId: form.departmentId || undefined,
       designationId: form.designationId || undefined,
+      assessmentType: form.assessmentType,
+      maxQuestions: form.maxQuestions ? Number(form.maxQuestions) : undefined,
       durationMins: Number(form.durationMins),
       passingScore: Number(form.passingScore),
       maxAttempts: Number(form.maxAttempts),
@@ -207,19 +236,44 @@ export default function AssessmentFormPage() {
             </div>
 
             <div>
-              <label className={labelClass}>Description / Instructions</label>
+              <label className={labelClass}>Assessment Type *</label>
+              <select className={selectClass} value={form.assessmentType} onChange={set('assessmentType')}>
+                {ASSESSMENT_TYPES.map((t) => (
+                  <option key={t} value={t}>{ASSESSMENT_TYPE_LABELS[t]}</option>
+                ))}
+              </select>
+              {form.assessmentType === 'PERSONALITY' && (
+                <p className="mt-1 text-xs text-[#64748B]">
+                  Personality assessments support up to {MAX_PERSONALITY_QUESTIONS} questions on a 1–5 rating scale, each mapped to a workplace trait.
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className={labelClass}>Description</label>
               <textarea
                 rows={3}
                 className={textareaClass}
                 value={form.description}
                 onChange={set('description')}
-                placeholder="Instructions shown to candidates..."
+                placeholder="Short summary of what this assessment covers..."
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className={labelClass}>Instructions <span className="text-[#94A3B8]">(shown to candidates before starting)</span></label>
+              <textarea
+                rows={3}
+                className={textareaClass}
+                value={form.instructions}
+                onChange={set('instructions')}
+                placeholder="e.g. Answer all questions honestly. There are no right or wrong answers for personality questions..."
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div>
-                <label className={labelClass}>Job <span className="text-[#94A3B8]">(optional — leave blank for all candidates)</span></label>
+                <label className={labelClass}>Job <span className="text-[#94A3B8]">(optional)</span></label>
                 <select className={selectClass} value={form.jobId} onChange={set('jobId')}>
                   <option value="">All Candidates / General</option>
                   {jobs?.map((j: any) => <option key={j.id} value={j.id}>{j.title}</option>)}
@@ -227,7 +281,14 @@ export default function AssessmentFormPage() {
                 {errors.jobId && <p className={errorClass}>{errors.jobId}</p>}
               </div>
               <div>
-                <label className={labelClass}>Designation</label>
+                <label className={labelClass}>Department <span className="text-[#94A3B8]">(optional)</span></label>
+                <select className={selectClass} value={form.departmentId} onChange={set('departmentId')}>
+                  <option value="">Select...</option>
+                  {departments?.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Designation <span className="text-[#94A3B8]">(optional)</span></label>
                 <select className={selectClass} value={form.designationId} onChange={set('designationId')}>
                   <option value="">Select...</option>
                   {designations?.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -239,7 +300,7 @@ export default function AssessmentFormPage() {
               <p className="mb-3 text-sm font-medium text-[#111827]">Assessment Settings</p>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
-                  <label className={labelClass}>Duration (minutes) *</label>
+                  <label className={labelClass}>Duration (minutes) <span className="text-[#94A3B8]">(optional)</span></label>
                   <Input type="number" min="1" className={fieldClass} value={form.durationMins} onChange={set('durationMins')} />
                   {errors.durationMins && <p className={errorClass}>{errors.durationMins}</p>}
                 </div>
@@ -252,6 +313,19 @@ export default function AssessmentFormPage() {
                   <label className={labelClass}>Maximum Attempts</label>
                   <Input type="number" min="1" className={fieldClass} value={form.maxAttempts} onChange={set('maxAttempts')} />
                   {errors.maxAttempts && <p className={errorClass}>{errors.maxAttempts}</p>}
+                </div>
+                <div>
+                  <label className={labelClass}>Maximum Questions <span className="text-[#94A3B8]">(optional)</span></label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max={form.assessmentType === 'PERSONALITY' ? MAX_PERSONALITY_QUESTIONS : undefined}
+                    className={fieldClass}
+                    value={form.maxQuestions}
+                    onChange={set('maxQuestions')}
+                    placeholder={form.assessmentType === 'PERSONALITY' ? `Up to ${MAX_PERSONALITY_QUESTIONS}` : 'No limit'}
+                  />
+                  {errors.maxQuestions && <p className={errorClass}>{errors.maxQuestions}</p>}
                 </div>
               </div>
             </div>

@@ -2,6 +2,7 @@ import { prisma } from '@/config/database';
 import { AppError } from '@/utils/errors';
 import { scorePersonalityAttempt } from './personality-scoring.service';
 import { sendCandidateAssessmentSummaryEmail } from './personality-email.service';
+import assessmentsScoringService from './assessments-scoring.service';
 import type { SaveAnswerDto, SaveAnswersBatchDto } from './public-assessments.validator';
 
 type GateCode =
@@ -452,7 +453,7 @@ class PublicAssessmentsService {
       }
     }
 
-    // ── Personality scoring (async, non-blocking) ─────────────────────────
+    // ── TalentSignal (HEXACO) personality scoring (async, non-blocking) ───
     if (attempt.assessment.mode === 'PERSONALITY') {
       scorePersonalityAttempt(attemptId).catch((err) =>
         console.error('[TalentSignal] Scoring error for attempt', attemptId, err)
@@ -460,6 +461,14 @@ class PublicAssessmentsService {
       sendCandidateAssessmentSummaryEmail(attemptId).catch((err) =>
         console.error('[TalentSignal] Summary email error for attempt', attemptId, err)
       );
+    }
+
+    // ── Phase 2 simple trait-based personality scoring (1-5 scale) ────────
+    // Uses assessmentType (distinct from the legacy HEXACO `mode` field above)
+    if (attempt.assessment.assessmentType === 'PERSONALITY') {
+      await assessmentsScoringService
+        .calculatePersonalityTraitScores(attemptId, attempt.assessmentId)
+        .catch((err) => console.error('[Assessment] Trait scoring error for attempt', attemptId, err));
     }
 
     return this.statusPayload(attempt.assignment!.secureToken);

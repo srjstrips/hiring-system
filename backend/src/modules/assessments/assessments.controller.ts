@@ -187,6 +187,35 @@ class AssessmentsController {
     const id = await seedTalentSignalAssessment(req.user!.id);
     return res.status(201).json({ success: true, data: { assessmentId: id } });
   }
+
+  // Phase 2 — Personality assessment trait management
+  async listTraits(req: AuthRequest, res: Response) {
+    const id = req.params['id'] as string;
+    const data = await assessmentsService.getTraits(id);
+    res.json({ success: true, data });
+  }
+
+  async createTrait(req: AuthRequest, res: Response) {
+    const id = req.params['id'] as string;
+    const data = await assessmentsService.addTrait(id, req.body);
+    res.status(201).json({ success: true, data });
+  }
+
+  async updateTrait(req: AuthRequest, res: Response) {
+    const id = req.params['id'] as string;
+    const traitName = req.params['traitName'] as string;
+    const data = await assessmentsService.updateTrait(id, traitName, req.body);
+    if (!data) return res.status(404).json({ success: false, message: 'Trait not found' });
+    res.json({ success: true, data });
+  }
+
+  async deleteTrait(req: AuthRequest, res: Response) {
+    const id = req.params['id'] as string;
+    const traitName = req.params['traitName'] as string;
+    const data = await assessmentsService.removeTrait(id, traitName);
+    if (!data) return res.status(404).json({ success: false, message: 'Trait not found' });
+    res.json({ success: true, message: 'Trait removed' });
+  }
 }
 
 export default new AssessmentsController();

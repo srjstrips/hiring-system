@@ -12,8 +12,10 @@ import type {
 
 const assessmentListInclude = {
   job: { select: { id: true, title: true } },
+  department: { select: { id: true, name: true } },
   designation: { select: { id: true, name: true } },
   createdBy: { select: { id: true, firstName: true, lastName: true } },
+  traits: true,
   _count: {
     select: {
       questions: true,
@@ -65,6 +67,8 @@ function mapQuestionForClient(q: any, includeCorrect = true) {
           displayOrder: o.displayOrder,
         })),
     correctAnswer: includeCorrect ? (correctFromOptions ?? q.correctAnswer ?? null) : undefined,
+    trait: q.trait ?? null,
+    category: q.category ?? null,
   };
 }
 
@@ -200,11 +204,15 @@ export class AssessmentsRepository {
       data: {
         ...(data.name !== undefined ? { name: data.name } : {}),
         ...(data.description !== undefined ? { description: data.description || null } : {}),
-        ...(data.jobId !== undefined ? { jobId: data.jobId } : {}),
+        ...(data.jobId !== undefined ? { jobId: data.jobId || null } : {}),
+        ...(data.departmentId !== undefined ? { departmentId: data.departmentId || null } : {}),
         ...(designationId !== undefined ? { designationId: designationId || null } : {}),
+        ...(data.assessmentType !== undefined ? { assessmentType: data.assessmentType } : {}),
+        ...(data.instructions !== undefined ? { instructions: data.instructions || null } : {}),
         ...(data.durationMins !== undefined ? { durationMins: data.durationMins } : {}),
         ...(data.passingScore !== undefined ? { passingScore: data.passingScore } : {}),
         ...(data.maxAttempts !== undefined ? { maxAttempts: data.maxAttempts } : {}),
+        ...(data.maxQuestions !== undefined ? { maxQuestions: data.maxQuestions || null } : {}),
         ...(data.startAt !== undefined ? { startAt: toDateOrNull(data.startAt as any) } : {}),
         ...(data.endAt !== undefined ? { endAt: toDateOrNull(data.endAt as any) } : {}),
         ...(data.status !== undefined ? { status: data.status } : {}),
@@ -255,6 +263,8 @@ export class AssessmentsRepository {
         marks: data.marks,
         isActive: data.isActive ?? true,
         explanation: data.explanation || null,
+        trait: data.trait || null,
+        category: data.category || null,
         displayOrder,
         options: data.options?.map((o) => o.optionText) ?? [],
         correctAnswer: correct,
@@ -288,6 +298,8 @@ export class AssessmentsRepository {
         ...(data.marks !== undefined ? { marks: data.marks } : {}),
         ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
         ...(data.explanation !== undefined ? { explanation: data.explanation || null } : {}),
+        ...(data.trait !== undefined ? { trait: data.trait || null } : {}),
+        ...(data.category !== undefined ? { category: data.category || null } : {}),
         ...(data.options
           ? {
               options: data.options.map((o) => o.optionText),

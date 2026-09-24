@@ -1,29 +1,47 @@
 import { useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { assessmentsApi, type AssessmentQuestion } from '@/api/assessments';
+import {
+  assessmentsApi,
+  PERSONALITY_TRAIT_LABELS,
+  MAX_PERSONALITY_QUESTIONS,
+  type AssessmentQuestion,
+  type PersonalityTrait,
+} from '@/api/assessments';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { toast } from '@/hooks/useToast';
-import { ArrowLeft, Plus, Pencil, Trash2, ArrowUp, ArrowDown, X, Upload } from 'lucide-react';
+import { ArrowLeft, Plus, Pencil, Trash2, ArrowUp, ArrowDown, X, Upload, Eye } from 'lucide-react';
 import { parseQuestionSheetFile, type RowParseError } from './questionSheetImport';
 
 type OptionForm = { optionText: string; isCorrect: boolean };
 
-const emptyQuestion = () => ({
+const PERSONALITY_TRAITS = Object.keys(PERSONALITY_TRAIT_LABELS) as PersonalityTrait[];
+
+const RATING_SCALE_OPTIONS: OptionForm[] = [
+  { optionText: '1 - Strongly Disagree', isCorrect: false },
+  { optionText: '2 - Disagree', isCorrect: false },
+  { optionText: '3 - Neutral', isCorrect: false },
+  { optionText: '4 - Agree', isCorrect: false },
+  { optionText: '5 - Strongly Agree', isCorrect: false },
+];
+
+const emptyQuestion = (isPersonality: boolean) => ({
   questionText: '',
-  questionType: 'MCQ',
-  marks: '2',
+  questionType: isPersonality ? 'RATING_SCALE_5' : 'MCQ',
+  marks: isPersonality ? '1' : '2',
   isActive: true,
-  options: [
+  trait: '' as string,
+  category: '',
+  options: (isPersonality ? RATING_SCALE_OPTIONS.map((o) => ({ ...o })) : [
     { optionText: '', isCorrect: false },
     { optionText: '', isCorrect: false },
     { optionText: '', isCorrect: false },
     { optionText: '', isCorrect: false },
-  ] as OptionForm[],
+  ]) as OptionForm[],
 });
 
 export default function AssessmentQuestionsPage() {
@@ -32,17 +50,20 @@ export default function AssessmentQuestionsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState(emptyQuestion());
+  const [form, setForm] = useState(emptyQuestion(false));
   const [deleteTarget, setDeleteTarget] = useState<AssessmentQuestion | null>(null);
   const [formError, setFormError] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadErrors, setUploadErrors] = useState<RowParseError[]>([]);
+  const [previewQuestion, setPreviewQuestion] = useState<AssessmentQuestion | null>(null);
 
   const { data: assessment } = useQuery({
     queryKey: ['assessment', id],
     queryFn: () => assessmentsApi.getById(id!).then((r) => r.data.data),
     enabled: !!id,
   });
+
+  const isPersonality = assessment?.assessmentType === 'PERSONALITY';
 
   const { data: questions = [], isLoading } = useQuery({
     queryKey: ['assessment-questions', id],
@@ -85,16 +106,27 @@ export default function AssessmentQuestionsPage() {
     onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
   });
 
+  const activePersonalityCount = questions.filter((q) => q.isActive).length;
+  const personalityLimitReached = isPersonality && activePersonalityCount >= MAX_PERSONALITY_QUESTIONS;
+
   const closeForm = () => {
     setShowForm(false);
     setEditingId(null);
-    setForm(emptyQuestion());
+    setForm(emptyQuestion(isPersonality));
     setFormError('');
   };
 
   const openCreate = () => {
+    if (personalityLimitReached) {
+      toast({
+        title: 'Question limit reached',
+        description: `Personality assessments cannot have more than ${MAX_PERSONALITY_QUESTIONS} active questions.`,
+        variant: 'destructive',
+      });
+      return;
+    }
     setEditingId(null);
-    setForm(emptyQuestion());
+    setForm(emptyQuestion(isPersonality));
     setShowForm(true);
   };
 
@@ -112,7 +144,9 @@ export default function AssessmentQuestionsPage() {
       questionType: q.questionType || 'MCQ',
       marks: String(q.marks),
       isActive: q.isActive,
-      options: opts.length >= 2 ? opts : emptyQuestion().options,
+      trait: q.trait ?? '',
+      category: q.category ?? '',
+      options: opts.length >= 2 ? opts : emptyQuestion(isPersonality).options,
     });
     setShowForm(true);
   };
@@ -142,6 +176,37 @@ export default function AssessmentQuestionsPage() {
       setFormError('Marks must be greater than 0');
       return;
     }
+
+    const isRatingScale = form.questionType === 'RATING_SCALE_5';
+
+    if (isRatingScale) {
+      if (!form.trait) {
+        setFormError('A personality trait must be selected for this question');
+        return;
+      }
+      if (
+        !editingId &&
+        personalityLimitReached
+      ) {
+        setFormError(`Personality assessments cannot have more than ${MAX_PERSONALITY_QUESTIONS} active questions`);
+        return;
+      }
+      setFormError('');
+      saveMutation.mutate({
+        questionText: form.questionText.trim(),
+        questionType: 'RATING_SCALE_5',
+        marks: Number(form.marks),
+        isActive: form.isActive,
+        trait: form.trait,
+        options: RATING_SCALE_OPTIONS.map((o, i) => ({
+          optionText: o.optionText,
+          isCorrect: false,
+          displayOrder: i,
+        })),
+      });
+      return;
+    }
+
     const filled = form.options.filter((o) => o.optionText.trim());
     if (filled.length < 2) {
       setFormError('At least 2 options are required');
@@ -157,6 +222,7 @@ export default function AssessmentQuestionsPage() {
       questionType: 'MCQ',
       marks: Number(form.marks),
       isActive: form.isActive,
+      category: form.category.trim() || undefined,
       options: filled.map((o, i) => ({
         optionText: o.optionText.trim(),
         isCorrect: o.isCorrect,
@@ -236,29 +302,50 @@ export default function AssessmentQuestionsPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold">Manage Questions</h1>
-            <p className="text-sm text-muted-foreground">{assessment?.name}</p>
+            <p className="text-sm text-muted-foreground">
+              {assessment?.name}
+              {isPersonality && (
+                <span className="ml-2">
+                  · {activePersonalityCount}/{MAX_PERSONALITY_QUESTIONS} active personality questions
+                </span>
+              )}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".xlsx,.xls,.csv,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            className="hidden"
-            onChange={(e) => handleUploadFile(e.target.files?.[0])}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            disabled={uploading}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            {uploading ? 'Uploading...' : 'Upload Questions'}
+          {!isPersonality && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                className="hidden"
+                onChange={(e) => handleUploadFile(e.target.files?.[0])}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={uploading}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {uploading ? 'Uploading...' : 'Upload Questions'}
+              </Button>
+            </>
+          )}
+          <Button onClick={openCreate} disabled={personalityLimitReached}>
+            <Plus className="h-4 w-4 mr-2" /> Add Question
           </Button>
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" /> Add Question</Button>
         </div>
       </div>
+
+      {personalityLimitReached && !showForm && (
+        <Card className="border-amber-200 bg-amber-50/60">
+          <CardContent className="py-3 text-sm text-amber-800">
+            Maximum of {MAX_PERSONALITY_QUESTIONS} active personality questions reached. Deactivate or delete a question to add a new one.
+          </CardContent>
+        </Card>
+      )}
 
       {uploadErrors.length > 0 && (
         <Card className="border-red-200 bg-red-50/60">
@@ -305,7 +392,10 @@ export default function AssessmentQuestionsPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Question Type</label>
-                  <Input value="Multiple Choice (MCQ)" disabled />
+                  <Input
+                    value={form.questionType === 'RATING_SCALE_5' ? '1-5 Rating Scale' : 'Multiple Choice (MCQ)'}
+                    disabled
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Marks *</label>
@@ -328,55 +418,98 @@ export default function AssessmentQuestionsPage() {
                   </select>
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-xs text-muted-foreground block">Options * (select correct answer)</label>
-                {form.options.map((opt, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="correct"
-                      checked={opt.isCorrect}
-                      onChange={() => setCorrect(idx)}
-                      className="accent-primary"
-                    />
-                    <Input
-                      value={opt.optionText}
-                      placeholder={`Option ${String.fromCharCode(65 + idx)}`}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          options: f.options.map((o, i) => (i === idx ? { ...o, optionText: e.target.value } : o)),
-                        }))
-                      }
-                    />
-                    {form.options.length > 2 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() =>
-                          setForm((f) => ({ ...f, options: f.options.filter((_, i) => i !== idx) }))
+
+              {form.questionType === 'RATING_SCALE_5' ? (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Personality Trait *</label>
+                  <select
+                    className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                    value={form.trait}
+                    onChange={(e) => setForm((f) => ({ ...f, trait: e.target.value }))}
+                  >
+                    <option value="">Select a trait...</option>
+                    {PERSONALITY_TRAITS.map((t) => (
+                      <option key={t} value={t}>{PERSONALITY_TRAIT_LABELS[t]}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Use simple, everyday language. E.g. "I like to help my team when they need support."
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Category <span className="opacity-70">(optional)</span></label>
+                  <Input
+                    value={form.category}
+                    placeholder="e.g. Electrical Basics, Safety, Maintenance"
+                    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                  />
+                </div>
+              )}
+
+              {form.questionType === 'RATING_SCALE_5' ? (
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground block">
+                    Response Scale (fixed — candidates select one)
+                  </label>
+                  {form.options.map((opt, idx) => (
+                    <div key={idx} className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
+                      <span className="h-3 w-3 rounded-full border border-muted-foreground/40 shrink-0" />
+                      <span className="text-sm text-muted-foreground">{opt.optionText}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground block">Options * (select correct answer)</label>
+                  {form.options.map((opt, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="correct"
+                        checked={opt.isCorrect}
+                        onChange={() => setCorrect(idx)}
+                        className="accent-primary"
+                      />
+                      <Input
+                        value={opt.optionText}
+                        placeholder={`Option ${String.fromCharCode(65 + idx)}`}
+                        onChange={(e) =>
+                          setForm((f) => ({
+                            ...f,
+                            options: f.options.map((o, i) => (i === idx ? { ...o, optionText: e.target.value } : o)),
+                          }))
                         }
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setForm((f) => ({
-                      ...f,
-                      options: [...f.options, { optionText: '', isCorrect: false }],
-                    }))
-                  }
-                >
-                  <Plus className="h-3.5 w-3.5 mr-1.5" /> Add Option
-                </Button>
-              </div>
+                      />
+                      {form.options.length > 2 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            setForm((f) => ({ ...f, options: f.options.filter((_, i) => i !== idx) }))
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setForm((f) => ({
+                        ...f,
+                        options: [...f.options, { optionText: '', isCorrect: false }],
+                      }))
+                    }
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1.5" /> Add Option
+                  </Button>
+                </div>
+              )}
               {formError && <p className="text-sm text-red-600">{formError}</p>}
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={closeForm}>Cancel</Button>
@@ -395,7 +528,9 @@ export default function AssessmentQuestionsPage() {
         <Card>
           <CardContent className="py-16 text-center text-muted-foreground">
             <p className="font-medium">No questions yet</p>
-            <p className="text-sm mt-1">Add MCQ questions for this assessment.</p>
+            <p className="text-sm mt-1">
+              {isPersonality ? 'Add 1-5 rating scale questions mapped to a trait.' : 'Add MCQ questions for this assessment.'}
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -404,6 +539,7 @@ export default function AssessmentQuestionsPage() {
             const opts = q.optionItems?.length
               ? q.optionItems.map((o) => o.optionText)
               : (q.options ?? []);
+            const isRating = q.questionType === 'RATING_SCALE_5';
             return (
               <Card key={q.id}>
                 <CardContent className="pt-4 pb-4">
@@ -411,7 +547,11 @@ export default function AssessmentQuestionsPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-2">
                         <h3 className="font-semibold">Question {index + 1}</h3>
-                        <Badge variant="secondary">MCQ</Badge>
+                        <Badge variant="secondary">{isRating ? '1-5 Rating Scale' : 'MCQ'}</Badge>
+                        {q.trait && (
+                          <Badge variant="outline">{PERSONALITY_TRAIT_LABELS[q.trait as PersonalityTrait] ?? q.trait}</Badge>
+                        )}
+                        {q.category && <Badge variant="outline">{q.category}</Badge>}
                         <Badge variant={q.isActive ? 'default' : 'secondary'}>
                           {q.isActive ? 'Active' : 'Inactive'}
                         </Badge>
@@ -433,6 +573,9 @@ export default function AssessmentQuestionsPage() {
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => move(index, 1)} disabled={index === questions.length - 1}>
                         <ArrowDown className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setPreviewQuestion(q)}>
+                        <Eye className="h-3.5 w-3.5 mr-1" /> Preview
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => openEdit(q)}>
                         <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
@@ -457,6 +600,31 @@ export default function AssessmentQuestionsPage() {
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
         loading={deleteMutation.isPending}
       />
+
+      {previewQuestion && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setPreviewQuestion(null)}>
+          <Card className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-base">Candidate Preview</CardTitle>
+              <Button variant="ghost" size="icon" onClick={() => setPreviewQuestion(null)}><X className="h-4 w-4" /></Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm font-medium whitespace-pre-wrap">{previewQuestion.questionText}</p>
+              <div className="space-y-2">
+                {(previewQuestion.optionItems?.length
+                  ? previewQuestion.optionItems.map((o) => o.optionText)
+                  : previewQuestion.options ?? []
+                ).map((text, i) => (
+                  <label key={i} className="flex items-center gap-3 border rounded-md p-3 text-sm text-muted-foreground">
+                    <input type="radio" disabled className="accent-[#FF6B00]" />
+                    {previewQuestion.questionType === 'RATING_SCALE_5' ? text.replace(/^\d\s*-\s*/, '') : text}
+                  </label>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

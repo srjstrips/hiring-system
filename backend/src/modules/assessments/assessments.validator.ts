@@ -142,8 +142,8 @@ export const AssignCandidatesSchema = z.object({
 });
 
 // Assessment Traits (for Personality Assessments)
+// Note: assessmentId comes from the URL param, not the body.
 export const CreateAssessmentTraitSchema = z.object({
-  assessmentId: z.string().uuid('Valid assessment is required'),
   traitName: PersonalityTraitEnum,
   description: z.string().optional().nullable(),
   minScore: z.coerce.number().int().min(1).default(1),
@@ -155,7 +155,7 @@ export const CreateAssessmentTraitSchema = z.object({
   level5Label: z.string().default('Very High'),
 });
 
-export const UpdateAssessmentTraitSchema = CreateAssessmentTraitSchema.omit({ assessmentId: true }).partial();
+export const UpdateAssessmentTraitSchema = CreateAssessmentTraitSchema.partial();
 
 // Legacy schemas (job-scoped builder / career)
 export const CreateTemplateSchema = z.object({

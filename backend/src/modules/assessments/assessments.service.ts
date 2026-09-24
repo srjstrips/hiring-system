@@ -15,6 +15,18 @@ import { z } from 'zod';
 
 type AssignDto = z.infer<typeof AssignCandidatesSchema>;
 
+const VALID_PERSONALITY_TRAITS = [
+  'LEADERSHIP',
+  'LEARNING_ADAPTABILITY',
+  'TEAMWORK',
+  'COMMUNICATION',
+  'RESPONSIBILITY',
+  'PROBLEM_SOLVING',
+  'WORK_DISCIPLINE',
+];
+
+const MAX_PERSONALITY_QUESTIONS = 25;
+
 class AssessmentsService {
   async list(query: { page: number; limit: number; search?: string; status?: string; jobId?: string }) {
     return assessmentsRepository.list(query);
@@ -55,21 +67,70 @@ class AssessmentsService {
     return assessmentsRepository.listQuestions(assessmentId, true);
   }
 
+  private validatePersonalityQuestionFields(
+    data: { questionType?: string; trait?: string | null },
+    fieldsProvided: { questionType: boolean; trait: boolean }
+  ) {
+    if (fieldsProvided.questionType && data.questionType !== 'RATING_SCALE_5') {
+      throw new AppError('Personality assessment questions must use the 1-5 rating scale', 400);
+    }
+    if (fieldsProvided.trait) {
+      if (!data.trait || !VALID_PERSONALITY_TRAITS.includes(data.trait)) {
+        throw new AppError(
+          `Personality trait mapping is required. Valid traits: ${VALID_PERSONALITY_TRAITS.join(', ')}`,
+          400
+        );
+      }
+    }
+  }
+
   async createQuestion(assessmentId: string, data: CreateQuestionDto) {
-    await this.getById(assessmentId);
+    const assessment = await this.getById(assessmentId);
+
+    if (assessment.assessmentType === 'PERSONALITY') {
+      this.validatePersonalityQuestionFields(data, { questionType: true, trait: true });
+
+      const willBeActive = data.isActive ?? true;
+      if (willBeActive) {
+        const activeCount = (assessment.questions ?? []).filter((q: any) => q.isActive).length;
+        if (activeCount >= MAX_PERSONALITY_QUESTIONS) {
+          throw new AppError(
+            `Personality assessments cannot have more than ${MAX_PERSONALITY_QUESTIONS} active questions`,
+            400
+          );
+        }
+      }
+    }
+
     return assessmentsRepository.createQuestion(assessmentId, data);
   }
 
   async updateQuestion(assessmentId: string, questionId: string, data: UpdateQuestionDto) {
-    await this.getById(assessmentId);
-    const updated = await assessmentsRepository.updateQuestion(questionId, data);
-    if (!updated || (updated as any).assessmentId && (updated as any).assessmentId !== assessmentId) {
-      // ensure question belongs to assessment
-    }
+    const assessment = await this.getById(assessmentId);
     const questions = await assessmentsRepository.listQuestions(assessmentId, true);
-    if (!questions.find((q) => q.id === questionId) && !updated) {
-      throw new AppError('Question not found', 404);
+    const existingQuestion = questions.find((q) => q.id === questionId);
+    if (!existingQuestion) throw new AppError('Question not found', 404);
+
+    if (assessment.assessmentType === 'PERSONALITY') {
+      this.validatePersonalityQuestionFields(data, {
+        questionType: data.questionType !== undefined,
+        trait: data.trait !== undefined,
+      });
+
+      const wasActive = existingQuestion.isActive;
+      const willBeActive = data.isActive !== undefined ? data.isActive : wasActive;
+      if (!wasActive && willBeActive) {
+        const activeCount = questions.filter((q) => q.isActive && q.id !== questionId).length;
+        if (activeCount >= MAX_PERSONALITY_QUESTIONS) {
+          throw new AppError(
+            `Personality assessments cannot have more than ${MAX_PERSONALITY_QUESTIONS} active questions`,
+            400
+          );
+        }
+      }
     }
+
+    const updated = await assessmentsRepository.updateQuestion(questionId, data);
     if (!updated) throw new AppError('Question not found', 404);
     return updated;
   }

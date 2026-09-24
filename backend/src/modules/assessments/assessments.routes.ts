@@ -6,10 +6,12 @@ import {
   AssignCandidatesSchema,
   BulkQuestionsSchema,
   CreateAssessmentSchema,
+  CreateAssessmentTraitSchema,
   CreateQuestionSchema,
   CreateTemplateSchema,
   ReorderQuestionsSchema,
   UpdateAssessmentSchema,
+  UpdateAssessmentTraitSchema,
   UpdateQuestionSchema,
   UpdateTemplateSchema,
 } from './assessments.validator';
@@ -35,6 +37,12 @@ router.post('/:id/questions', validateBody(CreateQuestionSchema), authorize('ass
 router.put('/:id/questions/reorder', validateBody(ReorderQuestionsSchema), authorize('assessments:update'), assessmentsController.reorderQuestions);
 router.put('/:id/questions/:questionId', validateBody(UpdateQuestionSchema), authorize('assessments:update'), assessmentsController.updateQuestion);
 router.delete('/:id/questions/:questionId', authorize('assessments:update'), assessmentsController.deleteQuestion);
+
+// Phase 2 — Personality assessment trait management
+router.get('/:id/traits', authorize('assessments:read'), assessmentsController.listTraits);
+router.post('/:id/traits', validateBody(CreateAssessmentTraitSchema), authorize('assessments:update'), assessmentsController.createTrait);
+router.put('/:id/traits/:traitName', validateBody(UpdateAssessmentTraitSchema), authorize('assessments:update'), assessmentsController.updateTrait);
+router.delete('/:id/traits/:traitName', authorize('assessments:update'), assessmentsController.deleteTrait);
 
 router.get('/:id/eligible-candidates', authorize('assessments:read'), assessmentsController.eligibleCandidates);
 router.post('/:id/assign', validateBody(AssignCandidatesSchema), authorize('assessments:update'), assessmentsController.assignCandidates);

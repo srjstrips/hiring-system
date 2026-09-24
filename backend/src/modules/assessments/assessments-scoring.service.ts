@@ -19,30 +19,22 @@ export interface PersonalityTraitScoreResult {
 
 class AssessmentsScoringService {
   /**
-   * Calculate generic scoring for TECHNICAL, APTITUDE, DEPARTMENT, GENERAL assessments
-   * Correct answer = marks, Wrong answer = 0, Unanswered = 0
+   * Calculate generic scoring for TECHNICAL, APTITUDE, DEPARTMENT, GENERAL, SITUATIONAL assessments.
+   * Correct answer = marks, Wrong answer = 0, Unanswered = 0.
+   *
+   * Reads from the attempt SNAPSHOT (AssessmentAttemptQuestion/Option), matching what the
+   * candidate actually saw — the same data source used by the submit flow.
    */
   async calculateGenericScore(
     attemptId: string,
-    assessmentId: string,
+    _assessmentId: string,
     passingScore: number
   ): Promise<ScoringResult> {
     const attempt = await prisma.assessmentAttempt.findUnique({
       where: { id: attemptId },
       include: {
-        answers: {
-          include: {
-            attemptQuestion: true,
-            selectedOption: true,
-          },
-        },
-        assessment: {
-          include: {
-            questions: {
-              include: { optionItems: true },
-            },
-          },
-        },
+        answers: true,
+        questionSnapshots: { include: { options: true } },
       },
     });
 
@@ -51,23 +43,13 @@ class AssessmentsScoringService {
     let totalMarks = 0;
     let obtainedMarks = 0;
 
-    // Calculate total marks available
-    for (const question of attempt.assessment.questions) {
-      totalMarks += question.marks;
-    }
-
-    // Calculate obtained marks
-    for (const answer of attempt.answers) {
-      const question = attempt.assessment.questions.find(
-        (q) => q.id === answer.questionId
-      );
-      if (!question) continue;
-
-      // Check if answer is correct
-      const isCorrect = this.isAnswerCorrect(answer, question);
-      if (isCorrect) {
-        obtainedMarks += question.marks;
-      }
+    for (const q of attempt.questionSnapshots) {
+      totalMarks += q.marks;
+      const answer = attempt.answers.find((a) => a.attemptQuestionId === q.id);
+      const correctOption = q.options.find((o) => o.isCorrect);
+      const selectedOption = q.options.find((o) => o.id === answer?.selectedOptionId);
+      const isCorrect = !!(selectedOption && correctOption && selectedOption.id === correctOption.id);
+      if (isCorrect) obtainedMarks += q.marks;
     }
 
     const percentage = totalMarks > 0 ? (obtainedMarks / totalMarks) * 100 : 0;
@@ -83,8 +65,14 @@ class AssessmentsScoringService {
   }
 
   /**
-   * Calculate personality trait scores for personality assessments
-   * Uses 1-5 rating scale responses and maps to trait levels
+   * Calculate personality trait scores for personality assessments.
+   *
+   * IMPORTANT: candidate answers reference the immutable attempt SNAPSHOT
+   * (AssessmentAttemptQuestion / AssessmentAttemptOption), not the live
+   * AssessmentQuestion/AssessmentOption records — the live question could be
+   * edited or deleted after the candidate has taken the assessment. This
+   * method reads from the snapshot so scoring always reflects what the
+   * candidate actually saw and answered.
    */
   async calculatePersonalityTraitScores(
     attemptId: string,
@@ -93,61 +81,51 @@ class AssessmentsScoringService {
     const attempt = await prisma.assessmentAttempt.findUnique({
       where: { id: attemptId },
       include: {
-        answers: {
-          include: {
-            attemptQuestion: true,
-            selectedOption: true,
-          },
-        },
-        assessment: {
-          include: {
-            questions: {
-              include: { optionItems: true },
-            },
-            traits: true,
-          },
+        answers: true,
+        questionSnapshots: {
+          include: { options: { orderBy: { displayOrder: 'asc' } } },
         },
       },
     });
 
     if (!attempt) throw new Error('Attempt not found');
 
-    // Group answers by trait
+    const traitConfigs = await prisma.assessmentTrait.findMany({
+      where: { assessmentId },
+    });
+
+    // Group answers by trait using the snapshot (what the candidate actually answered)
     const traitScores = new Map<string, { total: number; count: number }>();
 
-    for (const answer of attempt.answers) {
-      const question = attempt.assessment.questions.find(
-        (q) => q.id === answer.questionId
-      );
+    for (const q of attempt.questionSnapshots) {
+      if (!q.trait) continue;
+      const answer = attempt.answers.find((a) => a.attemptQuestionId === q.id);
+      if (!answer?.selectedOptionId) continue;
 
-      if (!question || !question.trait) continue;
+      const optionIndex = q.options.findIndex((o) => o.id === answer.selectedOptionId);
+      if (optionIndex === -1) continue;
 
-      // Get the numeric value of the response (1-5)
-      const responseValue = this.extractRatingScaleValue(answer, question);
-      if (responseValue === null) continue;
+      // Options are ordered 0-4 representing a 1-5 scale (Strongly Disagree -> Strongly Agree)
+      const responseValue = optionIndex + 1;
 
-      if (!traitScores.has(question.trait)) {
-        traitScores.set(question.trait, { total: 0, count: 0 });
+      if (!traitScores.has(q.trait)) {
+        traitScores.set(q.trait, { total: 0, count: 0 });
       }
-
-      const score = traitScores.get(question.trait)!;
+      const score = traitScores.get(q.trait)!;
       score.total += responseValue;
       score.count += 1;
     }
 
     // Convert to trait results
     const results: PersonalityTraitScoreResult[] = [];
+    const batchWrites: any[] = [];
 
     for (const [traitName, { total, count }] of traitScores.entries()) {
-      const traitConfig = attempt.assessment.traits.find(
-        (t) => t.traitName === traitName
-      );
-
-      if (!traitConfig) continue;
+      const traitConfig = traitConfigs.find((t) => t.traitName === traitName);
 
       const averageScore = count > 0 ? total / count : 0;
       const level = this.convertAverageToLevel(averageScore, 5);
-      const levelLabel = this.getLevelLabel(level, traitConfig);
+      const levelLabel = traitConfig ? this.getLevelLabel(level, traitConfig) : this.defaultLevelLabel(level);
 
       results.push({
         traitName,
@@ -158,74 +136,45 @@ class AssessmentsScoringService {
         levelLabel,
       });
 
-      // Save trait score to database
-      await prisma.assessmentTraitScore.upsert({
-        where: {
-          attemptId_traitName: {
+      batchWrites.push(
+        prisma.assessmentTraitScore.upsert({
+          where: { attemptId_traitName: { attemptId, traitName } },
+          create: {
             attemptId,
+            candidateId: attempt.candidateId,
+            assessmentId,
             traitName,
+            totalScore: total,
+            questionCount: count,
+            averageScore: Math.round(averageScore * 100) / 100,
+            level,
           },
-        },
-        create: {
-          attemptId,
-          candidateId: attempt.candidateId,
-          assessmentId,
-          traitName,
-          totalScore: total,
-          questionCount: count,
-          averageScore: Math.round(averageScore * 100) / 100,
-          level,
-        },
-        update: {
-          totalScore: total,
-          questionCount: count,
-          averageScore: Math.round(averageScore * 100) / 100,
-          level,
-        },
-      });
+          update: {
+            totalScore: total,
+            questionCount: count,
+            averageScore: Math.round(averageScore * 100) / 100,
+            level,
+          },
+        })
+      );
+    }
+
+    if (batchWrites.length) {
+      await prisma.$transaction(batchWrites);
     }
 
     return results;
   }
 
-  /**
-   * Check if an answer is correct for a given question
-   */
-  private isAnswerCorrect(answer: any, question: any): boolean {
-    // For MCQ - check if selected option is marked as correct
-    if (question.questionType === 'MCQ') {
-      if (!answer.selectedOption) return false;
-      return answer.selectedOption.isCorrect;
+  private defaultLevelLabel(level: number): string {
+    switch (level) {
+      case 1: return 'Very Low';
+      case 2: return 'Low';
+      case 3: return 'Moderate';
+      case 4: return 'High';
+      case 5: return 'Very High';
+      default: return 'Unknown';
     }
-
-    // For TRUE_FALSE - check if answer text matches correct answer
-    if (question.questionType === 'TRUE_FALSE') {
-      return (
-        answer.answerText?.toLowerCase() === question.correctAnswer?.toLowerCase()
-      );
-    }
-
-    // For other types, manual review may be required
-    return false;
-  }
-
-  /**
-   * Extract numeric value (1-5) from a rating scale response
-   */
-  private extractRatingScaleValue(answer: any, question: any): number | null {
-    if (!question.optionItems || question.optionItems.length === 0) {
-      return null;
-    }
-
-    const optionIndex = question.optionItems.findIndex(
-      (opt: any) => opt.id === answer.selectedOptionId
-    );
-
-    if (optionIndex === -1) return null;
-
-    // Map option index to 1-5 scale
-    // Assuming options are in order from 1 (Strongly Disagree) to 5 (Strongly Agree)
-    return optionIndex + 1;
   }
 
   /**

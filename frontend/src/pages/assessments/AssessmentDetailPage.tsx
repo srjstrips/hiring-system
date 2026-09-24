@@ -1,7 +1,12 @@
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { assessmentsApi } from '@/api/assessments';
+import {
+  assessmentsApi,
+  ASSESSMENT_TYPE_LABELS,
+  PERSONALITY_TRAIT_LABELS,
+  type PersonalityTrait,
+} from '@/api/assessments';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SummaryCards } from '@/components/common/SummaryCards';
@@ -12,8 +17,11 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { toast } from '@/hooks/useToast';
 import {
   ArrowLeft, Pencil, ListChecks, UserPlus, BarChart3, Play, Archive,
-  ClipboardList, Users, CheckCircle2, Hourglass,
+  ClipboardList, Users, CheckCircle2, Hourglass, Plus, Trash2, X,
 } from 'lucide-react';
+
+const CORE_PERSONALITY_TRAITS: PersonalityTrait[] = ['LEADERSHIP', 'LEARNING_ADAPTABILITY', 'TEAMWORK'];
+const ALL_PERSONALITY_TRAITS = Object.keys(PERSONALITY_TRAIT_LABELS) as PersonalityTrait[];
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: 'bg-[#F1F5F9] text-[#64748B]',
@@ -36,6 +44,8 @@ export default function AssessmentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const [confirmClose, setConfirmClose] = useState(false);
+  const [showAddTrait, setShowAddTrait] = useState(false);
+  const [newTrait, setNewTrait] = useState<PersonalityTrait | ''>('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['assessment', id],
@@ -47,6 +57,34 @@ export default function AssessmentDetailPage() {
     queryKey: ['assessment-assignments', id],
     queryFn: () => assessmentsApi.getAssignments(id!).then((r) => r.data.data),
     enabled: !!id,
+  });
+
+  const isPersonality = data?.assessmentType === 'PERSONALITY';
+
+  const { data: traits = [] } = useQuery({
+    queryKey: ['assessment-traits', id],
+    queryFn: () => assessmentsApi.getTraits(id!).then((r) => r.data.data),
+    enabled: !!id && isPersonality,
+  });
+
+  const addTraitMutation = useMutation({
+    mutationFn: (traitName: string) => assessmentsApi.addTrait(id!, { traitName }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assessment-traits', id] });
+      toast({ title: 'Trait added', variant: 'success' });
+      setShowAddTrait(false);
+      setNewTrait('');
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
+  });
+
+  const removeTraitMutation = useMutation({
+    mutationFn: (traitName: string) => assessmentsApi.deleteTrait(id!, traitName),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assessment-traits', id] });
+      toast({ title: 'Trait removed' });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
   });
 
   const statusMutation = useMutation({
@@ -81,13 +119,16 @@ export default function AssessmentDetailPage() {
 
   const infoFields = [
     { label: 'Assessment Name', value: data.name },
+    { label: 'Assessment Type', value: ASSESSMENT_TYPE_LABELS[data.assessmentType] ?? data.assessmentType },
     { label: 'Job', value: data.job?.title ?? '—' },
-    { label: 'Duration', value: `${data.durationMins} minutes` },
+    { label: 'Department', value: data.department?.name ?? '—' },
+    { label: 'Designation', value: data.designation?.name ?? '—' },
+    { label: 'Duration', value: data.durationMins ? `${data.durationMins} minutes` : '—' },
     { label: 'Total Questions', value: data.questionCount ?? data.questions?.length ?? 0 },
+    { label: 'Maximum Questions', value: data.maxQuestions ?? 'No limit' },
     { label: 'Passing Score', value: `${data.passingScore}%` },
     { label: 'Maximum Attempts', value: data.maxAttempts },
     { label: 'Status', value: data.status },
-    { label: 'Designation', value: data.designation?.name ?? '—' },
   ];
 
   return (
@@ -184,9 +225,81 @@ export default function AssessmentDetailPage() {
                 <p className="mt-0.5 whitespace-pre-wrap text-sm leading-relaxed text-[#111827]">{data.description}</p>
               </div>
             )}
+            {data.instructions && (
+              <div className="sm:col-span-2">
+                <p className="text-xs font-medium text-[#64748B]">Instructions for Candidates</p>
+                <p className="mt-0.5 whitespace-pre-wrap text-sm leading-relaxed text-[#111827]">{data.instructions}</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
+
+      {isPersonality && (
+        <Card className={cardClass}>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div>
+              <CardTitle className="text-base text-[#111827]">Personality Traits</CardTitle>
+              <p className="mt-1 text-xs text-[#64748B]">Traits measured by this assessment and their level labels (1–5 scale).</p>
+            </div>
+            <Button size="sm" variant="outline" className={actionBtnClass} onClick={() => setShowAddTrait((s) => !s)}>
+              <Plus className="mr-1.5 h-4 w-4" /> Add Trait
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {showAddTrait && (
+              <div className="flex items-center gap-2 rounded-xl border border-[#E2E8F0] p-3">
+                <select
+                  className="h-9 flex-1 rounded-lg border border-[#E2E8F0] bg-white px-2 text-sm"
+                  value={newTrait}
+                  onChange={(e) => setNewTrait(e.target.value as PersonalityTrait)}
+                >
+                  <option value="">Select a trait...</option>
+                  {ALL_PERSONALITY_TRAITS.filter((t) => !traits.some((tr) => tr.traitName === t)).map((t) => (
+                    <option key={t} value={t}>{PERSONALITY_TRAIT_LABELS[t]}</option>
+                  ))}
+                </select>
+                <Button
+                  size="sm"
+                  disabled={!newTrait || addTraitMutation.isPending}
+                  onClick={() => newTrait && addTraitMutation.mutate(newTrait)}
+                >
+                  Add
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setShowAddTrait(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            {traits.length === 0 ? (
+              <p className="py-6 text-center text-sm text-[#64748B]">
+                No traits configured yet. Core traits recommended: {CORE_PERSONALITY_TRAITS.map((t) => PERSONALITY_TRAIT_LABELS[t]).join(', ')}.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {traits.map((trait) => (
+                  <div key={trait.id} className="flex items-center justify-between rounded-xl border border-[#E2E8F0] p-3">
+                    <div>
+                      <p className="font-medium text-[#111827]">{PERSONALITY_TRAIT_LABELS[trait.traitName]}</p>
+                      <p className="text-xs text-[#64748B]">
+                        1={trait.level1Label} · 2={trait.level2Label} · 3={trait.level3Label} · 4={trait.level4Label} · 5={trait.level5Label}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-rose-600 hover:bg-rose-50"
+                      onClick={() => removeTraitMutation.mutate(trait.traitName)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card className={cardClass}>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
