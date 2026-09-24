@@ -56,8 +56,10 @@ export const applicationsApi = {
       { params: cleanParams(params) },
     ),
   getById: (id: string) => api.get<{ success: boolean; data: Application }>(`/applications/${id}`),
-  updateStatus: (id: string, data: { status: string; notes?: string; rejectionReason?: string }) =>
+  updateStatus: (id: string, data: { status: string; notes?: string; rejectionReason?: string; assessmentId?: string }) =>
     api.patch<{ success: boolean; data: Application }>(`/applications/${id}/status`, data),
+  listPersonalityAssessments: () =>
+    api.get<{ success: boolean; data: Array<{ id: string; name: string; durationMins: number }> }>('/applications/personality-assessments'),
   getPipelineStats: (jobId?: string) =>
     api.get<{ success: boolean; data: Array<{ status: string; count: number }> }>(
       '/applications/pipeline-stats',

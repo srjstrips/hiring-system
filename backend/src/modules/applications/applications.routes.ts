@@ -12,6 +12,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', validateQuery(ApplicationQuerySchema), authorize('applications:read'), applicationsController.getAll);
+router.get('/personality-assessments', authorize('applications:read'), applicationsController.listPersonalityAssessments);
 router.get('/pipeline-stats', validateQuery(ApplicationPipelineStatsQuerySchema), authorize('applications:read'), applicationsController.getPipelineStats);
 router.get('/analytics', authorize('applications:read'), applicationsController.getAnalytics);
 router.get('/:id', authorize('applications:read'), applicationsController.getById);

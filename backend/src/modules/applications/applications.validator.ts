@@ -39,6 +39,7 @@ export const UpdateStatusSchema = z.object({
   status: stageKey,
   notes: z.string().optional(),
   rejectionReason: z.string().optional(),
+  assessmentId: z.string().uuid().optional(),
 });
 
 export type ApplicationQueryDto = z.infer<typeof ApplicationQuerySchema>;

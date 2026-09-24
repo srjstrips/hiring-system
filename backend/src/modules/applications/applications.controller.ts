@@ -26,6 +26,11 @@ class ApplicationsController {
     res.json({ success: true, message: 'Application deleted' });
   }
 
+  async listPersonalityAssessments(_req: AuthRequest, res: Response) {
+    const data = await applicationsService.listPersonalityAssessments();
+    res.json({ success: true, data });
+  }
+
   async getPipelineStats(req: AuthRequest, res: Response) {
     const { jobId } = req.query as { jobId?: string };
     const stats = await applicationsService.getPipelineStats(jobId);

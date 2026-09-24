@@ -81,6 +81,7 @@ export default function ApplicationDetailPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showResendAssessmentDialog, setShowResendAssessmentDialog] = useState(false);
   const [newStatus, setNewStatus] = useState('');
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState('');
   const [stageNotes, setStageNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [interviewAt, setInterviewAt] = useState(defaultInterviewDateTime);
@@ -100,6 +101,12 @@ export default function ApplicationDetailPage() {
   const { data: stagesData } = useQuery({
     queryKey: ['pipeline-stages'],
     queryFn: () => pipelineStagesApi.getAll().then((r) => r.data.data),
+    staleTime: 60_000,
+  });
+
+  const { data: personalityAssessments = [] } = useQuery({
+    queryKey: ['personality-assessments'],
+    queryFn: () => applicationsApi.listPersonalityAssessments().then((r) => r.data.data),
     staleTime: 60_000,
   });
   const stages = stagesData ?? [];
@@ -129,6 +136,7 @@ export default function ApplicationDetailPage() {
     setNewStatus('');
     setStageNotes('');
     setRejectionReason('');
+    setSelectedAssessmentId('');
     setInterviewAt(defaultInterviewDateTime());
     setInterviewDuration('60');
     setInterviewMode('VIDEO');
@@ -173,6 +181,7 @@ export default function ApplicationDetailPage() {
       status: newStatus,
       notes: stageNotes || undefined,
       rejectionReason: (newStatus === 'REJECTED' ? rejectionReason : undefined),
+      assessmentId: (newStatus === 'PERSONALITY_ASSESSMENT' && selectedAssessmentId) ? selectedAssessmentId : undefined,
     });
   };
 
@@ -585,6 +594,30 @@ export default function ApplicationDetailPage() {
                       );
                     })}
                   </div>
+                </div>
+              )}
+
+              {newStatus === 'PERSONALITY_ASSESSMENT' && personalityAssessments.length > 0 && (
+                <div className="rounded-xl border border-[#FF6B00]/20 bg-[#FFF7ED] p-3 space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-[#FF6B00]">
+                    <Star className="h-4 w-4" />
+                    Select Assessment to Send
+                  </div>
+                  <select
+                    className={fieldClass}
+                    value={selectedAssessmentId}
+                    onChange={(e) => setSelectedAssessmentId(e.target.value)}
+                  >
+                    <option value="">— Default (TalentSignal) —</option>
+                    {personalityAssessments.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name} ({a.durationMins} min)
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-[#92400e]">
+                    The candidate will receive an email with a link to this assessment.
+                  </p>
                 </div>
               )}
 

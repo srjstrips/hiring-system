@@ -7,30 +7,35 @@ import { assertForwardTransition } from './stage-order';
 import candidateNotificationsService from '@/modules/candidate-notifications/candidate-notifications.service';
 import crypto from 'crypto';
 
-// ─── TalentSignal auto-issue ──────────────────────────────────────────────────
+// ─── Personality assessment auto-issue ───────────────────────────────────────
 
-// Creates a 24h-expiry attempt for the global TalentSignal assessment.
+// Creates a 24h-expiry attempt for the chosen personality assessment (or falls
+// back to TalentSignal if no assessmentId is provided).
 // The email is sent separately by sendForStageChange() using the HR-editable
 // PERSONALITY_ASSESSMENT email template with {{assessment_link}} resolved.
-async function issueTalentSignalLink(applicationId: string, issuedById: string): Promise<void> {
+async function issueAssessmentLink(
+  applicationId: string,
+  issuedById: string,
+  chosenAssessmentId?: string,
+): Promise<void> {
   try {
-    const { seedTalentSignalAssessment } = await import('../assessments/talent-signal-seeder');
-
-    const assessmentId = await seedTalentSignalAssessment(issuedById);
+    let assessmentId = chosenAssessmentId;
+    if (!assessmentId) {
+      const { seedTalentSignalAssessment } = await import('../assessments/talent-signal-seeder');
+      assessmentId = await seedTalentSignalAssessment(issuedById);
+    }
 
     const app = await prisma.application.findUnique({
       where: { id: applicationId },
-      include: {
-        candidate: { select: { id: true, email: true } },
-      },
+      include: { candidate: { select: { id: true, email: true } } },
     });
     if (!app?.candidate?.email) return;
 
-    // Skip if candidate already has an active (non-expired) attempt
-    const existingAttempt = await prisma.assessmentAttempt.findFirst({
+    // Expire any existing active attempts for this application's assessment
+    await prisma.assessmentAttempt.updateMany({
       where: { assessmentId, applicationId, submittedAt: null, expiresAt: { gt: new Date() } },
+      data: { expiresAt: new Date() },
     });
-    if (existingAttempt) return;
 
     // Skip if already submitted
     const submitted = await prisma.assessmentAttempt.findFirst({
@@ -51,7 +56,7 @@ async function issueTalentSignalLink(applicationId: string, issuedById: string):
     // Email is handled by sendForStageChange → PERSONALITY_ASSESSMENT template
     // with {{assessment_link}} resolving to the attempt token above.
   } catch (err) {
-    console.error('[TalentSignal] Failed to issue assessment link:', err);
+    console.error('[Assessment] Failed to issue assessment link:', err);
   }
 }
 
@@ -203,7 +208,7 @@ class ApplicationsService {
 
       if (dto.status === 'PERSONALITY_ASSESSMENT') {
         // Create attempt first so {{assessment_link}} resolves in the template email
-        void issueTalentSignalLink(id, updatedById).then(() =>
+        void issueAssessmentLink(id, updatedById, dto.assessmentId).then(() =>
           emailTemplatesService.sendForStageChange(id, dto.status, hrName)
         );
       } else {
@@ -212,6 +217,14 @@ class ApplicationsService {
     }
 
     return this.getById(id);
+  }
+
+  async listPersonalityAssessments() {
+    return prisma.assessment.findMany({
+      where: { mode: 'PERSONALITY', deletedAt: null },
+      select: { id: true, name: true, durationMins: true },
+      orderBy: { createdAt: 'asc' },
+    });
   }
 
   async getPipelineStats(jobId?: string) {
