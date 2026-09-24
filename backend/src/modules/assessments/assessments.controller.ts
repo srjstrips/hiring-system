@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import type { AuthRequest } from '@/types';
 import assessmentsService from './assessments.service';
 import { seedTalentSignalAssessment } from './talent-signal-seeder';
+import { seedWorkStyleAssessment } from './work-style-seeder';
 import type {
   AssignCandidatesSchema,
   CreateAssessmentDto,
@@ -129,10 +130,26 @@ class AssessmentsController {
   async downloadReport(req: AuthRequest, res: Response) {
     const id = req.params['id'] as string;
     const assignmentId = req.params['assignmentId'] as string;
-    const { generatePersonalityReportPdf } = await import('./personality-report.service');
-    const buffer = await generatePersonalityReportPdf(id, assignmentId);
+
+    // Detect which scorer was used by checking the assessment name
+    const assessment = await assessmentsService.getById(id);
+    const isWorkStyle = (assessment as { name?: string })?.name?.includes('Work Style') ?? false;
+
+    let buffer: Buffer;
+    let filename: string;
+
+    if (isWorkStyle) {
+      const { generateWorkStyleReportPdf } = await import('./work-style-report.service');
+      buffer = await generateWorkStyleReportPdf(id, assignmentId);
+      filename = `SRJ_Fit_Report_${assignmentId}.pdf`;
+    } else {
+      const { generatePersonalityReportPdf } = await import('./personality-report.service');
+      buffer = await generatePersonalityReportPdf(id, assignmentId);
+      filename = `personality-report-${assignmentId}.pdf`;
+    }
+
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="personality-report-${assignmentId}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', buffer.length);
     res.send(buffer);
   }
@@ -196,6 +213,11 @@ class AssessmentsController {
 
   async seedTalentSignal(req: AuthRequest, res: Response) {
     const id = await seedTalentSignalAssessment(req.user!.id);
+    return res.status(201).json({ success: true, data: { assessmentId: id } });
+  }
+
+  async seedWorkStyle(req: AuthRequest, res: Response) {
+    const id = await seedWorkStyleAssessment();
     return res.status(201).json({ success: true, data: { assessmentId: id } });
   }
 

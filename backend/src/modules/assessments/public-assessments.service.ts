@@ -3,6 +3,7 @@ import { AppError } from '@/utils/errors';
 import { scorePersonalityAttempt } from './personality-scoring.service';
 import { sendCandidateAssessmentSummaryEmail } from './personality-email.service';
 import assessmentsScoringService from './assessments-scoring.service';
+import { scoreWorkStyleAttempt } from './work-style-scoring.service';
 import type { SaveAnswerDto, SaveAnswersBatchDto } from './public-assessments.validator';
 
 type GateCode =
@@ -453,14 +454,23 @@ class PublicAssessmentsService {
       }
     }
 
-    // ── TalentSignal (HEXACO) personality scoring (async, non-blocking) ───
+    // ── Personality scoring routing (async, non-blocking) ─────────────────
     if (attempt.assessment.mode === 'PERSONALITY') {
-      scorePersonalityAttempt(attemptId).catch((err) =>
-        console.error('[TalentSignal] Scoring error for attempt', attemptId, err)
-      );
-      sendCandidateAssessmentSummaryEmail(attemptId).catch((err) =>
-        console.error('[TalentSignal] Summary email error for attempt', attemptId, err)
-      );
+      const isWorkStyle = attempt.assessment.name.includes('Work Style');
+      if (isWorkStyle) {
+        // SRJ Work Style Check — Likert scorer
+        scoreWorkStyleAttempt(attemptId).catch((err) =>
+          console.error('[WorkStyle] Scoring error for attempt', attemptId, err)
+        );
+      } else {
+        // TalentSignal™ HEXACO scorer
+        scorePersonalityAttempt(attemptId).catch((err) =>
+          console.error('[TalentSignal] Scoring error for attempt', attemptId, err)
+        );
+        sendCandidateAssessmentSummaryEmail(attemptId).catch((err) =>
+          console.error('[TalentSignal] Summary email error for attempt', attemptId, err)
+        );
+      }
     }
 
     // ── Phase 2 simple trait-based personality scoring (1-5 scale) ────────
