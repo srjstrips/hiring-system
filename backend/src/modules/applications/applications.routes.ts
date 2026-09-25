@@ -16,6 +16,7 @@ router.get('/personality-assessments', authorize('applications:read'), applicati
 router.get('/pipeline-stats', validateQuery(ApplicationPipelineStatsQuerySchema), authorize('applications:read'), applicationsController.getPipelineStats);
 router.get('/analytics', authorize('applications:read'), applicationsController.getAnalytics);
 router.get('/:id', authorize('applications:read'), applicationsController.getById);
+router.get('/:id/assessment-link', authorize('applications:read'), applicationsController.getAssessmentLink);
 router.patch('/:id/status', validateBody(UpdateStatusSchema), authorize('applications:update'), applicationsController.updateStatus);
 router.post('/:id/send-email', validateBody(SendEmailSchema), authorize('applications:update'), emailTemplatesController.sendForApplication);
 router.delete('/:id', authorize('applications:delete'), applicationsController.delete);

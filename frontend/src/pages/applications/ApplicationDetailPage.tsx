@@ -12,7 +12,7 @@ import {
   ArrowLeft, FileText, Link2, Mail, Phone, Briefcase,
   Clock, Star, CheckCircle2, XCircle, ChevronRight, User,
   Calendar, DollarSign, Building2, Send, Search, Users,
-  ShieldCheck, Gift, UserCheck, PauseCircle, Video, Lock, Trash2,
+  ShieldCheck, Gift, UserCheck, PauseCircle, Video, Lock, Trash2, Copy, ExternalLink,
 } from 'lucide-react';
 import {
   isStageLocked,
@@ -108,6 +108,13 @@ export default function ApplicationDetailPage() {
     queryKey: ['personality-assessments'],
     queryFn: () => applicationsApi.listPersonalityAssessments().then((r) => r.data.data),
     staleTime: 60_000,
+  });
+
+  const { data: assessmentLinkData } = useQuery({
+    queryKey: ['assessment-link', id],
+    queryFn: () => applicationsApi.getAssessmentLink(id!).then((r) => r.data.data),
+    enabled: !!id,
+    staleTime: 30_000,
   });
   const stages = stagesData ?? [];
   const stageMap = Object.fromEntries(stages.map((s) => [s.key, s]));
@@ -487,6 +494,41 @@ export default function ApplicationDetailPage() {
                 <p className="text-sm text-[#64748B]">Assessment started but not yet submitted.</p>
               ) : (
                 <p className="text-sm text-[#64748B]">No assessment result for this application yet.</p>
+              )}
+
+              {assessmentLinkData && (
+                <div className="mt-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3 space-y-2">
+                  <p className="text-xs font-medium text-[#64748B]">Assessment Link — {assessmentLinkData.assessmentName}</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      readOnly
+                      value={assessmentLinkData.url}
+                      className="min-w-0 flex-1 rounded-lg border border-[#E2E8F0] bg-white px-2 py-1.5 text-xs text-[#111827] font-mono"
+                    />
+                    <button
+                      type="button"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#FF6B00] transition-colors"
+                      onClick={() => { navigator.clipboard.writeText(assessmentLinkData.url); toast({ title: 'Link copied!', variant: 'success' }); }}
+                      title="Copy link"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </button>
+                    <a
+                      href={assessmentLinkData.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#FF6B00] transition-colors"
+                      title="Open link"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                  {assessmentLinkData.expiresAt && (
+                    <p className="text-[11px] text-[#94A3B8]">
+                      Expires {new Date(assessmentLinkData.expiresAt).toLocaleString()}
+                    </p>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>

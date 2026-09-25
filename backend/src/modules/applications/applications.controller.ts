@@ -31,6 +31,12 @@ class ApplicationsController {
     res.json({ success: true, data });
   }
 
+  async getAssessmentLink(req: AuthRequest, res: Response) {
+    const id = req.params['id'] as string;
+    const data = await applicationsService.getAssessmentLink(id);
+    res.json({ success: true, data });
+  }
+
   async getPipelineStats(req: AuthRequest, res: Response) {
     const { jobId } = req.query as { jobId?: string };
     const stats = await applicationsService.getPipelineStats(jobId);

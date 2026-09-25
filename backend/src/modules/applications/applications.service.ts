@@ -230,6 +230,25 @@ class ApplicationsService {
     return this.getById(id);
   }
 
+  async getAssessmentLink(applicationId: string) {
+    const { buildCandidateAssessmentUrl } = await import('../assessments/assessment-url');
+    const assignment = await prisma.assessmentAssignment.findFirst({
+      where: { applicationId },
+      orderBy: { assignedAt: 'desc' },
+      select: {
+        secureToken: true,
+        expiresAt: true,
+        assessment: { select: { name: true } },
+      },
+    });
+    if (!assignment) return null;
+    return {
+      url: buildCandidateAssessmentUrl(assignment.secureToken),
+      assessmentName: assignment.assessment.name,
+      expiresAt: assignment.expiresAt,
+    };
+  }
+
   async listPersonalityAssessments() {
     return prisma.assessment.findMany({
       where: { mode: 'PERSONALITY', deletedAt: null },
