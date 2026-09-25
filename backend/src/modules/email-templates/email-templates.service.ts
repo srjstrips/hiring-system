@@ -170,6 +170,18 @@ class EmailTemplatesService {
 
   async sendForApplication(applicationId: string, dto: SendEmailDto, sentByName: string) {
     const template = await this.getById(dto.templateId);
+
+    // If this is a Personality Assessment template, ensure an assignment exists so
+    // {{assessment_link}} resolves to a real URL instead of empty string.
+    if (template.category === 'PERSONALITY_ASSESSMENT') {
+      try {
+        const { issueAssessmentLinkForApplication } = await import('../applications/applications.service');
+        await issueAssessmentLinkForApplication(applicationId, dto.issuedById ?? '');
+      } catch (err) {
+        console.error('[email] Failed to auto-issue assessment link for manual send', err);
+      }
+    }
+
     const { app, vars } = await buildApplicationEmailVars(applicationId, sentByName);
     Object.assign(vars, dto.extraVariables ?? {});
 

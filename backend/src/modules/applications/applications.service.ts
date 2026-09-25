@@ -13,6 +13,10 @@ import crypto from 'crypto';
 // back to TalentSignal if no assessmentId is provided).
 // The email is sent separately by sendForStageChange() using the HR-editable
 // PERSONALITY_ASSESSMENT email template with {{assessment_link}} resolved.
+export async function issueAssessmentLinkForApplication(applicationId: string, issuedById: string, chosenAssessmentId?: string) {
+  return issueAssessmentLink(applicationId, issuedById, chosenAssessmentId);
+}
+
 async function issueAssessmentLink(
   applicationId: string,
   issuedById: string,

@@ -15,6 +15,7 @@ export const SendEmailSchema = z.object({
   toEmail: z.string().email().optional(),
   extraVariables: z.record(z.string(), z.string()).optional(),
   previewOnly: z.boolean().default(false),
+  issuedById: z.string().optional(),
 });
 
 export type CreateEmailTemplateDto = z.infer<typeof CreateEmailTemplateSchema>;

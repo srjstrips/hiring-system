@@ -37,7 +37,7 @@ class EmailTemplatesController {
       select: { firstName: true, lastName: true },
     });
     const sentByName = sender ? `${sender.firstName} ${sender.lastName}` : req.user!.email;
-    const result = await emailTemplatesService.sendForApplication(applicationId, req.body as SendEmailDto, sentByName);
+    const result = await emailTemplatesService.sendForApplication(applicationId, { ...(req.body as SendEmailDto), issuedById: req.user!.id }, sentByName);
     res.json({ success: true, data: result });
   }
 }
