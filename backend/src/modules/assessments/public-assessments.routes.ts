@@ -13,19 +13,19 @@ import recordingsController, { recordingChunkUpload } from './recordings.control
 
 const router = Router();
 
-// Strict rate limit for public token-based endpoints — 30 req/min per IP
+// Rate limit for public token-based endpoints — generous to allow normal assessment usage
 const tokenLimiter = rateLimit({
   windowMs: 60_000,
-  max: 30,
+  max: 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests. Please try again shortly.' },
 });
 
-// Tighter limiter for answer-saving (write operations)
+// Limiter for answer-saving (write operations)
 const answerLimiter = rateLimit({
   windowMs: 60_000,
-  max: 60,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests. Please try again shortly.' },

@@ -30,7 +30,9 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   validate: { xForwardedForHeader: false },
-  skip: (req) => req.originalUrl.includes('/public/interviews/'),
+  skip: (req) =>
+    req.originalUrl.includes('/public/interviews/') ||
+    req.originalUrl.includes('/public/assessments/'),
   message: {
     success: false,
     message: 'Too many requests. Please try again later.',
