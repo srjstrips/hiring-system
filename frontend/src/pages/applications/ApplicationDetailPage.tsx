@@ -512,12 +512,9 @@ export default function ApplicationDetailPage() {
                       <p className="text-sm text-[#64748B]">
                         Submitted {new Date(app.assessmentAttempt.submittedAt).toLocaleString()}
                       </p>
-                      {assignmentIds && !assignmentIds.hasResult && (
-                        <p className="text-xs text-amber-600">Results being processed…</p>
-                      )}
                     </div>
                   </div>
-                  {assignmentIds?.hasResult && (
+                  {assignmentIds && (
                     <div className="flex gap-2">
                       <a
                         href={`/assessments/${assignmentIds.assessmentId}/results/${assignmentIds.assignmentId}`}
