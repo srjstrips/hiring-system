@@ -56,6 +56,7 @@ async function issueAssessmentLink(
         assessmentId,
         candidateId: app.candidate.id,
         applicationId,
+        jobId: app.jobId,
         assignedById: issuedById,
         secureToken: crypto.randomBytes(32).toString('hex'),
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
