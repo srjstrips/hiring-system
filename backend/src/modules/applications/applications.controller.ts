@@ -37,6 +37,12 @@ class ApplicationsController {
     res.json({ success: true, data });
   }
 
+  async getAssignmentIds(req: AuthRequest, res: Response) {
+    const id = req.params['id'] as string;
+    const data = await applicationsService.getAssignmentIds(id);
+    res.json({ success: true, data });
+  }
+
   async reassignAssessment(req: AuthRequest, res: Response) {
     const id = req.params['id'] as string;
     const { assessmentId } = req.body as { assessmentId?: string };

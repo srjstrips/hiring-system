@@ -17,6 +17,7 @@ router.get('/pipeline-stats', validateQuery(ApplicationPipelineStatsQuerySchema)
 router.get('/analytics', authorize('applications:read'), applicationsController.getAnalytics);
 router.get('/:id', authorize('applications:read'), applicationsController.getById);
 router.get('/:id/assessment-link', authorize('applications:read'), applicationsController.getAssessmentLink);
+router.get('/:id/assignment-ids', authorize('applications:read'), applicationsController.getAssignmentIds);
 router.post('/:id/reassign-assessment', authorize('applications:update'), applicationsController.reassignAssessment);
 router.patch('/:id/status', validateBody(UpdateStatusSchema), authorize('applications:update'), applicationsController.updateStatus);
 router.post('/:id/send-email', validateBody(SendEmailSchema), authorize('applications:update'), emailTemplatesController.sendForApplication);

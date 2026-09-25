@@ -268,6 +268,27 @@ class ApplicationsService {
     };
   }
 
+  async getAssignmentIds(applicationId: string) {
+    // Returns assessmentId + assignmentId needed to build PDF/result URLs
+    const assignment = await prisma.assessmentAssignment.findFirst({
+      where: { applicationId },
+      orderBy: { assignedAt: 'desc' },
+      select: { id: true, assessmentId: true },
+    });
+    if (!assignment) return null;
+    // Check if there's a completed attempt
+    const attempt = await prisma.assessmentAttempt.findFirst({
+      where: { assignmentId: assignment.id, submittedAt: { not: null } },
+      orderBy: { submittedAt: 'desc' },
+      select: { id: true },
+    });
+    return {
+      assessmentId: assignment.assessmentId,
+      assignmentId: assignment.id,
+      hasResult: !!attempt,
+    };
+  }
+
   async listPersonalityAssessments() {
     return prisma.assessment.findMany({
       where: { mode: 'PERSONALITY', deletedAt: null },

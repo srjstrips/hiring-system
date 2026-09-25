@@ -62,6 +62,8 @@ export const applicationsApi = {
     api.get<{ success: boolean; data: Array<{ id: string; name: string; durationMins: number }> }>('/applications/personality-assessments'),
   getAssessmentLink: (id: string) =>
     api.get<{ success: boolean; data: { url: string; assessmentName: string; expiresAt: string | null } | null }>(`/applications/${id}/assessment-link`),
+  getAssignmentIds: (id: string) =>
+    api.get<{ success: boolean; data: { assessmentId: string; assignmentId: string; hasResult: boolean } | null }>(`/applications/${id}/assignment-ids`),
   reassignAssessment: (id: string, assessmentId?: string) =>
     api.post<{ success: boolean; data: { url: string; assessmentName: string } }>(`/applications/${id}/reassign-assessment`, { assessmentId }),
   getPipelineStats: (jobId?: string) =>

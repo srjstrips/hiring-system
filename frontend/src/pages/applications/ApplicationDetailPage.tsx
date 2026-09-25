@@ -12,7 +12,7 @@ import {
   ArrowLeft, FileText, Link2, Mail, Phone, Briefcase,
   Clock, Star, CheckCircle2, XCircle, ChevronRight, User,
   Calendar, DollarSign, Building2, Send, Search, Users,
-  ShieldCheck, Gift, UserCheck, PauseCircle, Video, Lock, Trash2, Copy, ExternalLink,
+  ShieldCheck, Gift, UserCheck, PauseCircle, Video, Lock, Trash2, Copy, ExternalLink, Download,
 } from 'lucide-react';
 import {
   isStageLocked,
@@ -115,6 +115,13 @@ export default function ApplicationDetailPage() {
   const { data: assessmentLinkData } = useQuery({
     queryKey: ['assessment-link', id],
     queryFn: () => applicationsApi.getAssessmentLink(id!).then((r) => r.data.data),
+    enabled: !!id,
+    staleTime: 30_000,
+  });
+
+  const { data: assignmentIds } = useQuery({
+    queryKey: ['assignment-ids', id],
+    queryFn: () => applicationsApi.getAssignmentIds(id!).then((r) => r.data.data),
     enabled: !!id,
     staleTime: 30_000,
   });
@@ -492,20 +499,57 @@ export default function ApplicationDetailPage() {
             </CardHeader>
             <CardContent>
               {app.assessmentAttempt?.submittedAt ? (
-                <div className="flex items-center gap-6">
-                  <div className={`flex h-20 w-20 flex-col items-center justify-center rounded-full font-bold text-white ${
-                    app.assessmentAttempt.isPassed ? 'bg-green-500' : 'bg-rose-500'
-                  }`}>
-                    <span className="text-2xl">{app.assessmentAttempt.score}%</span>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-6">
+                    <div className={`flex h-20 w-20 flex-col items-center justify-center rounded-full font-bold text-white ${
+                      app.assessmentAttempt.isPassed ? 'bg-green-500' : 'bg-rose-500'
+                    }`}>
+                      <span className="text-2xl">{app.assessmentAttempt.score}%</span>
+                    </div>
+                    <div className="space-y-1">
+                      <p className={`text-lg font-semibold ${app.assessmentAttempt.isPassed ? 'text-green-600' : 'text-rose-600'}`}>
+                        {app.assessmentAttempt.isPassed ? '✓ Passed' : '✕ Failed'}
+                      </p>
+                      <p className="text-sm text-[#64748B]">
+                        Submitted {new Date(app.assessmentAttempt.submittedAt).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <p className={`text-lg font-semibold ${app.assessmentAttempt.isPassed ? 'text-green-600' : 'text-rose-600'}`}>
-                      {app.assessmentAttempt.isPassed ? '✓ Passed' : '✕ Failed'}
-                    </p>
-                    <p className="text-sm text-[#64748B]">
-                      Submitted {new Date(app.assessmentAttempt.submittedAt).toLocaleString()}
-                    </p>
-                  </div>
+                  {assignmentIds?.hasResult && (
+                    <div className="flex gap-2">
+                      <a
+                        href={`/assessments/${assignmentIds.assessmentId}/results/${assignmentIds.assignmentId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#E2E8F0] bg-white py-2 text-sm font-medium text-[#111827] hover:bg-[#FFF7ED] hover:text-[#FF6B00] transition-colors"
+                      >
+                        <FileText className="h-4 w-4" /> View Result
+                      </a>
+                      <button
+                        type="button"
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#FF6B00] py-2 text-sm font-medium text-white hover:bg-[#e86000] transition-colors"
+                        onClick={async () => {
+                          try {
+                            const { api } = await import('@/api/axios');
+                            const res = await api.get(
+                              `/assessments/${assignmentIds.assessmentId}/assignments/${assignmentIds.assignmentId}/report.pdf`,
+                              { responseType: 'blob' },
+                            );
+                            const url = URL.createObjectURL(res.data as Blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `assessment-report-${app.candidate.firstName}-${app.candidate.lastName}.pdf`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          } catch {
+                            toast({ title: 'Failed to download report', variant: 'destructive' });
+                          }
+                        }}
+                      >
+                        <Download className="h-4 w-4" /> Download PDF
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : app.assessmentAttempt ? (
                 <p className="text-sm text-[#64748B]">Assessment started but not yet submitted.</p>
