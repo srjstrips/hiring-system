@@ -45,6 +45,17 @@ export interface AttemptPayload {
   assessmentMode: 'KNOWLEDGE' | 'PERSONALITY';
 }
 
+export interface CandidateResult {
+  archetype: string | null;
+  fitBand: string | null;
+  compCommStyle: string | null;
+  compDecisionStyle: string | null;
+  compConflictStyle: string | null;
+  compStressBand: string | null;
+  traitScores: Array<{ key: string; label: string; t: number }>;
+  top3Traits: string[];
+}
+
 export interface AttemptStatus {
   assessmentName: string;
   assignmentStatus: string;
@@ -53,6 +64,7 @@ export interface AttemptStatus {
   hasOpenAttempt: boolean;
   latestSubmission: { submittedAt: string | null; status: string } | null;
   message: string | null;
+  candidateResult: CandidateResult | null;
 }
 
 export interface RecordingMeta {

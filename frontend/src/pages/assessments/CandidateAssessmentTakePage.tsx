@@ -7,6 +7,7 @@ import {
   type AssessmentIntro,
   type AttemptPayload,
   type AttemptStatus,
+  type CandidateResult,
   type GateCode,
 } from '@/api/publicAssessments';
 import {
@@ -46,6 +47,175 @@ function errorTitle(code?: GateCode) {
 
 function cacheKey(token: string, attemptId: string) {
   return `hf-assessment:${token}:${attemptId}`;
+}
+
+// ─── Trait color map ─────────────────────────────────────────────────────────
+const TRAIT_COLORS: Record<string, string> = {
+  H: '#7c3aed', ES: '#0891b2', X: '#d97706', A: '#16a34a', C: '#b45309', O: '#0284c7',
+};
+
+function tLabel(t: number) {
+  if (t >= 65) return 'High';
+  if (t >= 55) return 'Above Avg';
+  if (t >= 45) return 'Average';
+  if (t >= 35) return 'Below Avg';
+  return 'Low';
+}
+
+function SubmittedView({
+  status, intro, secureToken,
+}: { status: AttemptStatus | null; intro: AssessmentIntro | null; secureToken: string }) {
+  const [result, setResult] = useState<CandidateResult | null>(status?.candidateResult ?? null);
+  const [polling, setPolling] = useState(!status?.candidateResult);
+
+  useEffect(() => {
+    if (result || !polling) return;
+    let tries = 0;
+    const timer = setInterval(async () => {
+      tries++;
+      try {
+        const res = await publicAssessmentsApi.getStatus(secureToken);
+        if (res.data.data?.candidateResult) {
+          setResult(res.data.data.candidateResult);
+          setPolling(false);
+          clearInterval(timer);
+        }
+      } catch { /* ignore */ }
+      if (tries >= 12) { setPolling(false); clearInterval(timer); }
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [secureToken, result, polling]);
+
+  const assessmentName = status?.assessmentName || intro?.assessmentName;
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* Header */}
+        <Card>
+          <CardContent className="pt-8 pb-6 text-center space-y-3">
+            <CheckCircle2 className="h-14 w-14 text-green-600 mx-auto" />
+            <h1 className="text-2xl font-bold">Assessment Submitted</h1>
+            <p className="text-muted-foreground text-sm">{assessmentName}</p>
+            <p className="text-sm text-muted-foreground">
+              Submitted {status?.latestSubmission?.submittedAt
+                ? new Date(status.latestSubmission.submittedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                : 'just now'}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Results */}
+        {result ? (
+          <>
+            {/* Archetype */}
+            {result.archetype && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Your Personality Archetype</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center gap-4 rounded-xl bg-orange-50 border border-orange-100 p-4">
+                    <div className="text-4xl">🌟</div>
+                    <div>
+                      <p className="text-xl font-bold text-orange-700">{result.archetype}</p>
+                      {result.fitBand && (
+                        <p className="text-sm text-slate-500 mt-0.5">Overall fit: <span className="font-medium text-slate-700">{result.fitBand}</span></p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Top strengths */}
+            {result.top3Traits.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Your Key Strengths</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {result.top3Traits.map((t) => (
+                      <span key={t} className="rounded-full bg-green-50 border border-green-200 px-3 py-1 text-sm font-medium text-green-700">✓ {t}</span>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Trait bars */}
+            {result.traitScores.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Personality Trait Profile</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-xs text-muted-foreground">Shaded band = average range. Your score is the filled bar.</p>
+                  {result.traitScores.map(({ key, label, t }) => {
+                    const color = TRAIT_COLORS[key] ?? '#6366f1';
+                    const pct = Math.max(4, ((t - 20) / 60) * 100);
+                    return (
+                      <div key={key} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium text-slate-700">{label}</span>
+                          <span className="text-xs font-semibold" style={{ color }}>{t} — {tLabel(t)}</span>
+                        </div>
+                        <div className="relative h-3 w-full rounded-full bg-slate-100 overflow-hidden">
+                          {/* norm band 40-60 = 33%-66% */}
+                          <div className="absolute top-0 h-full bg-slate-200" style={{ left: '33%', width: '33%' }} />
+                          <div className="absolute top-0 left-0 h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Working style */}
+            {(result.compCommStyle || result.compDecisionStyle || result.compConflictStyle || result.compStressBand) && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Your Working Style</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { label: 'Communication Style', value: result.compCommStyle },
+                    { label: 'Decision Style', value: result.compDecisionStyle },
+                    { label: 'Conflict Style', value: result.compConflictStyle },
+                    { label: 'Under Stress', value: result.compStressBand },
+                  ].filter((s) => s.value).map((s) => (
+                    <div key={s.label} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{s.label}</p>
+                      <p className="text-sm font-semibold text-slate-800 mt-1">{s.value}</p>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            <p className="text-center text-xs text-muted-foreground pb-4">
+              These results reflect your tendencies and preferences. Your hiring team will review them as part of the selection process.
+            </p>
+          </>
+        ) : polling ? (
+          <Card>
+            <CardContent className="py-10 text-center space-y-3">
+              <div className="h-8 w-8 rounded-full border-4 border-orange-400 border-t-transparent animate-spin mx-auto" />
+              <p className="text-sm text-muted-foreground">Analysing your responses… this takes a few seconds.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <p className="text-sm text-muted-foreground">Your results will be reviewed by the hiring team.</p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function CandidateAssessmentTakePage() {
@@ -513,24 +683,7 @@ export default function CandidateAssessmentTakePage() {
   }
 
   if (phase === 'submitted') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-        <Card className="max-w-lg w-full">
-          <CardContent className="pt-8 pb-8 text-center space-y-4">
-            <CheckCircle2 className="h-12 w-12 text-green-600 mx-auto" />
-            <h1 className="text-2xl font-semibold">Assessment Submitted</h1>
-            <p className="text-muted-foreground">
-              {status?.message || 'Your assessment has been submitted successfully.'}
-            </p>
-            <div className="text-sm text-left rounded-md border p-4 space-y-2 bg-white">
-              <p><span className="text-muted-foreground">Assessment:</span> <span className="font-medium">{status?.assessmentName || intro?.assessmentName}</span></p>
-              <p><span className="text-muted-foreground">Status:</span> <span className="font-medium">Submitted</span></p>
-            </div>
-            <p className="text-sm text-muted-foreground">Your results will be reviewed by the hiring team.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <SubmittedView status={status} intro={intro} secureToken={secureToken!} />;
   }
 
   if (phase === 'intro' && intro) {

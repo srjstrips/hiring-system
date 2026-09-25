@@ -499,6 +499,55 @@ class PublicAssessmentsService {
     const openAttempt = assignment.attempts.find((a) => !a.submittedAt);
     const completedAttempts = assignment.attempts.filter((a) => a.submittedAt).length;
 
+    // Fetch candidate-safe personality result (archetype + working style only, no derailers/HR data)
+    let candidateResult: null | {
+      archetype: string | null;
+      fitBand: string | null;
+      compCommStyle: string | null;
+      compDecisionStyle: string | null;
+      compConflictStyle: string | null;
+      compStressBand: string | null;
+      traitScores: Array<{ key: string; label: string; t: number }>;
+      top3Traits: string[];
+    } = null;
+
+    if (latestSubmitted) {
+      const result = await prisma.assessmentPersonalityResult.findUnique({
+        where: { attemptId: latestSubmitted.id },
+        select: {
+          archetype: true,
+          fitBand: true,
+          compCommStyle: true,
+          compDecisionStyle: true,
+          compConflictStyle: true,
+          compStressBand: true,
+          tH: true, tES: true, tX: true, tA: true, tC: true, tO: true,
+        },
+      });
+      if (result) {
+        const TRAIT_LABELS: Record<string, string> = {
+          H: 'Honesty & Integrity', ES: 'Emotional Stability', X: 'Extraversion & Energy',
+          A: 'Agreeableness & Teamwork', C: 'Conscientiousness & Drive', O: 'Openness & Adaptability',
+        };
+        const traitScores = [
+          { key: 'H', t: result.tH ?? 50 }, { key: 'ES', t: result.tES ?? 50 },
+          { key: 'X', t: result.tX ?? 50 }, { key: 'A', t: result.tA ?? 50 },
+          { key: 'C', t: result.tC ?? 50 }, { key: 'O', t: result.tO ?? 50 },
+        ].map((s) => ({ ...s, label: TRAIT_LABELS[s.key]! }));
+        const top3 = [...traitScores].sort((a, b) => b.t - a.t).slice(0, 3).map((s) => s.label);
+        candidateResult = {
+          archetype: result.archetype,
+          fitBand: result.fitBand,
+          compCommStyle: result.compCommStyle,
+          compDecisionStyle: result.compDecisionStyle,
+          compConflictStyle: result.compConflictStyle,
+          compStressBand: result.compStressBand,
+          traitScores,
+          top3Traits: top3,
+        };
+      }
+    }
+
     return {
       assessmentName: assignment.assessment.name,
       assignmentStatus: assignment.status,
@@ -506,15 +555,12 @@ class PublicAssessmentsService {
       maxAttempts: assignment.maxAttempts,
       hasOpenAttempt: !!openAttempt,
       latestSubmission: latestSubmitted
-        ? {
-            submittedAt: latestSubmitted.submittedAt,
-            // Prefer not exposing score to candidate in Phase 2; keep for status completeness but UI won't show
-            status: 'Submitted',
-          }
+        ? { submittedAt: latestSubmitted.submittedAt, status: 'Submitted' }
         : null,
       message: latestSubmitted
         ? 'Your assessment has been submitted successfully. Your results will be reviewed by the hiring team.'
         : null,
+      candidateResult,
     };
   }
 }
