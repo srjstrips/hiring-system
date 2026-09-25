@@ -84,20 +84,20 @@ async function buildApplicationEmailVars(applicationId: string, sentByName: stri
         assessment: { select: { name: true, durationMins: true } },
       },
     }),
-    // Personality assessment attempts use AssessmentAttempt (not AssessmentAssignment)
+    // Fallback: bare attempt with no assignment (legacy path, kept for safety)
     prisma.assessmentAttempt.findFirst({
       where: { applicationId, submittedAt: null },
       orderBy: { createdAt: 'desc' },
       select: {
-        secureToken: true,
         assessment: { select: { name: true, durationMins: true } },
+        assignment: { select: { secureToken: true } },
       },
     }),
   ]);
 
   const meetingLink = buildMeetingUrl(latestInterview?.meetingToken, latestInterview?.meetingLink);
 
-  const activeToken = latestAssignment?.secureToken ?? latestAttempt?.secureToken;
+  const activeToken = latestAssignment?.secureToken ?? latestAttempt?.assignment?.secureToken;
   const activeAssessment = latestAssignment?.assessment ?? latestAttempt?.assessment;
   const assessmentLink = activeToken ? buildCandidateAssessmentUrl(activeToken) : '';
 

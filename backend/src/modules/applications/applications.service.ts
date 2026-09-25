@@ -31,30 +31,40 @@ async function issueAssessmentLink(
     });
     if (!app?.candidate?.email) return;
 
-    // Expire any existing active attempts for this application's assessment
-    await prisma.assessmentAttempt.updateMany({
-      where: { assessmentId, applicationId, submittedAt: null, expiresAt: { gt: new Date() } },
-      data: { expiresAt: new Date() },
-    });
-
     // Skip if already submitted
     const submitted = await prisma.assessmentAttempt.findFirst({
       where: { assessmentId, applicationId, submittedAt: { not: null } },
     });
     if (submitted) return;
 
-    await prisma.assessmentAttempt.create({
-      data: {
+    const assessment = await prisma.assessment.findUnique({
+      where: { id: assessmentId },
+      select: { maxAttempts: true },
+    });
+
+    // Upsert an AssessmentAssignment (which holds the secureToken used in the email link).
+    // A fresh token is issued each time so resent links are always valid.
+    await prisma.assessmentAssignment.upsert({
+      where: { assessmentId_applicationId: { assessmentId, applicationId } },
+      update: {
+        secureToken: crypto.randomBytes(32).toString('hex'),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        status: 'ASSIGNED',
+        assignedById: issuedById,
+      },
+      create: {
         assessmentId,
         candidateId: app.candidate.id,
         applicationId,
+        assignedById: issuedById,
         secureToken: crypto.randomBytes(32).toString('hex'),
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        status: 'NOT_STARTED',
+        maxAttempts: assessment?.maxAttempts ?? 1,
+        status: 'ASSIGNED',
       },
     });
     // Email is handled by sendForStageChange → PERSONALITY_ASSESSMENT template
-    // with {{assessment_link}} resolving to the attempt token above.
+    // with {{assessment_link}} resolving to the assignment secureToken above.
   } catch (err) {
     console.error('[Assessment] Failed to issue assessment link:', err);
   }
