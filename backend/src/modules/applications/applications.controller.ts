@@ -37,6 +37,13 @@ class ApplicationsController {
     res.json({ success: true, data });
   }
 
+  async reassignAssessment(req: AuthRequest, res: Response) {
+    const id = req.params['id'] as string;
+    const { assessmentId } = req.body as { assessmentId?: string };
+    const data = await applicationsService.reassignAssessment(id, req.user!.id, assessmentId);
+    res.json({ success: true, data });
+  }
+
   async getPipelineStats(req: AuthRequest, res: Response) {
     const { jobId } = req.query as { jobId?: string };
     const stats = await applicationsService.getPipelineStats(jobId);

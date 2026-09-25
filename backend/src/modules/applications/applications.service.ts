@@ -234,6 +234,21 @@ class ApplicationsService {
     return this.getById(id);
   }
 
+  async reassignAssessment(applicationId: string, issuedById: string, chosenAssessmentId?: string) {
+    const { buildCandidateAssessmentUrl } = await import('../assessments/assessment-url');
+    await issueAssessmentLink(applicationId, issuedById, chosenAssessmentId);
+    const assignment = await prisma.assessmentAssignment.findFirst({
+      where: { applicationId },
+      orderBy: { assignedAt: 'desc' },
+      select: { secureToken: true, assessment: { select: { name: true } } },
+    });
+    if (!assignment) throw new AppError('Failed to create assessment link', 500);
+    return {
+      url: buildCandidateAssessmentUrl(assignment.secureToken),
+      assessmentName: assignment.assessment.name,
+    };
+  }
+
   async getAssessmentLink(applicationId: string) {
     const { buildCandidateAssessmentUrl } = await import('../assessments/assessment-url');
     const assignment = await prisma.assessmentAssignment.findFirst({
