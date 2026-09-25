@@ -17,6 +17,7 @@ const PLACEHOLDERS = [
 const STAGE_CATEGORIES = [
   { value: 'APPLIED', label: 'Applied' },
   { value: 'SCREENING', label: 'Screening (use {{assessment_link}})' },
+  { value: 'PERSONALITY_ASSESSMENT', label: 'Personality Assessment (use {{assessment_link}})' },
   { value: 'SHORTLISTED', label: 'Shortlisted' },
   { value: 'INTERVIEW_ROUND_1', label: 'Interview Round 1' },
   { value: 'INTERVIEW_ROUND_2', label: 'Interview Round 2' },

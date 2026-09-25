@@ -37,6 +37,7 @@ function getTransporter() {
 const STAGE_LABELS: Record<string, string> = {
   APPLIED: 'Applied',
   SCREENING: 'Screening',
+  PERSONALITY_ASSESSMENT: 'Personality Assessment',
   SHORTLISTED: 'Shortlisted',
   INTERVIEW_ROUND_1: 'Interview Round 1',
   INTERVIEW_ROUND_2: 'Interview Round 2',
