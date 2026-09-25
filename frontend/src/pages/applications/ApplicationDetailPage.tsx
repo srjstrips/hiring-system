@@ -500,19 +500,21 @@ export default function ApplicationDetailPage() {
             <CardContent>
               {app.assessmentAttempt?.submittedAt ? (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-6">
-                    <div className={`flex h-20 w-20 flex-col items-center justify-center rounded-full font-bold text-white ${
-                      app.assessmentAttempt.isPassed ? 'bg-green-500' : 'bg-rose-500'
-                    }`}>
-                      <span className="text-2xl">{app.assessmentAttempt.score}%</span>
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-16 w-16 flex-col items-center justify-center rounded-full font-bold text-white bg-green-500 shrink-0">
+                      {(app.assessmentAttempt.score ?? 0) > 0
+                        ? <span className="text-xl">{app.assessmentAttempt.score}%</span>
+                        : <span className="text-2xl">✓</span>
+                      }
                     </div>
-                    <div className="space-y-1">
-                      <p className={`text-lg font-semibold ${app.assessmentAttempt.isPassed ? 'text-green-600' : 'text-rose-600'}`}>
-                        {app.assessmentAttempt.isPassed ? '✓ Passed' : '✕ Failed'}
-                      </p>
+                    <div className="space-y-0.5">
+                      <p className="text-base font-semibold text-green-600">Completed</p>
                       <p className="text-sm text-[#64748B]">
                         Submitted {new Date(app.assessmentAttempt.submittedAt).toLocaleString()}
                       </p>
+                      {assignmentIds && !assignmentIds.hasResult && (
+                        <p className="text-xs text-amber-600">Results being processed…</p>
+                      )}
                     </div>
                   </div>
                   {assignmentIds?.hasResult && (

@@ -276,12 +276,20 @@ class ApplicationsService {
       select: { id: true, assessmentId: true },
     });
     if (!assignment) return null;
-    // Check if there's a completed attempt
+
+    // Check for completed attempt — may be linked via assignmentId or directly via applicationId
     const attempt = await prisma.assessmentAttempt.findFirst({
-      where: { assignmentId: assignment.id, submittedAt: { not: null } },
+      where: {
+        submittedAt: { not: null },
+        OR: [
+          { assignmentId: assignment.id },
+          { applicationId },
+        ],
+      },
       orderBy: { submittedAt: 'desc' },
       select: { id: true },
     });
+
     return {
       assessmentId: assignment.assessmentId,
       assignmentId: assignment.id,
