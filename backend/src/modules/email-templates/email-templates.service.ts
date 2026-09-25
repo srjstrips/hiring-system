@@ -86,7 +86,7 @@ async function buildApplicationEmailVars(applicationId: string, sentByName: stri
     }),
     // Personality assessment attempts use AssessmentAttempt (not AssessmentAssignment)
     prisma.assessmentAttempt.findFirst({
-      where: { applicationId, submittedAt: null, expiresAt: { gt: new Date() } },
+      where: { applicationId, submittedAt: null },
       orderBy: { createdAt: 'desc' },
       select: {
         secureToken: true,
