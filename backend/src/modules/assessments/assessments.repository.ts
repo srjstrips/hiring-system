@@ -420,7 +420,6 @@ export class AssessmentsRepository {
             assignedById,
             assignedAt: new Date(),
             maxAttempts: assessment.maxAttempts,
-            secureToken: generateSecureToken(),
             expiresAt: newExpiry,
           },
           include: {

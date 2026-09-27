@@ -131,27 +131,30 @@ class AssessmentsController {
     const id = req.params['id'] as string;
     const assignmentId = req.params['assignmentId'] as string;
 
-    // Detect which scorer was used by checking the assessment name
-    const assessment = await assessmentsService.getById(id);
-    const isWorkStyle = (assessment as { name?: string })?.name?.includes('Work Style') ?? false;
+    try {
+      const assessment = await assessmentsService.getById(id);
+      const isWorkStyle = (assessment as { name?: string })?.name?.includes('Work Style') ?? false;
 
-    let buffer: Buffer;
-    let filename: string;
+      let buffer: Buffer;
+      let filename: string;
 
-    if (isWorkStyle) {
-      const { generateWorkStyleReportPdf } = await import('./work-style-report.service');
-      buffer = await generateWorkStyleReportPdf(id, assignmentId);
-      filename = `SRJ_Fit_Report_${assignmentId}.pdf`;
-    } else {
-      const { generatePersonalityReportPdf } = await import('./personality-report.service');
-      buffer = await generatePersonalityReportPdf(id, assignmentId);
-      filename = `personality-report-${assignmentId}.pdf`;
+      if (isWorkStyle) {
+        const { generateWorkStyleReportPdf } = await import('./work-style-report.service');
+        buffer = await generateWorkStyleReportPdf(id, assignmentId);
+        filename = `SRJ_Fit_Report_${assignmentId}.pdf`;
+      } else {
+        const { generatePersonalityReportPdf } = await import('./personality-report.service');
+        buffer = await generatePersonalityReportPdf(id, assignmentId);
+        filename = `personality-report-${assignmentId}.pdf`;
+      }
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', buffer.length);
+      res.send(buffer);
+    } catch (e: any) {
+      res.status(500).json({ success: false, message: e?.message ?? 'Failed to generate report' });
     }
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Length', buffer.length);
-    res.send(buffer);
   }
 
   async resendAssignmentInvite(req: AuthRequest, res: Response) {

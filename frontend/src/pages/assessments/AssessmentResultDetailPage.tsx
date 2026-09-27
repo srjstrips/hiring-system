@@ -637,14 +637,29 @@ export default function AssessmentResultDetailPage() {
     setDownloadingReport(true);
     try {
       const res = await assessmentsApi.downloadReport(id, assignmentId);
-      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const blob = res.data instanceof Blob ? res.data : new Blob([res.data], { type: 'application/pdf' });
+      // If the server returned an error as JSON blob, surface it
+      if (blob.type.includes('json') || blob.size < 100) {
+        const text = await blob.text();
+        let msg = 'Could not generate report.';
+        try { msg = JSON.parse(text)?.message ?? msg; } catch { /* ignore */ }
+        toast({ title: 'Download failed', description: msg, variant: 'destructive' });
+        return;
+      }
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `personality-report-${assignmentId}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
-      toast({ title: 'Download failed', description: 'Could not generate report. Ensure the candidate has completed the assessment.', variant: 'destructive' });
+    } catch (e: any) {
+      let msg = 'Could not generate report. Ensure the candidate has completed the assessment.';
+      if (e?.response?.data instanceof Blob) {
+        try { const t = await e.response.data.text(); msg = JSON.parse(t)?.message ?? msg; } catch { /* ignore */ }
+      } else if (e?.response?.data?.message) {
+        msg = e.response.data.message;
+      }
+      toast({ title: 'Download failed', description: msg, variant: 'destructive' });
     } finally {
       setDownloadingReport(false);
     }
