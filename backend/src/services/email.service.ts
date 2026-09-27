@@ -187,8 +187,12 @@ class EmailService {
     assessmentName: string;
     assessmentUrl: string;
     durationMins: number;
+    expiresAt?: Date | null;
   }): Promise<void> {
-    const { email, candidateName, assessmentName, assessmentUrl, durationMins } = params;
+    const { email, candidateName, assessmentName, assessmentUrl, durationMins, expiresAt } = params;
+    const expiryRow = expiresAt
+      ? `<tr><td style="padding:8px 0;color:#6b7280;font-size:13px;width:130px;">Link valid until</td><td style="padding:8px 0;font-weight:600;color:#b45309;">${expiresAt.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</td></tr>`
+      : '';
     const body = `
       <h2 style="margin:0 0 8px;color:#111827;font-size:22px;">Assessment Invitation 📝</h2>
       <p>Hello <strong>${candidateName}</strong>,</p>
@@ -199,6 +203,7 @@ class EmailService {
         <table cellpadding="0" cellspacing="0" style="width:100%;">
           <tr><td style="padding:8px 0;color:#6b7280;font-size:13px;width:130px;">Assessment</td><td style="padding:8px 0;font-weight:600;">${assessmentName}</td></tr>
           <tr><td style="padding:8px 0;color:#6b7280;font-size:13px;">Duration</td><td style="padding:8px 0;">${durationMins} minutes</td></tr>
+          ${expiryRow}
         </table>
       </div>
 

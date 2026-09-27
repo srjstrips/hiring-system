@@ -37,6 +37,10 @@ function toDateOrNull(value?: string | null) {
   return new Date(value);
 }
 
+function defaultExpiresAt(): Date {
+  return new Date(Date.now() + 48 * 60 * 60 * 1000);
+}
+
 function mapQuestionForClient(q: any, includeCorrect = true) {
   const options = (q.optionItems?.length
     ? q.optionItems.map((o: any) => o.optionText)
@@ -392,6 +396,8 @@ export class AssessmentsRepository {
     });
     if (applications.length === 0) throw new Error('NO_ELIGIBLE');
 
+    const newExpiry = toDateOrNull(expiresAt) ?? defaultExpiresAt();
+
     const created = await prisma.$transaction(
       applications.map((app) =>
         prisma.assessmentAssignment.upsert({
@@ -406,7 +412,7 @@ export class AssessmentsRepository {
             assignedById,
             maxAttempts: assessment.maxAttempts,
             secureToken: generateSecureToken(),
-            expiresAt: toDateOrNull(expiresAt),
+            expiresAt: newExpiry,
             status: 'ASSIGNED',
           },
           update: {
@@ -414,7 +420,8 @@ export class AssessmentsRepository {
             assignedById,
             assignedAt: new Date(),
             maxAttempts: assessment.maxAttempts,
-            expiresAt: toDateOrNull(expiresAt),
+            secureToken: generateSecureToken(),
+            expiresAt: newExpiry,
           },
           include: {
             candidate: { select: { id: true, firstName: true, lastName: true, email: true } },
@@ -427,6 +434,7 @@ export class AssessmentsRepository {
     const { buildCandidateAssessmentUrl } = await import('./assessment-url');
     return created.map((row) => ({
       ...row,
+      expiresAt: newExpiry,
       assessmentUrl: buildCandidateAssessmentUrl(row.secureToken),
     }));
   }
@@ -709,13 +717,25 @@ export class AssessmentsRepository {
     const hasOpenAttempt = attempts.some((a) => !a.completedAt);
 
     // Fetch personality result for the latest completed attempt (if any)
-    let personalityResult = null;
     const completedAttempts = assignment.attempts.filter((a) => a.submittedAt);
     const latestCompleted = completedAttempts[completedAttempts.length - 1];
+    let personalityResult: (Awaited<ReturnType<typeof prisma.assessmentPersonalityResult.findUnique>> & { interviewProbes: string[] }) | null = null;
     if (latestCompleted) {
-      personalityResult = await prisma.assessmentPersonalityResult.findUnique({
+      const raw = await prisma.assessmentPersonalityResult.findUnique({
         where: { attemptId: latestCompleted.id },
       });
+      if (raw) {
+        const { generateInterviewProbes } = await import('./personality-scoring.service');
+        const probes = generateInterviewProbes(
+          raw.tH ?? 50,
+          raw.tES ?? 50,
+          raw.tX ?? 50,
+          raw.tC ?? 50,
+          raw.tO ?? 50,
+          (raw.derailerFlags as string[]) ?? [],
+        );
+        personalityResult = { ...raw, interviewProbes: probes };
+      }
     }
 
     return {
@@ -745,7 +765,7 @@ export class AssessmentsRepository {
     };
   }
 
-  async resendAssignmentInvite(assessmentId: string, assignmentId: string) {
+  async resendAssignmentInvite(assessmentId: string, assignmentId: string, overrideEmail?: string) {
     const assignment = await prisma.assessmentAssignment.findFirst({
       where: { id: assignmentId, assessmentId },
       include: {
@@ -755,20 +775,29 @@ export class AssessmentsRepository {
     });
     if (!assignment) throw new Error('NOT_FOUND');
     if (assignment.status === 'CANCELLED') throw new Error('CANCELLED');
-    if (!assignment.candidate.email) throw new Error('NO_EMAIL');
+
+    const sendToEmail = overrideEmail || assignment.candidate.email;
+    if (!sendToEmail) throw new Error('NO_EMAIL');
+
+    const newExpiry = defaultExpiresAt();
+    await prisma.assessmentAssignment.update({
+      where: { id: assignmentId },
+      data: { expiresAt: newExpiry },
+    });
 
     const { buildCandidateAssessmentUrl } = await import('./assessment-url');
     const assessmentUrl = buildCandidateAssessmentUrl(assignment.secureToken);
     const { emailService } = await import('@/services/email.service');
     await emailService.sendAssessmentInviteEmail({
-      email: assignment.candidate.email,
+      email: sendToEmail,
       candidateName: `${assignment.candidate.firstName} ${assignment.candidate.lastName}`.trim(),
       assessmentName: assignment.assessment.name,
       assessmentUrl,
       durationMins: assignment.assessment.durationMins,
+      expiresAt: newExpiry,
     });
 
-    return { assessmentUrl, email: assignment.candidate.email };
+    return { assessmentUrl, email: sendToEmail };
   }
 
   async allowRetake(assessmentId: string, assignmentId: string, increaseMaxAttempts = false) {

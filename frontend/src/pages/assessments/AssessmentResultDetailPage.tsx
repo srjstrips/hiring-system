@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { toast } from '@/hooks/useToast';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Circle, Download, Mail, RefreshCw, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Circle, Download, Mail, MessageSquare, RefreshCw, ThumbsDown, ThumbsUp, TrendingUp, XCircle } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
 // ─── Personality profile types ────────────────────────────────────────────────
@@ -29,6 +29,7 @@ interface PersonalityResult {
   archetype: string | null;
   roleFitScores: Record<string, number>;
   fitBand: string | null;
+  interviewProbes: string[];
 }
 
 const TRAIT_META: Record<string, { label: string; color: string }> = {
@@ -262,6 +263,235 @@ function PersonalityProfileCard({ result }: { result: PersonalityResult }) {
   );
 }
 
+// ─── Hiring verdict ───────────────────────────────────────────────────────────
+
+type Verdict = 'MOVE_FORWARD' | 'HOLD' | 'PASS';
+
+function deriveVerdict(result: PersonalityResult): {
+  verdict: Verdict;
+  headline: string;
+  reason: string;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+} {
+  const hardDerailers = ['Integrity risk', 'Volatility', 'Recklessness'];
+  const hasHardDerailer = result.derailerFlags.some((f) => hardDerailers.includes(f));
+  const lowConfidence = result.confidenceScore < 60;
+
+  if (hasHardDerailer || result.fitBand === 'Low Fit') {
+    return {
+      verdict: 'PASS',
+      headline: 'Not recommended at this stage',
+      reason: hasHardDerailer
+        ? `Profile shows ${result.derailerFlags.filter((f) => hardDerailers.includes(f)).join(', ')} — significant risk for this role. Probe deeply at interview before proceeding.`
+        : 'Role-fit scores indicate a poor match with SRJ\'s work environment requirements.',
+      color: 'text-red-700', bgColor: 'bg-red-50', borderColor: 'border-red-200',
+    };
+  }
+
+  if (lowConfidence || result.fitBand === 'Conditional') {
+    return {
+      verdict: 'HOLD',
+      headline: 'Conditional — verify at interview',
+      reason: lowConfidence
+        ? `Assessment confidence is low (${result.confidenceScore}/100). Results may not fully reflect the candidate's profile. Use interview probes below to validate.`
+        : 'Role fit is conditional. Strengths present but some gaps need structured interview follow-up.',
+      color: 'text-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-200',
+    };
+  }
+
+  return {
+    verdict: 'MOVE_FORWARD',
+    headline: result.fitBand === 'Strong Fit' ? 'Strong recommendation to proceed' : 'Recommended to proceed',
+    reason: `${result.fitBand} for the target role. Profile aligns with SRJ\'s operational environment. Confirm cultural fit at interview.`,
+    color: 'text-green-700', bgColor: 'bg-green-50', borderColor: 'border-green-200',
+  };
+}
+
+const TRAIT_GROWTH: Record<string, { area: string; tip: string }> = {
+  H:  { area: 'Integrity & Transparency', tip: 'Probe honesty under pressure. Set clear expectations on compliance from day one.' },
+  ES: { area: 'Stress Management', tip: 'Pair with a stable team lead. Avoid high-pressure solo assignments early on.' },
+  X:  { area: 'Assertiveness', tip: 'Encourage them to voice concerns. Create a psychologically safe environment to speak up.' },
+  A:  { area: 'Collaboration', tip: 'Brief them on teamwork norms. Monitor peer feedback in first 90 days.' },
+  C:  { area: 'Follow-through & Structure', tip: 'Use checklists and clear deadlines. Check-ins more frequently in the first month.' },
+  O:  { area: 'Adaptability to Change', tip: 'Introduce process changes gradually. Give advance notice and rationale for shifts.' },
+};
+
+function GrowthAreasCard({ result }: { result: PersonalityResult }) {
+  const traits: Array<{ key: string; t: number | null }> = [
+    { key: 'H', t: result.tH }, { key: 'ES', t: result.tES },
+    { key: 'X', t: result.tX }, { key: 'A', t: result.tA },
+    { key: 'C', t: result.tC }, { key: 'O', t: result.tO },
+  ];
+
+  const growthAreas = traits.filter((tr) => tr.t != null && tr.t < 45);
+  const strengths = traits.filter((tr) => tr.t != null && tr.t >= 60);
+
+  if (growthAreas.length === 0 && strengths.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-blue-600" />
+          Strengths &amp; Growth Areas
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">Where this candidate will thrive, and where they'll need support at SRJ</p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {strengths.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold text-green-700 uppercase tracking-wide mb-2">Key Strengths</p>
+            <div className="space-y-1.5">
+              {strengths.map(({ key, t }) => (
+                <div key={key} className="flex items-start gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                  <span>
+                    <span className="font-medium">{TRAIT_META[key]!.label}</span>
+                    <span className="text-muted-foreground"> (T={t}) — above average, a reliable strength on the floor.</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {growthAreas.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">Areas Needing Support</p>
+            <div className="space-y-3">
+              {growthAreas.map(({ key, t }) => {
+                const meta = TRAIT_GROWTH[key]!;
+                return (
+                  <div key={key} className="border rounded-md p-3 bg-amber-50/50 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                      <span className="text-sm font-medium">{meta.area}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">T={t}</span>
+                    </div>
+                    <p className="text-xs text-slate-600 pl-5">{meta.tip}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function HiringVerdictCard({ result, candidateName }: { result: PersonalityResult; candidateName: string }) {
+  const { verdict, headline, reason, color, bgColor, borderColor } = deriveVerdict(result);
+
+  const topRole = Object.entries(result.roleFitScores).sort(([, a], [, b]) => b - a)[0];
+  const bestRoleScore = topRole?.[1] ?? 0;
+  const bestRoleName = topRole?.[0] ?? '—';
+
+  const isGoodFitForSRJ = result.fitBand === 'Strong Fit' || result.fitBand === 'Fit';
+  const candidateWillThrive = bestRoleScore >= 60;
+
+  return (
+    <div className="space-y-3">
+      {/* Main verdict */}
+      <Card className={cn('border-2', borderColor, bgColor)}>
+        <CardContent className="pt-5 pb-5">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5">
+              {verdict === 'MOVE_FORWARD' && <ThumbsUp className={cn('h-6 w-6', color)} />}
+              {verdict === 'HOLD' && <AlertTriangle className={cn('h-6 w-6', color)} />}
+              {verdict === 'PASS' && <ThumbsDown className={cn('h-6 w-6', color)} />}
+            </div>
+            <div className="flex-1">
+              <p className={cn('font-bold text-lg', color)}>{headline}</p>
+              <p className="text-sm text-slate-600 mt-1">{reason}</p>
+            </div>
+            <Badge className={cn('shrink-0 mt-0.5', color, bgColor, borderColor, 'border')}>
+              {verdict === 'MOVE_FORWARD' ? 'Proceed' : verdict === 'HOLD' ? 'Hold' : 'Pass'}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Two-sided fit summary */}
+      <div className="grid sm:grid-cols-2 gap-3">
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Is SRJ right for {candidateName.split(' ')[0]}?</p>
+            <div className="flex items-start gap-2">
+              {candidateWillThrive
+                ? <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                : <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />}
+              <p className="text-sm">
+                {candidateWillThrive ? (
+                  <>Best matched for <strong>{bestRoleName}</strong> (score {bestRoleScore}). SRJ's environment aligns well with this profile.</>
+                ) : (
+                  <>Best role match is <strong>{bestRoleName}</strong> (score {bestRoleScore}). SRJ may not be the optimal environment — they may underperform or disengage.</>
+                )}
+              </p>
+            </div>
+            {!candidateWillThrive && (
+              <p className="text-xs text-muted-foreground mt-2 pl-6">
+                Consider whether the role and team culture fit their working style before proceeding.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Is {candidateName.split(' ')[0]} right for SRJ?</p>
+            <div className="flex items-start gap-2">
+              {isGoodFitForSRJ
+                ? <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                : <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />}
+              <p className="text-sm">
+                {isGoodFitForSRJ ? (
+                  <>Overall fit band is <strong>{result.fitBand}</strong>. Behavioural profile meets SRJ's role requirements.</>
+                ) : (
+                  <>Overall fit band is <strong>{result.fitBand}</strong>. Profile has gaps vs. SRJ's operational role demands.</>
+                )}
+              </p>
+            </div>
+            {result.derailerFlags.length > 0 && (
+              <p className="text-xs text-amber-700 mt-2 pl-6">
+                Risk flags present: {result.derailerFlags.join(', ')}. Probe at interview.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function InterviewProbesCard({ probes }: { probes: string[] }) {
+  if (!probes.length) return null;
+  return (
+    <Card className="border-blue-200">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <MessageSquare className="h-4 w-4 text-blue-600" />
+          Suggested Interview Questions
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">Tailored to this candidate's profile — probe areas flagged by the assessment</p>
+      </CardHeader>
+      <CardContent>
+        <ol className="space-y-2">
+          {probes.map((probe, i) => (
+            <li key={i} className="flex items-start gap-3 text-sm">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold flex items-center justify-center mt-0.5">
+                {i + 1}
+              </span>
+              <span className="text-slate-700">{probe}</span>
+            </li>
+          ))}
+        </ol>
+      </CardContent>
+    </Card>
+  );
+}
+
 function formatDuration(seconds: number | null) {
   if (seconds == null) return '—';
   const m = Math.floor(seconds / 60);
@@ -279,6 +509,12 @@ const OUTCOME_STYLES = {
   INCORRECT: 'border-red-200 bg-red-50',
   UNANSWERED: 'border-slate-200 bg-slate-50',
 } as const;
+
+const PERSONALITY_QUESTION_TYPES = new Set(['RATING_SCALE_5', 'FORCED_CHOICE']);
+
+function isPersonalityQuestion(questionType: string, assessmentType: string) {
+  return assessmentType === 'PERSONALITY' || PERSONALITY_QUESTION_TYPES.has(questionType);
+}
 
 function AssessmentRecordingsSection({
   assessmentId,
@@ -390,7 +626,9 @@ export default function AssessmentResultDetailPage() {
   const { id, assignmentId } = useParams<{ id: string; assignmentId: string }>();
   const queryClient = useQueryClient();
   const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<'resend' | 'retake' | 'increase' | null>(null);
+  const [confirm, setConfirm] = useState<'retake' | 'increase' | null>(null);
+  const [resendOpen, setResendOpen] = useState(false);
+  const [resendEmail, setResendEmail] = useState('');
 
   const [downloadingReport, setDownloadingReport] = useState(false);
 
@@ -419,10 +657,10 @@ export default function AssessmentResultDetailPage() {
   });
 
   const resendMutation = useMutation({
-    mutationFn: () => assessmentsApi.resendInvite(id!, assignmentId!),
-    onSuccess: () => {
-      toast({ title: 'Invite resent', variant: 'success' });
-      setConfirm(null);
+    mutationFn: (email: string) => assessmentsApi.resendInvite(id!, assignmentId!, email || undefined),
+    onSuccess: (res) => {
+      toast({ title: `Invite sent to ${res.data.data.email}`, description: 'Link valid for 48 hours.', variant: 'success' });
+      setResendOpen(false);
     },
     onError: (e: any) =>
       toast({ title: 'Could not resend', description: e.response?.data?.message, variant: 'destructive' }),
@@ -482,7 +720,7 @@ export default function AssessmentResultDetailPage() {
               {downloadingReport ? 'Generating…' : 'Download Report'}
             </Button>
           )}
-          <Button variant="outline" onClick={() => setConfirm('resend')}>
+          <Button variant="outline" onClick={() => { setResendEmail(candidate.email ?? ''); setResendOpen(true); }}>
             <Mail className="h-4 w-4 mr-1.5" /> Resend Assessment
           </Button>
           {assignment.canRetake && (
@@ -557,7 +795,11 @@ export default function AssessmentResultDetailPage() {
                           </span>
                         )}
                       </div>
-                      {attempt.result ? (
+                      {assessment.assessmentType === 'PERSONALITY' ? (
+                        <Badge variant={attempt.completedAt ? 'default' : 'outline'}>
+                          {attempt.completedAt ? 'Completed' : 'In progress'}
+                        </Badge>
+                      ) : attempt.result ? (
                         <Badge variant={attempt.result === 'PASSED' ? 'default' : 'secondary'}>
                           {attempt.result}
                         </Badge>
@@ -567,7 +809,9 @@ export default function AssessmentResultDetailPage() {
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
                       <span>{attempt.completedAt ? 'Completed' : 'Started'}</span>
-                      <span>{attempt.percentage != null ? `${attempt.percentage}%` : '—'}</span>
+                      {assessment.assessmentType !== 'PERSONALITY' && (
+                        <span>{attempt.percentage != null ? `${attempt.percentage}%` : '—'}</span>
+                      )}
                       <span>{formatDate(attempt.startedAt)}</span>
                       {attempt.completedAt && <span>→ {formatDate(attempt.completedAt)}</span>}
                     </div>
@@ -601,39 +845,58 @@ export default function AssessmentResultDetailPage() {
                 <p className="text-xs text-muted-foreground">Time Taken</p>
                 <p className="font-medium">{formatDuration(selectedAttempt.timeTakenSeconds)}</p>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Result</p>
-                <p className="font-medium">
-                  {selectedAttempt.result ?? '—'}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total Marks</p>
-                <p className="font-medium">{selectedAttempt.completedAt ? selectedAttempt.totalMarks ?? '—' : '—'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Obtained Marks</p>
-                <p className="font-medium">{selectedAttempt.completedAt ? selectedAttempt.obtainedMarks ?? '—' : '—'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Percentage</p>
-                <p className="font-medium">
-                  {selectedAttempt.completedAt && selectedAttempt.percentage != null
-                    ? `${selectedAttempt.percentage}%`
-                    : '—'}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Passing Percentage</p>
-                <p className="font-medium">{passingPercentage}%</p>
-              </div>
+              {assessment.assessmentType === 'PERSONALITY' ? (
+                <div>
+                  <p className="text-xs text-muted-foreground">Questions Answered</p>
+                  <p className="font-medium">
+                    {selectedAttempt.completedAt
+                      ? `${selectedAttempt.questions.filter((q) => q.outcome !== 'UNANSWERED').length} / ${selectedAttempt.questions.length}`
+                      : '—'}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Result</p>
+                    <p className="font-medium">{selectedAttempt.result ?? '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Score</p>
+                    <p className="font-medium">
+                      {selectedAttempt.completedAt
+                        ? `${selectedAttempt.obtainedMarks ?? '—'} / ${selectedAttempt.totalMarks ?? '—'}`
+                        : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Percentage</p>
+                    <p className="font-medium">
+                      {selectedAttempt.completedAt && selectedAttempt.percentage != null
+                        ? `${selectedAttempt.percentage}%`
+                        : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Passing Percentage</p>
+                    <p className="font-medium">{passingPercentage}%</p>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
           <AssessmentRecordingsSection assessmentId={id!} attempt={selectedAttempt} />
 
           {personalityResult && selectedAttempt.isLatest && (
-            <PersonalityProfileCard result={personalityResult} />
+            <>
+              <HiringVerdictCard
+                result={personalityResult}
+                candidateName={`${candidate.firstName} ${candidate.lastName}`}
+              />
+              <PersonalityProfileCard result={personalityResult} />
+              <GrowthAreasCard result={personalityResult} />
+              <InterviewProbesCard probes={personalityResult.interviewProbes ?? []} />
+            </>
           )}
 
           <div className="space-y-3">
@@ -651,78 +914,141 @@ export default function AssessmentResultDetailPage() {
                 </CardContent>
               </Card>
             ) : (
-              selectedAttempt.questions.map((q) => (
-                <Card key={q.attemptQuestionId} className={cn('border', OUTCOME_STYLES[q.outcome])}>
-                  <CardContent className="pt-4 pb-4 space-y-3">
-                    <div className="flex items-start justify-between gap-3 flex-wrap">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Question {q.number}</p>
-                        <p className="font-medium mt-0.5">{q.questionText}</p>
+              selectedAttempt.questions.map((q) => {
+                const isPersonality = isPersonalityQuestion(q.questionType, assessment.assessmentType);
+                const answered = q.outcome !== 'UNANSWERED';
+                const cardStyle = isPersonality
+                  ? (answered ? 'border-blue-200 bg-blue-50' : OUTCOME_STYLES.UNANSWERED)
+                  : OUTCOME_STYLES[q.outcome];
+                return (
+                  <Card key={q.attemptQuestionId} className={cn('border', cardStyle)}>
+                    <CardContent className="pt-4 pb-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Question {q.number}</p>
+                          <p className="font-medium mt-0.5">{q.questionText}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isPersonality ? (
+                            answered
+                              ? <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                              : <Circle className="h-4 w-4 text-slate-400" />
+                          ) : (
+                            <>
+                              {q.outcome === 'CORRECT' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                              {q.outcome === 'INCORRECT' && <XCircle className="h-4 w-4 text-red-600" />}
+                              {q.outcome === 'UNANSWERED' && <Circle className="h-4 w-4 text-slate-400" />}
+                            </>
+                          )}
+                          <Badge variant="outline">
+                            {isPersonality ? (answered ? 'ANSWERED' : 'UNANSWERED') : q.outcome}
+                          </Badge>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {q.outcome === 'CORRECT' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-                        {q.outcome === 'INCORRECT' && <XCircle className="h-4 w-4 text-red-600" />}
-                        {q.outcome === 'UNANSWERED' && <Circle className="h-4 w-4 text-slate-400" />}
-                        <Badge variant="outline">{q.outcome}</Badge>
-                      </div>
-                    </div>
 
-                    {q.options.length > 0 && (
-                      <div className="space-y-1.5">
-                        {q.options.map((opt) => (
-                          <div
-                            key={opt.id}
-                            className={cn(
-                              'flex items-center gap-2 text-sm rounded px-2 py-1',
-                              opt.isSelected && opt.isCorrect && 'bg-green-100',
-                              opt.isSelected && !opt.isCorrect && 'bg-red-100',
-                              !opt.isSelected && opt.isCorrect && 'bg-green-50'
-                            )}
-                          >
-                            <span className="text-base leading-none">
-                              {opt.isSelected ? '●' : '○'}
-                            </span>
-                            <span>{opt.optionText}</span>
-                            {opt.isCorrect && (
-                              <span className="text-[10px] uppercase text-green-700 font-medium">Correct</span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                      {q.options.length > 0 && (
+                        <div className="space-y-1.5">
+                          {q.options.map((opt) => (
+                            <div
+                              key={opt.id}
+                              className={cn(
+                                'flex items-center gap-2 text-sm rounded px-2 py-1',
+                                isPersonality
+                                  ? opt.isSelected && 'bg-blue-100'
+                                  : [
+                                      opt.isSelected && opt.isCorrect && 'bg-green-100',
+                                      opt.isSelected && !opt.isCorrect && 'bg-red-100',
+                                      !opt.isSelected && opt.isCorrect && 'bg-green-50',
+                                    ]
+                              )}
+                            >
+                              <span className="text-base leading-none">
+                                {opt.isSelected ? '●' : '○'}
+                              </span>
+                              <span>{opt.optionText}</span>
+                              {!isPersonality && opt.isCorrect && (
+                                <span className="text-[10px] uppercase text-green-700 font-medium">Correct</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
-                    <div className="grid sm:grid-cols-3 gap-3 text-sm pt-1 border-t">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Candidate Answer</p>
-                        <p className="font-medium">{q.candidateAnswer ?? '—'}</p>
+                      <div className={cn('grid gap-3 text-sm pt-1 border-t', isPersonality ? 'grid-cols-1' : 'sm:grid-cols-3')}>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Candidate Answer</p>
+                          <p className="font-medium">{q.candidateAnswer ?? '—'}</p>
+                        </div>
+                        {!isPersonality && (
+                          <>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Correct Answer</p>
+                              <p className="font-medium">{q.correctAnswer ?? '—'}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Marks</p>
+                              <p className="font-medium">{q.marksGiven} / {q.marks}</p>
+                            </div>
+                          </>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Correct Answer</p>
-                        <p className="font-medium">{q.correctAnswer ?? '—'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Marks</p>
-                        <p className="font-medium">{q.marksGiven} / {q.marks}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+                    </CardContent>
+                  </Card>
+                );
+              })
             )}
           </div>
         </>
       )}
 
-      <ConfirmDialog
-        open={confirm === 'resend'}
-        onClose={() => setConfirm(null)}
-        title="Resend assessment"
-        description={`Resend the secure assessment link to ${candidate.email}?`}
-        confirmLabel="Resend"
-        variant="default"
-        loading={resendMutation.isPending}
-        onConfirm={() => resendMutation.mutate()}
-      />
+      {/* Resend email modal */}
+      {resendOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Mail className="h-4 w-4" /> Resend Assessment Link
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p>The link will be valid for <strong>48 hours</strong> from now.</p>
+                <p>You can send it to a different email address if needed.</p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-slate-700">Send to email</label>
+                <input
+                  type="email"
+                  value={resendEmail}
+                  onChange={(e) => setResendEmail(e.target.value)}
+                  className="w-full border rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  placeholder="candidate@email.com"
+                />
+                {resendEmail !== candidate.email && candidate.email && (
+                  <p className="text-xs text-amber-600">
+                    Different from candidate's registered email ({candidate.email}).{' '}
+                    <button className="underline" onClick={() => setResendEmail(candidate.email ?? '')}>Reset</button>
+                  </p>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <Button variant="outline" size="sm" onClick={() => setResendOpen(false)} disabled={resendMutation.isPending}>
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => resendMutation.mutate(resendEmail)}
+                  disabled={!resendEmail || resendMutation.isPending}
+                >
+                  <Mail className="h-3.5 w-3.5 mr-1.5" />
+                  {resendMutation.isPending ? 'Sending…' : 'Send Link'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <ConfirmDialog
         open={confirm === 'retake'}
         onClose={() => setConfirm(null)}

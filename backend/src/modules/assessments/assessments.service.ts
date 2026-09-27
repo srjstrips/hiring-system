@@ -173,6 +173,7 @@ class AssessmentsService {
             assessmentName: assessment.name,
             assessmentUrl: row.assessmentUrl,
             durationMins: assessment.durationMins,
+            expiresAt: row.expiresAt,
           });
         }
       }
@@ -215,10 +216,10 @@ class AssessmentsService {
     return data;
   }
 
-  async resendAssignmentInvite(assessmentId: string, assignmentId: string) {
+  async resendAssignmentInvite(assessmentId: string, assignmentId: string, overrideEmail?: string) {
     await this.getById(assessmentId);
     try {
-      return await assessmentsRepository.resendAssignmentInvite(assessmentId, assignmentId);
+      return await assessmentsRepository.resendAssignmentInvite(assessmentId, assignmentId, overrideEmail);
     } catch (e: any) {
       if (e?.message === 'NOT_FOUND') throw new AppError('Assignment not found', 404);
       if (e?.message === 'CANCELLED') throw new AppError('Cannot resend a cancelled assignment', 400);

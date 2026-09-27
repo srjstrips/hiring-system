@@ -59,7 +59,16 @@ export async function seedWorkStyleAssessment(): Promise<string> {
     where: { name: ASSESSMENT_NAME },
   });
   if (existing) {
-    console.log(`[WorkStyleSeeder] Assessment "${ASSESSMENT_NAME}" already exists (id: ${existing.id}). Skipping.`);
+    console.log(`[WorkStyleSeeder] Assessment "${ASSESSMENT_NAME}" already exists (id: ${existing.id}). Patching marks to 2...`);
+    const patched = await prisma.assessmentQuestion.updateMany({
+      where: { assessmentId: existing.id, marks: { not: 2 } },
+      data: { marks: 2 },
+    });
+    if (patched.count > 0) {
+      console.log(`[WorkStyleSeeder] Updated ${patched.count} questions to marks=2.`);
+    } else {
+      console.log(`[WorkStyleSeeder] All questions already have marks=2.`);
+    }
     return existing.id;
   }
 
@@ -90,7 +99,7 @@ export async function seedWorkStyleAssessment(): Promise<string> {
         assessmentId: assessment.id,
         questionText: q.text,
         questionType: 'MCQ',
-        marks: 1,
+        marks: 2,
         displayOrder: q.order,
         trait: q.trait,
         isReversed: q.isReversed,

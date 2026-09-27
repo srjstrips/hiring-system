@@ -157,7 +157,8 @@ class AssessmentsController {
   async resendAssignmentInvite(req: AuthRequest, res: Response) {
     const id = req.params['id'] as string;
     const assignmentId = req.params['assignmentId'] as string;
-    const data = await assessmentsService.resendAssignmentInvite(id, assignmentId);
+    const overrideEmail = (req.body as { email?: string })?.email?.trim() || undefined;
+    const data = await assessmentsService.resendAssignmentInvite(id, assignmentId, overrideEmail);
     res.json({ success: true, data, message: 'Assessment invite resent' });
   }
 

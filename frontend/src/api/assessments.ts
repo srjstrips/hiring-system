@@ -197,9 +197,10 @@ export const assessmentsApi = {
         provider: string;
       };
     }>(`/assessments/${assessmentId}/recordings/${recordingId}/view-url`),
-  resendInvite: (id: string, assignmentId: string) =>
+  resendInvite: (id: string, assignmentId: string, email?: string) =>
     api.post<{ success: boolean; data: { assessmentUrl: string; email: string }; message?: string }>(
-      `/assessments/${id}/assignments/${assignmentId}/resend`
+      `/assessments/${id}/assignments/${assignmentId}/resend`,
+      email ? { email } : {}
     ),
   allowRetake: (id: string, assignmentId: string, increaseMaxAttempts = false) =>
     api.post<{ success: boolean; data: AssessmentAssignment; message?: string }>(
