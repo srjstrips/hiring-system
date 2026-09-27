@@ -100,17 +100,41 @@ export async function generatePhase2ReportPdf(assessmentId: string, assignmentId
     orderBy: { traitName: 'asc' },
   });
 
-  // If scores missing (attempt pre-dates scoring fix), run scoring now synchronously
+  // If scores missing, compute them now from the attempt snapshot directly
   if (!traitRows.length) {
-    const { default: assessmentsScoringService } = await import('./assessments-scoring.service');
-    await assessmentsScoringService.calculatePersonalityTraitScores(attempt.id, assessmentId);
-    traitRows = await prisma.assessmentTraitScore.findMany({
-      where: { attemptId: attempt.id },
-      orderBy: { traitName: 'asc' },
+    const fullAttempt = await prisma.assessmentAttempt.findUnique({
+      where: { id: attempt.id },
+      include: {
+        answers: true,
+        questionSnapshots: { include: { options: { orderBy: { displayOrder: 'asc' } } } },
+      },
     });
+
+    if (fullAttempt) {
+      const traitMap = new Map<string, { total: number; count: number }>();
+
+      for (const q of fullAttempt.questionSnapshots) {
+        const traitKey = (q.trait as string | null) ?? 'OVERALL';
+        const answer = fullAttempt.answers.find((a) => a.attemptQuestionId === q.id);
+        if (!answer?.selectedOptionId) continue;
+        const optionIndex = q.options.findIndex((o) => o.id === answer.selectedOptionId);
+        if (optionIndex === -1) continue;
+        const value = optionIndex + 1; // 1-5
+        const entry = traitMap.get(traitKey) ?? { total: 0, count: 0 };
+        entry.total += value;
+        entry.count += 1;
+        traitMap.set(traitKey, entry);
+      }
+
+      traitRows = [...traitMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([traitName, { total, count }]) => {
+        const avg = count > 0 ? total / count : 0;
+        const level = avg <= 1.5 ? 1 : avg <= 2.5 ? 2 : avg <= 3.5 ? 3 : avg <= 4.5 ? 4 : 5;
+        return { traitName, averageScore: Math.round(avg * 100) / 100, level, questionCount: count } as typeof traitRows[0];
+      });
+    }
   }
 
-  if (!traitRows.length) throw new Error('No trait scores found — the assessment may not have personality questions with trait tags.');
+  if (!traitRows.length) throw new Error('No answered questions found for this attempt.');
 
   const candidateName = `${assignment.candidate.firstName ?? ''} ${assignment.candidate.lastName ?? ''}`.trim() || 'Candidate';
   const jobTitle = assignment.job?.title ?? 'Role not specified';

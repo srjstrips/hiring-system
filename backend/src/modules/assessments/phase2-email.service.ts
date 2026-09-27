@@ -51,10 +51,41 @@ export async function sendPhase2ResultEmail(attemptId: string): Promise<void> {
 
   if (!attempt?.candidate?.email) return;
 
-  const traitRows = await prisma.assessmentTraitScore.findMany({
+  let traitRows = await prisma.assessmentTraitScore.findMany({
     where: { attemptId },
     orderBy: { traitName: 'asc' },
   });
+
+  // If scores missing, compute from snapshot directly
+  if (!traitRows.length) {
+    const fullAttempt = await prisma.assessmentAttempt.findUnique({
+      where: { id: attemptId },
+      include: {
+        answers: true,
+        questionSnapshots: { include: { options: { orderBy: { displayOrder: 'asc' } } } },
+      },
+    });
+    if (fullAttempt) {
+      const traitMap = new Map<string, { total: number; count: number }>();
+      for (const q of fullAttempt.questionSnapshots) {
+        const traitKey = (q.trait as string | null) ?? 'OVERALL';
+        const answer = fullAttempt.answers.find((a) => a.attemptQuestionId === q.id);
+        if (!answer?.selectedOptionId) continue;
+        const optionIndex = q.options.findIndex((o) => o.id === answer.selectedOptionId);
+        if (optionIndex === -1) continue;
+        const entry = traitMap.get(traitKey) ?? { total: 0, count: 0 };
+        entry.total += optionIndex + 1;
+        entry.count += 1;
+        traitMap.set(traitKey, entry);
+      }
+      traitRows = [...traitMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([traitName, { total, count }]) => {
+        const avg = count > 0 ? total / count : 0;
+        const level = avg <= 1.5 ? 1 : avg <= 2.5 ? 2 : avg <= 3.5 ? 3 : avg <= 4.5 ? 4 : 5;
+        return { traitName, averageScore: Math.round(avg * 100) / 100, level, questionCount: count } as typeof traitRows[0];
+      });
+    }
+  }
+
   if (!traitRows.length) return;
 
   const firstName = attempt.candidate.firstName ?? '';
