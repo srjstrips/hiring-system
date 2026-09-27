@@ -22,6 +22,11 @@ type Phase = 'loading' | 'error' | 'intro' | 'device' | 'consent' | 'test' | 'su
 
 type CheckState = 'pending' | 'ready' | 'denied';
 
+function isMobileDevice() {
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+    !('getDisplayMedia' in (navigator.mediaDevices ?? {}));
+}
+
 function formatTime(totalSeconds: number) {
   const s = Math.max(0, totalSeconds);
   const m = Math.floor(s / 60);
@@ -236,9 +241,10 @@ export default function CandidateAssessmentTakePage() {
   const [syncWarning, setSyncWarning] = useState('');
   const [mediaWarning, setMediaWarning] = useState('');
   const [uploadWarning, setUploadWarning] = useState('');
+  const isMobile = isMobileDevice();
   const [camera, setCamera] = useState<CheckState>('pending');
   const [microphone, setMicrophone] = useState<CheckState>('pending');
-  const [screen, setScreen] = useState<CheckState>('pending');
+  const [screen, setScreen] = useState<CheckState>(isMobile ? 'ready' : 'pending');
   const [recordingConsent, setRecordingConsent] = useState(false);
   const [cameraRecStatus, setCameraRecStatus] = useState<'idle' | 'recording' | 'error' | 'stopped'>('idle');
   const [screenRecStatus, setScreenRecStatus] = useState<'idle' | 'recording' | 'error' | 'stopped'>('idle');
@@ -433,14 +439,17 @@ export default function CandidateAssessmentTakePage() {
       );
       return;
     }
-    if (!cameraStream.current || !micStream.current || !screenStream.current) return;
+    if (!cameraStream.current || !micStream.current) return;
+    if (!isMobile && !screenStream.current) return;
 
-    const screenTrack = screenStream.current.getVideoTracks()[0];
-    if (!screenTrack || screenTrack.readyState !== 'live') {
-      setScreen('denied');
-      setMediaWarning('Screen sharing is not active. Please restore screen sharing.');
-      setPhase('device');
-      return;
+    if (!isMobile) {
+      const screenTrack = screenStream.current!.getVideoTracks()[0];
+      if (!screenTrack || screenTrack.readyState !== 'live') {
+        setScreen('denied');
+        setMediaWarning('Screen sharing is not active. Please restore screen sharing.');
+        setPhase('device');
+        return;
+      }
     }
 
     setStarting(true);
@@ -462,10 +471,10 @@ export default function CandidateAssessmentTakePage() {
           attemptId: data.attemptId,
           consent: true,
           cameraMimeType: mime || undefined,
-          screenMimeType: mime || undefined,
+          screenMimeType: isMobile ? undefined : (mime || undefined),
         });
         cameraRecordingId.current = rec.data.data.camera.id;
-        screenRecordingId.current = rec.data.data.screen.id;
+        if (!isMobile) screenRecordingId.current = rec.data.data.screen?.id ?? null;
 
         const combined = mergeCameraAndMic(cameraStream.current, micStream.current);
         mergedCamMic.current = combined;
@@ -489,38 +498,40 @@ export default function CandidateAssessmentTakePage() {
           15_000,
           rec.data.data.camera.nextChunkIndex ?? 0
         );
-        const scrRec = new ChunkedRecorder(
-          'screen',
-          async (blob, chunkIndex) => {
-            await publicAssessmentsApi.uploadRecordingChunk(
-              secureToken,
-              screenRecordingId.current!,
-              chunkIndex,
-              blob
-            );
-            setUploadWarning('');
-            setScreenRecStatus('recording');
-          },
-          (msg) => {
-            setUploadWarning(msg);
-            setScreenRecStatus('error');
-          },
-          15_000,
-          rec.data.data.screen.nextChunkIndex ?? 0
-        );
-
         cameraRecorder.current = camRec;
-        screenRecorder.current = scrRec;
         camRec.start(combined);
-        scrRec.start(screenStream.current);
         setCameraRecStatus('recording');
-        setScreenRecStatus('recording');
+
+        if (!isMobile && screenStream.current && screenRecordingId.current) {
+          const scrRec = new ChunkedRecorder(
+            'screen',
+            async (blob, chunkIndex) => {
+              await publicAssessmentsApi.uploadRecordingChunk(
+                secureToken,
+                screenRecordingId.current!,
+                chunkIndex,
+                blob
+              );
+              setUploadWarning('');
+              setScreenRecStatus('recording');
+            },
+            (msg) => {
+              setUploadWarning(msg);
+              setScreenRecStatus('error');
+            },
+            15_000,
+            rec.data.data.screen?.nextChunkIndex ?? 0
+          );
+          screenRecorder.current = scrRec;
+          scrRec.start(screenStream.current);
+          setScreenRecStatus('recording');
+        }
       } catch {
         setUploadWarning(
           'Recording could not be fully initialized. You may continue the assessment; HR may see incomplete recording status.'
         );
         setCameraRecStatus('error');
-        setScreenRecStatus('error');
+        if (!isMobile) setScreenRecStatus('error');
       }
 
       setAttempt(data);
@@ -779,12 +790,21 @@ export default function CandidateAssessmentTakePage() {
             <video ref={videoRef} muted playsInline className="w-full h-40 rounded-md bg-black object-cover" />
             <CheckRow icon={Camera} label="Camera" state={camera} onRetry={requestCamera} />
             <CheckRow icon={Mic} label="Microphone" state={microphone} onRetry={requestMicrophone} />
-            <CheckRow icon={MonitorUp} label="Screen Sharing" state={screen} onRetry={requestScreen} />
+            {isMobile ? (
+              <div className="flex items-center gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                <MonitorUp className="h-4 w-4 shrink-0" />
+                <span>Screen recording is not available on mobile — camera only. For full proctoring use a desktop browser.</span>
+              </div>
+            ) : (
+              <CheckRow icon={MonitorUp} label="Screen Sharing" state={screen} onRetry={requestScreen} />
+            )}
             {mediaWarning && <p className="text-sm text-amber-700">{mediaWarning}</p>}
             {allReady ? (
               <p className="text-sm text-green-700">All checks passed. Continue to recording consent.</p>
             ) : (
-              <p className="text-sm text-muted-foreground">Grant camera, microphone, and screen sharing to continue.</p>
+              <p className="text-sm text-muted-foreground">
+                {isMobile ? 'Grant camera and microphone to continue.' : 'Grant camera, microphone, and screen sharing to continue.'}
+              </p>
             )}
             {browserUnsupported && (
               <p className="text-sm text-amber-800">
@@ -852,7 +872,7 @@ export default function CandidateAssessmentTakePage() {
           <div className="hidden sm:block text-[11px] text-muted-foreground leading-tight">
             <p>Recording active</p>
             <p>Camera: {cameraRecStatus === 'recording' ? '● Recording' : '⚠ Not recording'}</p>
-            <p>Screen: {screenRecStatus === 'recording' ? '● Recording' : '⚠ Not recording'}</p>
+            {!isMobile && <p>Screen: {screenRecStatus === 'recording' ? '● Recording' : '⚠ Not recording'}</p>}
           </div>
           <div className={`font-mono text-lg font-bold ${remaining <= 60 ? 'text-red-600' : 'text-slate-800'}`}>
             {formatTime(remaining)}
