@@ -12,6 +12,7 @@ import {
 } from '@/api/publicAssessments';
 import {
   ChunkedRecorder,
+  isMobileBrowser,
   mergeCameraAndMic,
   pickSupportedMimeType,
   supportsAssessmentRecording,
@@ -22,10 +23,6 @@ type Phase = 'loading' | 'error' | 'intro' | 'device' | 'consent' | 'test' | 'su
 
 type CheckState = 'pending' | 'ready' | 'denied';
 
-function isMobileDevice() {
-  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
-    !('getDisplayMedia' in (navigator.mediaDevices ?? {}));
-}
 
 function formatTime(totalSeconds: number) {
   const s = Math.max(0, totalSeconds);
@@ -241,7 +238,7 @@ export default function CandidateAssessmentTakePage() {
   const [syncWarning, setSyncWarning] = useState('');
   const [mediaWarning, setMediaWarning] = useState('');
   const [uploadWarning, setUploadWarning] = useState('');
-  const isMobile = isMobileDevice();
+  const isMobile = isMobileBrowser();
   const [camera, setCamera] = useState<CheckState>('pending');
   const [microphone, setMicrophone] = useState<CheckState>('pending');
   const [screen, setScreen] = useState<CheckState>(isMobile ? 'ready' : 'pending');

@@ -10,12 +10,17 @@ const PREFERRED_MIME_TYPES = [
   'video/webm',
 ];
 
+export function isMobileBrowser() {
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+    !('getDisplayMedia' in (navigator.mediaDevices ?? {}));
+}
+
 export function supportsAssessmentRecording() {
   return (
     typeof window !== 'undefined' &&
     !!window.MediaRecorder &&
     !!navigator.mediaDevices?.getUserMedia &&
-    !!navigator.mediaDevices?.getDisplayMedia
+    (isMobileBrowser() || !!navigator.mediaDevices?.getDisplayMedia)
   );
 }
 
