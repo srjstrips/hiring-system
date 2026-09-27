@@ -19,6 +19,7 @@ COPY src ./src
 
 RUN npx prisma generate
 RUN npm run build
+RUN cp -r src/assets dist/assets 2>/dev/null || true
 
 # ---- runner -----------------------------------------------------------------
 FROM node:20-alpine AS runner
@@ -37,6 +38,7 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/src/assets ./dist/assets
 
 # Persisted via named volumes in docker-compose.yml
 RUN mkdir -p uploads logs
