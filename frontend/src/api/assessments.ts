@@ -335,6 +335,7 @@ export interface AssignmentResultDetail {
     durationMins: number;
     maxAttempts: number;
     status: AssessmentStatus;
+    assessmentType: AssessmentType;
   };
   candidate: { id: string; firstName: string; lastName: string; email: string; phone?: string | null };
   application: { id: string; appliedAt: string; status: string };
