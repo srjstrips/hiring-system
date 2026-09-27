@@ -95,11 +95,22 @@ export async function generatePhase2ReportPdf(assessmentId: string, assignmentId
   });
   if (!attempt) throw new Error('No completed attempt found');
 
-  const traitRows = await prisma.assessmentTraitScore.findMany({
+  let traitRows = await prisma.assessmentTraitScore.findMany({
     where: { attemptId: attempt.id },
     orderBy: { traitName: 'asc' },
   });
-  if (!traitRows.length) throw new Error('Trait scores not found. Scoring may not have completed yet.');
+
+  // If scores missing (attempt pre-dates scoring fix), run scoring now synchronously
+  if (!traitRows.length) {
+    const { default: assessmentsScoringService } = await import('./assessments-scoring.service');
+    await assessmentsScoringService.calculatePersonalityTraitScores(attempt.id, assessmentId);
+    traitRows = await prisma.assessmentTraitScore.findMany({
+      where: { attemptId: attempt.id },
+      orderBy: { traitName: 'asc' },
+    });
+  }
+
+  if (!traitRows.length) throw new Error('No trait scores found — the assessment may not have personality questions with trait tags.');
 
   const candidateName = `${assignment.candidate.firstName ?? ''} ${assignment.candidate.lastName ?? ''}`.trim() || 'Candidate';
   const jobTitle = assignment.job?.title ?? 'Role not specified';
