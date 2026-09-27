@@ -139,7 +139,7 @@ export class ChunkedRecorder {
 
     await this.queue;
     let wait = 0;
-    while (this.pendingUploads > 0 && wait < 40) {
+    while (this.pendingUploads > 0 && wait < 12) {
       await new Promise((r) => setTimeout(r, 500));
       wait += 1;
     }

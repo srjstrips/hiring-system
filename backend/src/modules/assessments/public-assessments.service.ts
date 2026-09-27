@@ -397,6 +397,8 @@ class PublicAssessmentsService {
     let obtainedMarks = 0;
     let totalMarks = 0;
 
+    const dbOps: Promise<unknown>[] = [];
+
     for (const q of attempt.questionSnapshots) {
       totalMarks += q.marks;
       const answer = attempt.answers.find((a) => a.attemptQuestionId === q.id);
@@ -407,12 +409,12 @@ class PublicAssessmentsService {
       if (isCorrect) obtainedMarks += q.marks;
 
       if (answer) {
-        await prisma.assessmentAnswer.update({
+        dbOps.push(prisma.assessmentAnswer.update({
           where: { id: answer.id },
           data: { isCorrect, marksGiven },
-        });
+        }));
       } else {
-        await prisma.assessmentAnswer.create({
+        dbOps.push(prisma.assessmentAnswer.create({
           data: {
             attemptId,
             attemptQuestionId: q.id,
@@ -420,9 +422,11 @@ class PublicAssessmentsService {
             isCorrect: false,
             marksGiven: 0,
           },
-        });
+        }));
       }
     }
+
+    await Promise.all(dbOps);
 
     const percentage = totalMarks > 0 ? Math.round((obtainedMarks / totalMarks) * 100) : 0;
     const isPassed = percentage >= attempt.assessment.passingScore;
@@ -479,9 +483,9 @@ class PublicAssessmentsService {
     }
 
     // ── Phase 2 simple trait-based personality scoring (1-5 scale) ────────
-    // Uses assessmentType (distinct from the legacy HEXACO `mode` field above)
+    // Fire-and-forget — do not block the submit response
     if (attempt.assessment.assessmentType === 'PERSONALITY') {
-      await assessmentsScoringService
+      assessmentsScoringService
         .calculatePersonalityTraitScores(attemptId, attempt.assessmentId)
         .catch((err) => console.error('[Assessment] Trait scoring error for attempt', attemptId, err));
     }

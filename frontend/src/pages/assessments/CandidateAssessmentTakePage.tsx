@@ -57,12 +57,34 @@ const TRAIT_COLORS: Record<string, string> = {
 };
 
 function tLabel(t: number) {
-  if (t >= 65) return 'High';
-  if (t >= 55) return 'Above Avg';
-  if (t >= 45) return 'Average';
-  if (t >= 35) return 'Below Avg';
-  return 'Low';
+  if (t >= 65) return 'Strong';
+  if (t >= 55) return 'Good';
+  if (t >= 45) return 'Moderate';
+  if (t >= 35) return 'Developing';
+  return 'Emerging';
 }
+
+const WORKING_STYLE_PLAIN: Record<string, string> = {
+  // Communication styles
+  'Expressive':       'You communicate openly and energetically — great at building relationships',
+  'Direct':           'You say what you mean clearly and get to the point quickly',
+  'Diplomatic':       'You choose words carefully and focus on keeping harmony',
+  'Reserved-precise': 'You prefer written or structured communication over casual chat',
+  // Decision styles
+  'Analytical':       'You gather information thoroughly before deciding — detail-oriented',
+  'Directive':        'You make decisions confidently and move forward without hesitation',
+  'Innovative':       'You look for creative and new ways to solve problems',
+  'Deliberative':     'You weigh options carefully and prefer a measured approach',
+  // Conflict styles
+  'Collaborator':     'You bring people together to find a solution that works for everyone',
+  'Accommodator':     'You put others\' needs first and prefer to avoid conflict',
+  'Competitor':       'You speak up for what you believe in and push for your position',
+  'Avoider':          'You prefer to step back from conflict and let things settle on their own',
+  // Stress bands
+  'High resilience':  'You stay calm and recover quickly when things get tough',
+  'Moderate resilience': 'You generally cope well under pressure with occasional difficulty',
+  'Low resilience':   'High-pressure situations can be challenging — building coping skills would help',
+};
 
 function SubmittedView({
   status, intro, secureToken,
@@ -122,7 +144,13 @@ function SubmittedView({
                     <div>
                       <p className="text-xl font-bold text-orange-700">{result.archetype}</p>
                       {result.fitBand && (
-                        <p className="text-sm text-slate-500 mt-0.5">Overall fit: <span className="font-medium text-slate-700">{result.fitBand}</span></p>
+                        <p className="text-sm text-slate-500 mt-0.5">
+                          {result.fitBand === 'Strong Fit' && 'Your profile is a strong match for this role'}
+                          {result.fitBand === 'Fit' && 'Your profile aligns well with this role'}
+                          {result.fitBand === 'Conditional' && 'Your profile shows potential — the team will review further'}
+                          {result.fitBand === 'Low Fit' && 'The hiring team will review your profile carefully'}
+                          {!['Strong Fit','Fit','Conditional','Low Fit'].includes(result.fitBand) && result.fitBand}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -153,19 +181,17 @@ function SubmittedView({
                   <CardTitle className="text-base">Personality Trait Profile</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="text-xs text-muted-foreground">Shaded band = average range. Your score is the filled bar.</p>
                   {result.traitScores.map(({ key, label, t }) => {
                     const color = TRAIT_COLORS[key] ?? '#6366f1';
                     const pct = Math.max(4, ((t - 20) / 60) * 100);
+                    const lvl = tLabel(t);
                     return (
                       <div key={key} className="space-y-1">
                         <div className="flex items-center justify-between text-sm">
                           <span className="font-medium text-slate-700">{label}</span>
-                          <span className="text-xs font-semibold" style={{ color }}>{t} — {tLabel(t)}</span>
+                          <span className="text-xs font-semibold" style={{ color }}>{lvl}</span>
                         </div>
                         <div className="relative h-3 w-full rounded-full bg-slate-100 overflow-hidden">
-                          {/* norm band 40-60 = 33%-66% */}
-                          <div className="absolute top-0 h-full bg-slate-200" style={{ left: '33%', width: '33%' }} />
                           <div className="absolute top-0 left-0 h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
                         </div>
                       </div>
@@ -181,16 +207,21 @@ function SubmittedView({
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">Your Working Style</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <CardContent className="space-y-3">
                   {[
-                    { label: 'Communication Style', value: result.compCommStyle },
-                    { label: 'Decision Style', value: result.compDecisionStyle },
-                    { label: 'Conflict Style', value: result.compConflictStyle },
-                    { label: 'Under Stress', value: result.compStressBand },
+                    { icon: '💬', label: 'How you communicate', value: result.compCommStyle },
+                    { icon: '🧭', label: 'How you make decisions', value: result.compDecisionStyle },
+                    { icon: '🤝', label: 'How you handle disagreement', value: result.compConflictStyle },
+                    { icon: '⚡', label: 'How you handle pressure', value: result.compStressBand },
                   ].filter((s) => s.value).map((s) => (
-                    <div key={s.label} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{s.label}</p>
-                      <p className="text-sm font-semibold text-slate-800 mt-1">{s.value}</p>
+                    <div key={s.label} className="flex gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                      <span className="text-xl mt-0.5">{s.icon}</span>
+                      <div>
+                        <p className="text-xs text-muted-foreground">{s.label}</p>
+                        <p className="text-sm font-medium text-slate-800 mt-0.5">
+                          {WORKING_STYLE_PLAIN[s.value!] ?? s.value}
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </CardContent>
@@ -256,6 +287,8 @@ export default function CandidateAssessmentTakePage() {
   const submittingRef = useRef(false);
   const answersRef = useRef(answers);
   answersRef.current = answers;
+  const forcedChoiceAnswersRef = useRef(forcedChoiceAnswers);
+  forcedChoiceAnswersRef.current = forcedChoiceAnswers;
   const cameraRecorder = useRef<ChunkedRecorder | null>(null);
   const screenRecorder = useRef<ChunkedRecorder | null>(null);
   const cameraRecordingId = useRef<string | null>(null);
@@ -392,8 +425,16 @@ export default function CandidateAssessmentTakePage() {
     screenRecorder.current = null;
 
     try {
-      const camStop = cam ? await cam.stop() : { durationSeconds: 0 };
-      const scrStop = scr ? await scr.stop() : { durationSeconds: 0 };
+      // Stop both recorders in parallel, timeout after 8s total
+      const [camStop, scrStop] = await Promise.race([
+        Promise.all([
+          cam ? cam.stop() : Promise.resolve({ durationSeconds: 0 }),
+          scr ? scr.stop() : Promise.resolve({ durationSeconds: 0 }),
+        ]),
+        new Promise<[{ durationSeconds: number }, { durationSeconds: number }]>((r) =>
+          setTimeout(() => r([{ durationSeconds: 0 }, { durationSeconds: 0 }]), 8_000)
+        ),
+      ]);
 
       const tasks: Promise<unknown>[] = [];
       if (cameraRecordingId.current) {
@@ -420,7 +461,7 @@ export default function CandidateAssessmentTakePage() {
       }
       await Promise.race([
         Promise.all(tasks),
-        new Promise((r) => setTimeout(r, 20_000)),
+        new Promise((r) => setTimeout(r, 5_000)),
       ]);
     } catch {
       // Never block assessment submit on recording finalize errors
@@ -600,15 +641,22 @@ export default function CandidateAssessmentTakePage() {
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      // Flush local answers first
+      // Flush local answers first (MCQ + forced-choice)
       if (attempt) {
-        const entries = Object.entries(answersRef.current);
-        if (entries.length) {
+        const mcqEntries = Object.entries(answersRef.current).map(
+          ([attemptQuestionId, selectedOptionId]) => ({ attemptQuestionId, selectedOptionId })
+        );
+        const fcEntries = Object.entries(forcedChoiceAnswersRef.current).map(
+          ([attemptQuestionId, { mostId, leastId }]) => ({
+            attemptQuestionId,
+            selectedMostId: mostId,
+            selectedLeastId: leastId,
+          })
+        );
+        const allEntries = [...mcqEntries, ...fcEntries];
+        if (allEntries.length) {
           await publicAssessmentsApi
-            .saveAnswersBatch(
-              secureToken,
-              entries.map(([attemptQuestionId, selectedOptionId]) => ({ attemptQuestionId, selectedOptionId }))
-            )
+            .saveAnswersBatch(secureToken, allEntries)
             .catch(() => undefined);
         }
       }
