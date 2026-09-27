@@ -712,7 +712,10 @@ export default function AssessmentResultDetailPage() {
   }
   if (!data) return <div className="py-12 text-center text-muted-foreground">Assignment not found</div>;
 
-  const { candidate, assessment, application, job, assignment, attempts, passingPercentage, personalityResult } = data as typeof data & { personalityResult?: PersonalityResult | null };
+  const { candidate, assessment, application, job, assignment, attempts, passingPercentage, personalityResult, phase2TraitScores } = data as typeof data & {
+    personalityResult?: PersonalityResult | null;
+    phase2TraitScores?: Array<{ traitName: string; averageScore: number; level: number; questionCount: number }> | null;
+  };
 
   return (
     <div className="space-y-6">
@@ -729,7 +732,7 @@ export default function AssessmentResultDetailPage() {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {personalityResult && (
+          {(personalityResult || (phase2TraitScores && phase2TraitScores.length > 0)) && (
             <Button variant="outline" onClick={handleDownloadReport} disabled={downloadingReport}>
               <Download className="h-4 w-4 mr-1.5" />
               {downloadingReport ? 'Generating…' : 'Download Report'}
@@ -912,6 +915,37 @@ export default function AssessmentResultDetailPage() {
               <GrowthAreasCard result={personalityResult} />
               <InterviewProbesCard probes={personalityResult.interviewProbes ?? []} />
             </>
+          )}
+
+          {phase2TraitScores && phase2TraitScores.length > 0 && selectedAttempt.isLatest && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Personality Trait Scores</CardTitle>
+                <p className="text-xs text-muted-foreground">Based on candidate responses — scale 1 to 5</p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {phase2TraitScores.map((tr) => {
+                  const pct = Math.min(100, Math.round((tr.averageScore / 5) * 100));
+                  const label = tr.level >= 4 ? 'Strong' : tr.level === 3 ? 'Moderate' : 'Developing';
+                  const color = tr.level >= 4 ? '#16a34a' : tr.level === 3 ? '#d97706' : '#dc2626';
+                  const traitLabel = tr.traitName.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+                  return (
+                    <div key={tr.traitName} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium text-slate-700">{traitLabel}</span>
+                        <span className="text-xs font-semibold" style={{ color }}>
+                          {tr.averageScore.toFixed(1)}/5 — {label}
+                        </span>
+                      </div>
+                      <div className="relative h-3 w-full rounded-full bg-slate-100 overflow-hidden">
+                        <div className="absolute top-0 left-0 h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+                      </div>
+                      <p className="text-xs text-muted-foreground">{tr.questionCount} question{tr.questionCount !== 1 ? 's' : ''}</p>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
           )}
 
           <div className="space-y-3">

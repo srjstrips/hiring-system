@@ -605,6 +605,8 @@ export class AssessmentsRepository {
             durationMins: true,
             maxAttempts: true,
             status: true,
+            assessmentType: true,
+            mode: true,
           },
         },
         candidate: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
@@ -719,21 +721,42 @@ export class AssessmentsRepository {
     const completedAttempts = assignment.attempts.filter((a) => a.submittedAt);
     const latestCompleted = completedAttempts[completedAttempts.length - 1];
     let personalityResult: (Awaited<ReturnType<typeof prisma.assessmentPersonalityResult.findUnique>> & { interviewProbes: string[] }) | null = null;
+    let phase2TraitScores: Array<{ traitName: string; averageScore: number; level: number; questionCount: number }> | null = null;
+
     if (latestCompleted) {
-      const raw = await prisma.assessmentPersonalityResult.findUnique({
-        where: { attemptId: latestCompleted.id },
-      });
-      if (raw) {
-        const { generateInterviewProbes } = await import('./personality-scoring.service');
-        const probes = generateInterviewProbes(
-          raw.tH ?? 50,
-          raw.tES ?? 50,
-          raw.tX ?? 50,
-          raw.tC ?? 50,
-          raw.tO ?? 50,
-          (raw.derailerFlags as string[]) ?? [],
-        );
-        personalityResult = { ...raw, interviewProbes: probes };
+      const isPhase2 = (assignment.assessment as any).assessmentType === 'PERSONALITY' &&
+                       (assignment.assessment as any).mode !== 'PERSONALITY';
+
+      if (isPhase2) {
+        // Phase 2 trait-score assessment (e.g. SRJ Talent Acquisition)
+        const rows = await prisma.assessmentTraitScore.findMany({
+          where: { attemptId: latestCompleted.id },
+          orderBy: { traitName: 'asc' },
+        });
+        if (rows.length > 0) {
+          phase2TraitScores = rows.map((r) => ({
+            traitName: r.traitName,
+            averageScore: r.averageScore,
+            level: r.level,
+            questionCount: r.questionCount,
+          }));
+        }
+      } else {
+        const raw = await prisma.assessmentPersonalityResult.findUnique({
+          where: { attemptId: latestCompleted.id },
+        });
+        if (raw) {
+          const { generateInterviewProbes } = await import('./personality-scoring.service');
+          const probes = generateInterviewProbes(
+            raw.tH ?? 50,
+            raw.tES ?? 50,
+            raw.tX ?? 50,
+            raw.tC ?? 50,
+            raw.tO ?? 50,
+            (raw.derailerFlags as string[]) ?? [],
+          );
+          personalityResult = { ...raw, interviewProbes: probes };
+        }
       }
     }
 
@@ -761,6 +784,7 @@ export class AssessmentsRepository {
       attempts,
       latestAttempt: attempts.length ? attempts[attempts.length - 1] : null,
       personalityResult,
+      phase2TraitScores,
     };
   }
 

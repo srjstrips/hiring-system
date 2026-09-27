@@ -515,40 +515,72 @@ class PublicAssessmentsService {
       top3Traits: string[];
     } = null;
 
+    const assessmentMode = assignment.assessment.mode;
+    const assessmentType = (assignment.assessment as any).assessmentType as string | null;
+
     if (latestSubmitted) {
-      const result = await prisma.assessmentPersonalityResult.findUnique({
-        where: { attemptId: latestSubmitted.id },
-        select: {
-          archetype: true,
-          fitBand: true,
-          compCommStyle: true,
-          compDecisionStyle: true,
-          compConflictStyle: true,
-          compStressBand: true,
-          tH: true, tES: true, tX: true, tA: true, tC: true, tO: true,
-        },
-      });
-      if (result) {
-        const TRAIT_LABELS: Record<string, string> = {
-          H: 'Honesty & Integrity', ES: 'Emotional Stability', X: 'Extraversion & Energy',
-          A: 'Agreeableness & Teamwork', C: 'Conscientiousness & Drive', O: 'Openness & Adaptability',
-        };
-        const traitScores = [
-          { key: 'H', t: result.tH ?? 50 }, { key: 'ES', t: result.tES ?? 50 },
-          { key: 'X', t: result.tX ?? 50 }, { key: 'A', t: result.tA ?? 50 },
-          { key: 'C', t: result.tC ?? 50 }, { key: 'O', t: result.tO ?? 50 },
-        ].map((s) => ({ ...s, label: TRAIT_LABELS[s.key]! }));
-        const top3 = [...traitScores].sort((a, b) => b.t - a.t).slice(0, 3).map((s) => s.label);
-        candidateResult = {
-          archetype: result.archetype,
-          fitBand: result.fitBand,
-          compCommStyle: result.compCommStyle,
-          compDecisionStyle: result.compDecisionStyle,
-          compConflictStyle: result.compConflictStyle,
-          compStressBand: result.compStressBand,
-          traitScores,
-          top3Traits: top3,
-        };
+      // ── Phase 2: plain trait-score assessments (e.g. SRJ Talent Acquisition) ──
+      // These store results in AssessmentTraitScore, not AssessmentPersonalityResult
+      if (assessmentType === 'PERSONALITY' && assessmentMode !== 'PERSONALITY') {
+        const traitRows = await prisma.assessmentTraitScore.findMany({
+          where: { attemptId: latestSubmitted.id },
+          orderBy: { traitName: 'asc' },
+        });
+        if (traitRows.length > 0) {
+          // Convert 1-5 average to a 0-100 display score for the bar
+          const traitScores = traitRows.map((r) => ({
+            key: r.traitName,
+            label: r.traitName.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+            t: Math.round(r.averageScore * 20), // 1→20, 3→60, 5→100
+          }));
+          const top3 = [...traitScores].sort((a, b) => b.t - a.t).slice(0, 3).map((s) => s.label);
+          candidateResult = {
+            archetype: null,
+            fitBand: null,
+            compCommStyle: null,
+            compDecisionStyle: null,
+            compConflictStyle: null,
+            compStressBand: null,
+            traitScores,
+            top3Traits: top3,
+          };
+        }
+      } else {
+        // ── HEXACO / TalentSignal™ / Work Style ──────────────────────────────
+        const result = await prisma.assessmentPersonalityResult.findUnique({
+          where: { attemptId: latestSubmitted.id },
+          select: {
+            archetype: true,
+            fitBand: true,
+            compCommStyle: true,
+            compDecisionStyle: true,
+            compConflictStyle: true,
+            compStressBand: true,
+            tH: true, tES: true, tX: true, tA: true, tC: true, tO: true,
+          },
+        });
+        if (result) {
+          const TRAIT_LABELS: Record<string, string> = {
+            H: 'Honesty & Integrity', ES: 'Emotional Stability', X: 'Extraversion & Energy',
+            A: 'Agreeableness & Teamwork', C: 'Conscientiousness & Drive', O: 'Openness & Adaptability',
+          };
+          const traitScores = [
+            { key: 'H', t: result.tH ?? 50 }, { key: 'ES', t: result.tES ?? 50 },
+            { key: 'X', t: result.tX ?? 50 }, { key: 'A', t: result.tA ?? 50 },
+            { key: 'C', t: result.tC ?? 50 }, { key: 'O', t: result.tO ?? 50 },
+          ].map((s) => ({ ...s, label: TRAIT_LABELS[s.key]! }));
+          const top3 = [...traitScores].sort((a, b) => b.t - a.t).slice(0, 3).map((s) => s.label);
+          candidateResult = {
+            archetype: result.archetype,
+            fitBand: result.fitBand,
+            compCommStyle: result.compCommStyle,
+            compDecisionStyle: result.compDecisionStyle,
+            compConflictStyle: result.compConflictStyle,
+            compStressBand: result.compStressBand,
+            traitScores,
+            top3Traits: top3,
+          };
+        }
       }
     }
 

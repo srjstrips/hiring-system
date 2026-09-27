@@ -343,4 +343,10 @@ export interface AssignmentResultDetail {
   passingPercentage: number;
   attempts: AssignmentResultAttempt[];
   latestAttempt: AssignmentResultAttempt | null;
+  phase2TraitScores?: Array<{
+    traitName: string;
+    averageScore: number;
+    level: number;
+    questionCount: number;
+  }> | null;
 }

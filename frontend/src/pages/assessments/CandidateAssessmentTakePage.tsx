@@ -57,10 +57,10 @@ const TRAIT_COLORS: Record<string, string> = {
 };
 
 function tLabel(t: number) {
-  if (t >= 65) return 'Strong';
-  if (t >= 55) return 'Good';
-  if (t >= 45) return 'Moderate';
-  if (t >= 35) return 'Developing';
+  if (t >= 80) return 'Strong';
+  if (t >= 60) return 'Good';
+  if (t >= 40) return 'Moderate';
+  if (t >= 25) return 'Developing';
   return 'Emerging';
 }
 
@@ -183,7 +183,8 @@ function SubmittedView({
                 <CardContent className="space-y-3">
                   {result.traitScores.map(({ key, label, t }) => {
                     const color = TRAIT_COLORS[key] ?? '#6366f1';
-                    const pct = Math.max(4, ((t - 20) / 60) * 100);
+                    // t is either a T-score (20-80) or a 0-100 phase-2 score — clamp to 0-100%
+                    const pct = Math.min(100, Math.max(4, ((t - 20) / 80) * 100));
                     const lvl = tLabel(t);
                     return (
                       <div key={key} className="space-y-1">
