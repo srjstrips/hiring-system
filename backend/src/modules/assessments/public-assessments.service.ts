@@ -515,38 +515,32 @@ class PublicAssessmentsService {
       top3Traits: string[];
     } = null;
 
-    const assessmentMode = assignment.assessment.mode;
-    const assessmentType = (assignment.assessment as any).assessmentType as string | null;
-
     if (latestSubmitted) {
-      // ── Phase 2: plain trait-score assessments (e.g. SRJ Talent Acquisition) ──
-      // These store results in AssessmentTraitScore, not AssessmentPersonalityResult
-      if (assessmentType === 'PERSONALITY' && assessmentMode !== 'PERSONALITY') {
-        const traitRows = await prisma.assessmentTraitScore.findMany({
-          where: { attemptId: latestSubmitted.id },
-          orderBy: { traitName: 'asc' },
-        });
-        if (traitRows.length > 0) {
-          // Convert 1-5 average to a 0-100 display score for the bar
-          const traitScores = traitRows.map((r) => ({
-            key: r.traitName,
-            label: r.traitName.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-            t: Math.round(r.averageScore * 20), // 1→20, 3→60, 5→100
-          }));
-          const top3 = [...traitScores].sort((a, b) => b.t - a.t).slice(0, 3).map((s) => s.label);
-          candidateResult = {
-            archetype: null,
-            fitBand: null,
-            compCommStyle: null,
-            compDecisionStyle: null,
-            compConflictStyle: null,
-            compStressBand: null,
-            traitScores,
-            top3Traits: top3,
-          };
-        }
+      // Check Phase 2 trait scores first (SRJ Talent Acquisition and similar custom assessments)
+      const traitRows = await prisma.assessmentTraitScore.findMany({
+        where: { attemptId: latestSubmitted.id },
+        orderBy: { traitName: 'asc' },
+      });
+      if (traitRows.length > 0) {
+        // Phase 2: convert 1-5 average to 0-100 display score
+        const traitScores = traitRows.map((r) => ({
+          key: r.traitName,
+          label: r.traitName.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+          t: Math.round(r.averageScore * 20), // 1→20, 3→60, 5→100
+        }));
+        const top3 = [...traitScores].sort((a, b) => b.t - a.t).slice(0, 3).map((s) => s.label);
+        candidateResult = {
+          archetype: null,
+          fitBand: null,
+          compCommStyle: null,
+          compDecisionStyle: null,
+          compConflictStyle: null,
+          compStressBand: null,
+          traitScores,
+          top3Traits: top3,
+        };
       } else {
-        // ── HEXACO / TalentSignal™ / Work Style ──────────────────────────────
+        // HEXACO / TalentSignal™ / Work Style — check AssessmentPersonalityResult
         const result = await prisma.assessmentPersonalityResult.findUnique({
           where: { attemptId: latestSubmitted.id },
           select: {

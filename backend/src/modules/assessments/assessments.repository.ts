@@ -724,24 +724,20 @@ export class AssessmentsRepository {
     let phase2TraitScores: Array<{ traitName: string; averageScore: number; level: number; questionCount: number }> | null = null;
 
     if (latestCompleted) {
-      const isPhase2 = (assignment.assessment as any).assessmentType === 'PERSONALITY' &&
-                       (assignment.assessment as any).mode !== 'PERSONALITY';
-
-      if (isPhase2) {
-        // Phase 2 trait-score assessment (e.g. SRJ Talent Acquisition)
-        const rows = await prisma.assessmentTraitScore.findMany({
-          where: { attemptId: latestCompleted.id },
-          orderBy: { traitName: 'asc' },
-        });
-        if (rows.length > 0) {
-          phase2TraitScores = rows.map((r) => ({
-            traitName: r.traitName,
-            averageScore: r.averageScore,
-            level: r.level,
-            questionCount: r.questionCount,
-          }));
-        }
+      // Check Phase 2 trait scores first — if present, this is a custom trait assessment
+      const rows = await prisma.assessmentTraitScore.findMany({
+        where: { attemptId: latestCompleted.id },
+        orderBy: { traitName: 'asc' },
+      });
+      if (rows.length > 0) {
+        phase2TraitScores = rows.map((r) => ({
+          traitName: r.traitName,
+          averageScore: r.averageScore,
+          level: r.level,
+          questionCount: r.questionCount,
+        }));
       } else {
+        // HEXACO / TalentSignal™ / Work Style
         const raw = await prisma.assessmentPersonalityResult.findUnique({
           where: { attemptId: latestCompleted.id },
         });

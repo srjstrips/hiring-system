@@ -133,7 +133,9 @@ class AssessmentsController {
 
     try {
       const assessment = await assessmentsService.getById(id);
-      const isWorkStyle = (assessment as { name?: string })?.name?.includes('Work Style') ?? false;
+      const name = (assessment as { name?: string })?.name ?? '';
+      const isWorkStyle = name.includes('Work Style');
+      const isTalentSignal = name.includes('TalentSignal');
 
       let buffer: Buffer;
       let filename: string;
@@ -142,10 +144,15 @@ class AssessmentsController {
         const { generateWorkStyleReportPdf } = await import('./work-style-report.service');
         buffer = await generateWorkStyleReportPdf(id, assignmentId);
         filename = `SRJ_Fit_Report_${assignmentId}.pdf`;
-      } else {
+      } else if (isTalentSignal) {
         const { generatePersonalityReportPdf } = await import('./personality-report.service');
         buffer = await generatePersonalityReportPdf(id, assignmentId);
         filename = `personality-report-${assignmentId}.pdf`;
+      } else {
+        // Phase 2 / custom trait assessments (e.g. SRJ Talent Acquisition)
+        const { generatePhase2ReportPdf } = await import('./phase2-report.service');
+        buffer = await generatePhase2ReportPdf(id, assignmentId);
+        filename = `SRJ_Assessment_Report_${assignmentId}.pdf`;
       }
 
       res.setHeader('Content-Type', 'application/pdf');
