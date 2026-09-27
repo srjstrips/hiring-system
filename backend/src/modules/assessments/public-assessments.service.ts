@@ -483,11 +483,16 @@ class PublicAssessmentsService {
     }
 
     // ── Phase 2 simple trait-based personality scoring (1-5 scale) ────────
-    // Fire-and-forget — do not block the submit response
+    // Fire-and-forget — score first, then email with PDF (2s delay ensures scoring is written)
     if (attempt.assessment.assessmentType === 'PERSONALITY') {
       assessmentsScoringService
         .calculatePersonalityTraitScores(attemptId, attempt.assessmentId)
-        .catch((err) => console.error('[Assessment] Trait scoring error for attempt', attemptId, err));
+        .then(() => new Promise((r) => setTimeout(r, 2000)))
+        .then(async () => {
+          const { sendPhase2ResultEmail } = await import('./phase2-email.service');
+          return sendPhase2ResultEmail(attemptId);
+        })
+        .catch((err) => console.error('[Phase2] Scoring/email error for attempt', attemptId, err));
     }
 
     return this.statusPayload(attempt.assignment!.secureToken);
