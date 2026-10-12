@@ -19,22 +19,22 @@ export default function CareerJobDetailPage() {
   if (!data) return <div className="max-w-4xl mx-auto px-4 py-12 text-muted-foreground">Job not found</div>;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
+    <div className="max-w-5xl mx-auto px-4 py-8 lg:py-12 overflow-x-hidden">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
-        <Link to="/careers" className="hover:text-foreground">Home</Link>
-        <ChevronRight className="h-4 w-4" />
-        <Link to="/careers/jobs" className="hover:text-foreground">Jobs</Link>
-        <ChevronRight className="h-4 w-4" />
-        <span className="text-foreground">{data.title}</span>
+      <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-6 lg:mb-8 flex-wrap min-w-0">
+        <Link to="/careers" className="hover:text-foreground shrink-0">Home</Link>
+        <ChevronRight className="h-4 w-4 shrink-0" />
+        <Link to="/careers/jobs" className="hover:text-foreground shrink-0">Jobs</Link>
+        <ChevronRight className="h-4 w-4 shrink-0" />
+        <span className="text-foreground truncate">{data.title}</span>
       </div>
 
-      <div className="grid grid-cols-3 gap-8">
-        <div className="col-span-2 space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="lg:col-span-2 space-y-8 min-w-0">
           {/* Header */}
           <div>
-            <h1 className="text-3xl font-bold mb-3">{data.title}</h1>
-            <div className="flex items-center gap-4 text-muted-foreground flex-wrap">
+            <h1 className="text-2xl lg:text-3xl font-bold mb-3 break-words">{data.title}</h1>
+            <div className="flex items-center gap-3 text-muted-foreground flex-wrap">
               <span className="flex items-center gap-1.5"><Briefcase className="h-4 w-4" />{data.department.name}</span>
               <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4" />{data.location.city}, {data.location.state}</span>
               {data.employmentType && <Badge variant="secondary">{data.employmentType.name}</Badge>}
@@ -72,9 +72,9 @@ export default function CareerJobDetailPage() {
 
         {/* Sidebar */}
         <div className="space-y-4">
-          <Card className="sticky top-24">
+          <Card className="lg:sticky lg:top-24">
             <CardContent className="pt-6 space-y-4">
-              <Button className="w-full" size="lg" asChild>
+              <Button className="w-full min-h-[48px] text-base" size="lg" asChild>
                 <Link to={`/careers/jobs/${slug}/apply`}>Apply Now</Link>
               </Button>
 
@@ -91,9 +91,9 @@ export default function CareerJobDetailPage() {
                     value: `₹${(Number(data.salaryMin) / 100000).toFixed(1)}L${data.salaryMax ? ` – ₹${(Number(data.salaryMax) / 100000).toFixed(1)}L` : '+'}`,
                   }] : []),
                 ].map(({ label, value }) => (
-                  <div key={label} className="flex justify-between">
-                    <span className="text-muted-foreground">{label}</span>
-                    <span className="font-medium text-right">{value}</span>
+                  <div key={label} className="flex justify-between gap-2">
+                    <span className="text-muted-foreground shrink-0">{label}</span>
+                    <span className="font-medium text-right break-words">{value}</span>
                   </div>
                 ))}
               </div>

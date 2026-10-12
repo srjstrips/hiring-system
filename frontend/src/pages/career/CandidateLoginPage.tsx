@@ -272,8 +272,19 @@ export default function CandidateLoginPage() {
               <div className="h-px flex-1 bg-[#E5E7EB]" />
             </div>
 
-            {/* Support Text */}
+            {/* Sign Up Link */}
             <p className="text-center text-sm text-[#6B7280]">
+              New here?{' '}
+              <Link
+                to={`/careers/signup${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`}
+                className="font-semibold text-[#FF6B00] transition-colors hover:text-[#e86000]"
+              >
+                Create an account
+              </Link>
+            </p>
+
+            {/* Support Text */}
+            <p className="mt-3 text-center text-sm text-[#6B7280]">
               Need help? Contact{' '}
               <Link
                 to="#"
