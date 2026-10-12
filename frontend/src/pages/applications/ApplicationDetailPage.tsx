@@ -12,7 +12,7 @@ import {
   ArrowLeft, FileText, Link2, Mail, Phone, Briefcase,
   Clock, Star, CheckCircle2, XCircle, ChevronRight, User,
   Calendar, DollarSign, Building2, Send, Search, Users,
-  ShieldCheck, Gift, UserCheck, PauseCircle, Video, Lock, Trash2, Copy, ExternalLink, Download,
+  ShieldCheck, Gift, UserCheck, PauseCircle, Video, Lock, Trash2, Copy, ExternalLink, Download, SendHorizonal,
 } from 'lucide-react';
 import {
   isStageLocked,
@@ -546,6 +546,21 @@ export default function ApplicationDetailPage() {
                         }}
                       >
                         <Download className="h-4 w-4" /> Download PDF
+                      </button>
+                      <button
+                        type="button"
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#E2E8F0] bg-white py-2 text-sm font-medium text-[#111827] hover:bg-[#FFF7ED] hover:text-[#FF6B00] transition-colors"
+                        onClick={async () => {
+                          try {
+                            const { assessmentsApi } = await import('@/api/assessments');
+                            await assessmentsApi.emailReport(assignmentIds.assessmentId, assignmentIds.assignmentId);
+                            toast({ title: 'Result sent to candidate', description: `PDF sent to ${app.candidate.email}` });
+                          } catch {
+                            toast({ title: 'Failed to send result', variant: 'destructive' });
+                          }
+                        }}
+                      >
+                        <SendHorizonal className="h-4 w-4" /> Email to Candidate
                       </button>
                     </div>
                   )}

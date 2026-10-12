@@ -106,6 +106,7 @@ function fitColor(band: string | null): string {
 export async function generatePersonalityReportPdf(
   assessmentId: string,
   assignmentId: string,
+  opts?: { candidateOnly?: boolean },
 ): Promise<Buffer> {
   // ── Fetch data ──────────────────────────────────────────────────────────────
   const assignment = await prisma.assessmentAssignment.findFirst({
@@ -217,15 +218,17 @@ export async function generatePersonalityReportPdf(
     doc.y += 8;
   }
 
-  function traitBar(key: string, t: number, yPos: number) {
-    const meta = TRAIT_META[key]!;
+  function traitBar(key: string, t: number, yPos: number, labelOverride?: string, colorOverride?: string) {
+    const meta = TRAIT_META[key];
+    const label = labelOverride ?? meta?.label ?? key;
+    const color = colorOverride ?? meta?.color ?? C.blue;
     const barW = contentW - 170;
     const barH = 10;
     const barX = LEFT + 170;
 
     // Label
     doc.fillColor(C.dark).font('Helvetica-Bold').fontSize(9)
-      .text(meta.label, LEFT, yPos + 1, { width: 160 });
+      .text(label, LEFT, yPos + 1, { width: 160 });
 
     // Track
     doc.rect(barX, yPos, barW, barH).fillColor(C.muted).fill();
@@ -237,10 +240,10 @@ export async function generatePersonalityReportPdf(
 
     // Score fill
     const fillW = Math.max(4, ((t - 20) / 60) * barW);
-    doc.rect(barX, yPos, fillW, barH).fillColor(meta.color).fill();
+    doc.rect(barX, yPos, fillW, barH).fillColor(color).fill();
 
     // T-score label
-    doc.fillColor(meta.color).font('Helvetica-Bold').fontSize(8)
+    doc.fillColor(color).font('Helvetica-Bold').fontSize(8)
       .text(`${t} — ${tScoreLabel(t)}`, barX + barW + 6, yPos + 1, { width: 70 });
   }
 
@@ -379,7 +382,7 @@ export async function generatePersonalityReportPdf(
     ].filter((s) => s.t != null) as Array<{ label: string; t: number }>;
 
     for (const s of sjtItems) {
-      traitBar(s.label as any, s.t, doc.y);
+      traitBar(s.label, s.t, doc.y, s.label, C.teal);
       doc.y += 16;
     }
   }
@@ -395,6 +398,14 @@ export async function generatePersonalityReportPdf(
   doc.y += 44;
 
   footer(2, 'Candidate Copy');
+
+  if (opts?.candidateOnly) {
+    doc.end();
+    return new Promise<Buffer>((resolve, reject) => {
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+    });
+  }
 
   // ════════════════════════════════════════════════════════════════════════════
   // PAGE 3 — HR: Full profile + composites

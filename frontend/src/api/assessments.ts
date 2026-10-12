@@ -215,6 +215,12 @@ export const assessmentsApi = {
       responseType: 'blob',
     }),
 
+  emailReport: (id: string, assignmentId: string) =>
+    api.post<{ success: boolean; message: string }>(
+      `/assessments/${id}/assignments/${assignmentId}/email-report`,
+      {}
+    ),
+
   // Legacy
   createTemplate: (data: any) => api.post<{ success: boolean; data: AssessmentTemplate }>('/assessments/templates', data),
   getTemplate: (jobId: string) => api.get<{ success: boolean; data: AssessmentTemplate }>(`/assessments/jobs/${jobId}/template`),

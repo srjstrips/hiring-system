@@ -286,6 +286,41 @@ class EmailService {
       html: await wrapEmail(body),
     });
   }
+
+  async sendAssessmentResultToCandidate(
+    email: string,
+    candidateName: string,
+    assessmentName: string,
+    pdfBuffer: Buffer,
+  ): Promise<void> {
+    const body = `
+      <h2 style="color:#1a1a2e;margin-bottom:8px;">Your Assessment Result</h2>
+      <p style="color:#475569;">Hi ${candidateName},</p>
+      <p style="color:#475569;">
+        Thank you for completing the <strong>${assessmentName}</strong>. Please find your personalised
+        assessment result attached to this email.
+      </p>
+      <p style="color:#475569;">
+        Your result has been reviewed by our HR team as part of our selection process.
+        We will be in touch regarding the next steps.
+      </p>
+      <p style="color:#94a3b8;font-size:12px;margin-top:24px;">
+        If you have any questions, please contact our HR team.
+      </p>
+    `;
+    await this.send({
+      to: email,
+      subject: `Your ${assessmentName} Result — SRJ Group`,
+      html: await wrapEmail(body),
+      attachments: [
+        {
+          filename: `SRJ_Assessment_Result_${candidateName.replace(/\s+/g, '_')}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
+        },
+      ],
+    });
+  }
 }
 
 export const emailService = new EmailService();

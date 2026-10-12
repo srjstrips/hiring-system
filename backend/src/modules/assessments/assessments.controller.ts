@@ -170,6 +170,53 @@ class AssessmentsController {
     }
   }
 
+  async emailReport(req: AuthRequest, res: Response) {
+    const id = req.params['id'] as string;
+    const assignmentId = req.params['assignmentId'] as string;
+
+    try {
+      const assessment = await assessmentsService.getById(id);
+      const name = (assessment as { name?: string })?.name ?? '';
+      const isTalentSignal = name.includes('TalentSignal');
+      const isWorkStyle = name.includes('Work Style');
+
+      const { prisma } = await import('../../config/database');
+      const assignment = await prisma.assessmentAssignment.findFirst({
+        where: { id: assignmentId },
+        include: { candidate: { select: { firstName: true, lastName: true, email: true } } },
+      });
+      if (!assignment) {
+        res.status(404).json({ success: false, message: 'Assignment not found' });
+        return;
+      }
+
+      let buffer: Buffer;
+      if (isTalentSignal) {
+        const { generatePersonalityReportPdf } = await import('./personality-report.service');
+        buffer = await generatePersonalityReportPdf(id, assignmentId, { candidateOnly: true });
+      } else if (isWorkStyle) {
+        const { generateWorkStyleReportPdf } = await import('./work-style-report.service');
+        buffer = await generateWorkStyleReportPdf(id, assignmentId);
+      } else {
+        const { generatePhase2ReportPdf } = await import('./phase2-report.service');
+        buffer = await generatePhase2ReportPdf(id, assignmentId);
+      }
+
+      const candidateName = `${assignment.candidate.firstName} ${assignment.candidate.lastName}`.trim();
+      const { emailService } = await import('../../services/email.service');
+      await emailService.sendAssessmentResultToCandidate(
+        assignment.candidate.email,
+        candidateName,
+        name,
+        buffer,
+      );
+
+      res.json({ success: true, data: null, message: 'Assessment result sent to candidate' });
+    } catch (e: any) {
+      res.status(500).json({ success: false, message: e?.message ?? 'Failed to send report' });
+    }
+  }
+
   async resendAssignmentInvite(req: AuthRequest, res: Response) {
     const id = req.params['id'] as string;
     const assignmentId = req.params['assignmentId'] as string;
