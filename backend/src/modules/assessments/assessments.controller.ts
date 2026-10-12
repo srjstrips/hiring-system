@@ -51,6 +51,12 @@ class AssessmentsController {
     res.json({ success: true, data, message: 'Assessment archived/closed' });
   }
 
+  async permanentDelete(req: AuthRequest, res: Response) {
+    const id = req.params['id'] as string;
+    await assessmentsService.permanentDelete(id);
+    res.json({ success: true, message: 'Assessment permanently deleted' });
+  }
+
   async listQuestions(req: AuthRequest, res: Response) {
     const id = req.params['id'] as string;
     const data = await assessmentsService.listQuestions(id);

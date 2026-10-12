@@ -9,7 +9,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { toast } from '@/hooks/useToast';
 import {
   Plus, Search, Eye, Pencil, ListChecks, UserPlus, BarChart3, Archive, Play,
-  Briefcase, Calendar, Clock, Target, ClipboardList,
+  Briefcase, Calendar, Clock, Target, ClipboardList, Trash2,
 } from 'lucide-react';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -29,6 +29,7 @@ export default function AssessmentsPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [archiveTarget, setArchiveTarget] = useState<Assessment | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Assessment | null>(null);
   const [searchParams] = useSearchParams();
   const jobIdFilter = searchParams.get('jobId') || undefined;
 
@@ -74,6 +75,17 @@ export default function AssessmentsPage() {
     },
     onError: (e: any) =>
       toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => assessmentsApi.permanentDelete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assessments'] });
+      toast({ title: 'Assessment deleted', variant: 'success' });
+      setDeleteTarget(null);
+    },
+    onError: (e: any) =>
+      toast({ title: 'Cannot delete', description: e.response?.data?.message, variant: 'destructive' }),
   });
 
   const assessments = data?.data ?? [];
@@ -234,6 +246,15 @@ export default function AssessmentsPage() {
                         <Archive className="mr-1 h-3.5 w-3.5" /> Close
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className={`${actionBtnClass} hover:border-red-300 hover:bg-red-50 hover:text-red-700`}
+                      title="Permanently delete assessment"
+                      onClick={() => setDeleteTarget(a)}
+                    >
+                      <Trash2 className="mr-1 h-3.5 w-3.5" /> Delete
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -251,6 +272,31 @@ export default function AssessmentsPage() {
         onConfirm={() => archiveTarget && archiveMutation.mutate(archiveTarget.id)}
         loading={archiveMutation.isPending}
       />
+
+      {/* Delete dialog — shows warning when candidates exist */}
+      {deleteTarget && (() => {
+        const hasRecords = (deleteTarget.candidatesAssigned ?? deleteTarget._count?.assignments ?? 0) > 0
+          || (deleteTarget.candidatesCompleted ?? 0) > 0;
+        return (
+          <ConfirmDialog
+            open
+            onClose={() => { if (!deleteMutation.isPending) setDeleteTarget(null); }}
+            title={hasRecords ? 'Cannot permanently delete' : `Delete "${deleteTarget.name}"?`}
+            description={
+              hasRecords
+                ? `"${deleteTarget.name}" has ${deleteTarget.candidatesAssigned ?? deleteTarget._count?.assignments ?? 0} candidate assignment(s) and cannot be permanently deleted.\n\nUse "Close" to deactivate it, or "Deactivate" to set it back to Draft.`
+                : 'This will permanently delete the assessment, all its questions, and options. This action cannot be undone.'
+            }
+            confirmLabel={hasRecords ? 'OK' : 'Delete permanently'}
+            variant={hasRecords ? 'default' : 'destructive'}
+            onConfirm={() => {
+              if (hasRecords) { setDeleteTarget(null); return; }
+              deleteMutation.mutate(deleteTarget.id);
+            }}
+            loading={deleteMutation.isPending}
+          />
+        );
+      })()}
     </div>
   );
 }

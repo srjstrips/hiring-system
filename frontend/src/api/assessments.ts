@@ -151,6 +151,8 @@ export const assessmentsApi = {
     api.put<{ success: boolean; data: Assessment }>(`/assessments/${id}`, data),
   archive: (id: string) =>
     api.delete<{ success: boolean; data: Assessment }>(`/assessments/${id}`),
+  permanentDelete: (id: string) =>
+    api.delete<{ success: boolean; message: string }>(`/assessments/${id}/permanent`),
 
   getQuestions: (id: string) =>
     api.get<{ success: boolean; data: AssessmentQuestion[] }>(`/assessments/${id}/questions`),

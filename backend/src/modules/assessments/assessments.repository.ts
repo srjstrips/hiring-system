@@ -242,6 +242,20 @@ export class AssessmentsRepository {
     });
   }
 
+  async hardDelete(id: string) {
+    const attemptCount = await prisma.assessmentAttempt.count({ where: { assessmentId: id } });
+    if (attemptCount > 0) {
+      throw new Error('HAS_ATTEMPTS');
+    }
+    const assignmentCount = await prisma.assessmentAssignment.count({ where: { assessmentId: id } });
+    if (assignmentCount > 0) {
+      throw new Error('HAS_ASSIGNMENTS');
+    }
+    // Prisma cascades: AssessmentQuestion, AssessmentOption, AssessmentTrait, AssessmentTraitScore
+    // AssessmentAttempt has no DB cascade from Assessment, but count=0 so safe to delete
+    await prisma.assessment.delete({ where: { id } });
+  }
+
   async listQuestions(assessmentId: string, includeCorrect = true) {
     const questions = await prisma.assessmentQuestion.findMany({
       where: { assessmentId },

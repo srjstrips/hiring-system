@@ -31,6 +31,7 @@ router.post('/', validateBody(CreateAssessmentSchema), authorize('assessments:cr
 router.get('/:id', authorize('assessments:read'), assessmentsController.getById);
 router.put('/:id', validateBody(UpdateAssessmentSchema), authorize('assessments:update'), assessmentsController.update);
 router.delete('/:id', authorize('assessments:delete'), assessmentsController.archive);
+router.delete('/:id/permanent', authorize('assessments:delete'), assessmentsController.permanentDelete);
 
 router.get('/:id/questions', authorize('assessments:read'), assessmentsController.listQuestions);
 router.post('/:id/questions', validateBody(CreateQuestionSchema), authorize('assessments:update'), assessmentsController.createQuestion);

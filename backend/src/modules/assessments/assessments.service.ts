@@ -62,6 +62,27 @@ class AssessmentsService {
     return assessmentsRepository.softDeleteOrClose(id);
   }
 
+  async permanentDelete(id: string) {
+    await this.getById(id);
+    try {
+      await assessmentsRepository.hardDelete(id);
+    } catch (e: any) {
+      if (e?.message === 'HAS_ATTEMPTS') {
+        throw new AppError(
+          'This assessment has candidate attempts and cannot be permanently deleted. Use "Close" to deactivate it instead.',
+          409
+        );
+      }
+      if (e?.message === 'HAS_ASSIGNMENTS') {
+        throw new AppError(
+          'This assessment has candidates assigned and cannot be permanently deleted. Use "Close" to deactivate it instead.',
+          409
+        );
+      }
+      throw e;
+    }
+  }
+
   async listQuestions(assessmentId: string) {
     await this.getById(assessmentId);
     return assessmentsRepository.listQuestions(assessmentId, true);
