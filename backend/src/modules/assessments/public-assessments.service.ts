@@ -391,7 +391,8 @@ class PublicAssessmentsService {
     });
     if (!attempt) throw new AppError('Attempt not found', 404);
     if (attempt.submittedAt) {
-      return this.statusPayload(attempt.assignment!.secureToken);
+      if (!attempt.assignment) throw new AppError('Assessment already submitted', 403);
+      return this.statusPayload(attempt.assignment.secureToken);
     }
 
     let obtainedMarks = 0;
@@ -460,34 +461,29 @@ class PublicAssessmentsService {
     }
 
     // ── Personality scoring routing (async, non-blocking) ─────────────────
+    // mode=PERSONALITY → HEXACO/WorkStyle scorer (TalentSignal™, SRJ Work Style Check)
+    // assessmentType=PERSONALITY AND mode≠PERSONALITY → Phase 2 simple trait scorer
+    // These are mutually exclusive; checking mode first prevents double-scoring.
     if (attempt.assessment.mode === 'PERSONALITY') {
       const isWorkStyle = attempt.assessment.name.includes('Work Style');
       if (isWorkStyle) {
-        // SRJ Work Style Check — Likert scorer
-        // Score first, then email with PDF (2s delay ensures scoring is written to DB)
         scoreWorkStyleAttempt(attemptId)
-          .then(() => new Promise((r) => setTimeout(r, 2000)))
           .then(() => sendWorkStyleResultEmail(attemptId))
           .catch((err) =>
             console.error('[WorkStyle] Scoring/email error for attempt', attemptId, err)
           );
       } else {
-        // TalentSignal™ HEXACO scorer
-        scorePersonalityAttempt(attemptId).catch((err) =>
-          console.error('[TalentSignal] Scoring error for attempt', attemptId, err)
-        );
-        sendCandidateAssessmentSummaryEmail(attemptId).catch((err) =>
-          console.error('[TalentSignal] Summary email error for attempt', attemptId, err)
-        );
+        // TalentSignal™ HEXACO scorer — score first, then send summary email
+        scorePersonalityAttempt(attemptId)
+          .then(() => sendCandidateAssessmentSummaryEmail(attemptId))
+          .catch((err) =>
+            console.error('[TalentSignal] Scoring/email error for attempt', attemptId, err)
+          );
       }
-    }
-
-    // ── Phase 2 simple trait-based personality scoring (1-5 scale) ────────
-    // Fire-and-forget — score first, then email with PDF (2s delay ensures scoring is written)
-    if (attempt.assessment.assessmentType === 'PERSONALITY') {
+    } else if (attempt.assessment.assessmentType === 'PERSONALITY') {
+      // ── Phase 2 simple trait-based personality scoring (1-5 scale) ────────
       assessmentsScoringService
         .calculatePersonalityTraitScores(attemptId, attempt.assessmentId)
-        .then(() => new Promise((r) => setTimeout(r, 2000)))
         .then(async () => {
           const { sendPhase2ResultEmail } = await import('./phase2-email.service');
           return sendPhase2ResultEmail(attemptId);
@@ -495,7 +491,8 @@ class PublicAssessmentsService {
         .catch((err) => console.error('[Phase2] Scoring/email error for attempt', attemptId, err));
     }
 
-    return this.statusPayload(attempt.assignment!.secureToken);
+    if (!attempt.assignment) throw new AppError('Submission recorded but assignment link is missing', 500);
+    return this.statusPayload(attempt.assignment.secureToken);
   }
 
   async getStatus(secureToken: string) {

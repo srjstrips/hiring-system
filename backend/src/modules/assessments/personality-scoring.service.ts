@@ -277,6 +277,7 @@ export async function scorePersonalityAttempt(attemptId: string): Promise<void> 
 
   const hexacoRaw: RawTraitScores = { H: 0, ES: 0, X: 0, A: 0, C: 0, O: 0 };
   const sjtRaw: Record<SjtPart, number> = { B1: 0, B2: 0, B3: 0 };
+  const sjtPartHasQuestions: Record<SjtPart, boolean> = { B1: false, B2: false, B3: false };
   const likertRaw: LikertRaw = { RES: 0, ADA: 0, ACH: 0, IM: 0, INF: 0 };
   let sjtIntegrityRaw = 0;  // subset of B1+B2 items tagged integrity
   let sjtTeamRaw = 0;       // subset of B1 tagged team
@@ -309,6 +310,7 @@ export async function scorePersonalityAttempt(attemptId: string): Promise<void> 
       const part = q.sjtPart as SjtPart;
       const scored = answer?.sjtScore ?? 0;
       sjtRaw[part] += scored;
+      sjtPartHasQuestions[part] = true;
 
       // Integrity-tagged items: S1, S5, S11, S13 → tracked via question text marker
       // We tag these in the seeder by adding a metadata comment; check sjtKey meta
@@ -321,7 +323,14 @@ export async function scorePersonalityAttempt(attemptId: string): Promise<void> 
 
     // ── Likert (Part C) ────────────────────────────────────────────────────
     if (q.questionType === 'MCQ' && q.validityScale === null) {
-      const rating = parseInt(answer?.answerText ?? '0', 10) || 0;
+      // Use the selected option's displayOrder (1–5) as the Likert rating.
+      // answerText stores the option label ("Strongly Agree" etc.), not a
+      // number, so parseInt on it always returns NaN → 0.
+      let rating = 0;
+      if (answer?.selectedOptionId) {
+        const sel = q.options.find((o) => o.id === answer.selectedOptionId);
+        rating = sel?.displayOrder ?? 0;
+      }
       const adjusted = q.isReversed ? 6 - rating : rating;
       if (q.trait === 'RES') likertRaw.RES += adjusted;
       else if (q.trait === 'ADA') likertRaw.ADA += adjusted;
@@ -331,7 +340,11 @@ export async function scorePersonalityAttempt(attemptId: string): Promise<void> 
 
     // ── Validity items ─────────────────────────────────────────────────────
     if (q.validityScale === 'IM') {
-      const rating = parseInt(answer?.answerText ?? '0', 10) || 0;
+      let rating = 0;
+      if (answer?.selectedOptionId) {
+        const sel = q.options.find((o) => o.id === answer.selectedOptionId);
+        rating = sel?.displayOrder ?? 0;
+      }
       likertRaw.IM += rating;
       continue;
     }
@@ -358,7 +371,7 @@ export async function scorePersonalityAttempt(attemptId: string): Promise<void> 
 
   const sjtW = clamp(toT(sjtRaw.B1, SJT_NORM.B1.mean, SJT_NORM.B1.sd));
   const sjtS = clamp(toT(sjtRaw.B2, SJT_NORM.B2.mean, SJT_NORM.B2.sd));
-  const sjtL = sjtRaw.B3 !== 0
+  const sjtL = sjtPartHasQuestions.B3
     ? clamp(toT(sjtRaw.B3, SJT_NORM.B3.mean, SJT_NORM.B3.sd))
     : null;
 

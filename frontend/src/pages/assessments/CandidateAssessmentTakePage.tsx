@@ -294,6 +294,10 @@ export default function CandidateAssessmentTakePage() {
   const screenRecorder = useRef<ChunkedRecorder | null>(null);
   const cameraRecordingId = useRef<string | null>(null);
   const screenRecordingId = useRef<string | null>(null);
+  // Difference between server clock and client clock, captured when attempt loads.
+  // Used to correct timer so mobile clock skew / throttled intervals don't cause
+  // premature auto-submission.
+  const serverClockOffsetMs = useRef<number>(0);
 
   const fail = (err: any) => {
     const code = publicAssessmentsApi.gateCode(err);
@@ -573,6 +577,11 @@ export default function CandidateAssessmentTakePage() {
         if (!isMobile) setScreenRecStatus('error');
       }
 
+      // Capture server-client clock offset so the timer stays accurate
+      // even when the client clock drifts or setInterval is throttled on mobile.
+      if (data.serverNow) {
+        serverClockOffsetMs.current = new Date(data.serverNow).getTime() - Date.now();
+      }
       setAttempt(data);
       setAnswers(merged);
       setForcedChoiceAnswers(data.forcedChoiceAnswers ?? {});
@@ -686,11 +695,15 @@ export default function CandidateAssessmentTakePage() {
   };
 
   // Server-aligned countdown
+  // Uses serverClockOffsetMs to compensate for client-server clock skew and
+  // for mobile setInterval throttling (when browser is backgrounded, multiple
+  // seconds may pass between ticks — recalculating from endsAt catches this).
   useEffect(() => {
     if (phase !== 'test' || !attempt) return;
     const tick = () => {
       const ends = new Date(attempt.endsAt).getTime();
-      const left = Math.max(0, Math.floor((ends - Date.now()) / 1000));
+      const serverNow = Date.now() + serverClockOffsetMs.current;
+      const left = Math.max(0, Math.floor((ends - serverNow) / 1000));
       setRemaining(left);
       if (left <= 0) void doSubmit(true);
     };
