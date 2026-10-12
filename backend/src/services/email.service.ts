@@ -58,6 +58,27 @@ class EmailService {
     });
   }
 
+  async sendCandidatePasswordResetEmail(email: string, token: string, name: string): Promise<void> {
+    const resetUrl = `${env.FRONTEND_URL.replace(/\/$/, '')}/careers/reset-password?token=${token}`;
+    const body = `
+      <h2 style="margin:0 0 16px;color:#111827;font-size:22px;">Reset Your Password</h2>
+      <p>Hello <strong>${name}</strong>,</p>
+      <p>We received a request to reset your SRJ Careers portal password. Click the button below to set a new password.</p>
+      <p style="margin:28px 0;">
+        <a href="${resetUrl}" style="background:#FF6B00;color:#ffffff;padding:13px 28px;text-decoration:none;border-radius:8px;font-weight:600;font-size:15px;display:inline-block;">
+          Reset Password
+        </a>
+      </p>
+      <p style="color:#6b7280;font-size:13px;">This link expires in <strong>1 hour</strong>. If you did not request this, you can safely ignore this email — your password will not change.</p>
+      <p style="color:#6b7280;font-size:13px;">Or copy this link: ${resetUrl}</p>
+    `;
+    await this.send({
+      to: email,
+      subject: 'Reset Your Password — SRJ Careers',
+      html: await wrapEmail(body),
+    });
+  }
+
   async sendWelcomeEmail(email: string, name: string, tempPassword?: string): Promise<void> {
     const loginUrl = `${env.FRONTEND_URL}/login`;
     const body = `

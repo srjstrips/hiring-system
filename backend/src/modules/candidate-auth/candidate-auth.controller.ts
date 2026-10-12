@@ -96,6 +96,19 @@ export class CandidateAuthController {
     }
     return ApiResponse.success(res, null, 'FCM token saved');
   });
+
+  forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+    const { email } = req.body as { email: string };
+    if (email) await candidateAuthService.forgotPassword(email.trim().toLowerCase());
+    // Always return 200 — never reveal whether the email is registered
+    return ApiResponse.success(res, null, 'If an account with that email exists, a reset link has been sent.');
+  });
+
+  resetPassword = asyncHandler(async (req: Request, res: Response) => {
+    const { token, password } = req.body as { token: string; password: string };
+    await candidateAuthService.resetPassword(token, password);
+    return ApiResponse.success(res, null, 'Password reset successfully. Please log in with your new password.');
+  });
 }
 
 export const candidateAuthController = new CandidateAuthController();

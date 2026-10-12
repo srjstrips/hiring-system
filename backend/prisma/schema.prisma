@@ -740,6 +740,7 @@ model Candidate {
   assessmentAssignments AssessmentAssignment[]
   employees             Employee[]
   refreshTokens         CandidateRefreshToken[]
+  passwordResets        CandidatePasswordReset[]
   notifications         CandidateNotification[]
   certificates          CandidateCertification[]
 
@@ -791,6 +792,19 @@ model CandidateRefreshToken {
   candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
   @@map("candidate_refresh_tokens")
+}
+
+model CandidatePasswordReset {
+  id          String    @id @default(uuid())
+  candidateId String
+  token       String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@map("candidate_password_resets")
 }
 
 model CandidateSkill {

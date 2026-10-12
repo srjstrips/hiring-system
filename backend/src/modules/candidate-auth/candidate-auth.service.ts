@@ -1,12 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 import { candidateAuthRepository } from './candidate-auth.repository';
-import { comparePassword, hashPassword } from '../../utils/hash';
+import { comparePassword, hashPassword, generateToken } from '../../utils/hash';
 import {
   signCandidateAccessToken,
   signCandidateRefreshToken,
   verifyCandidateRefreshToken,
 } from '../../utils/jwt';
-import { UnauthorizedError, NotFoundError, ConflictError } from '../../utils/errors';
+import { UnauthorizedError, NotFoundError, ConflictError, BadRequestError } from '../../utils/errors';
+import { env } from '../../config/env';
 import type { LoginDto, SignupDto } from './candidate-auth.validators';
 
 export class CandidateAuthService {
@@ -225,6 +226,38 @@ export class CandidateAuthService {
     }
     await candidateAuthRepository.deleteCertification(certificationId);
     return { id: certificationId };
+  }
+
+  async forgotPassword(email: string) {
+    const candidate = await candidateAuthRepository.findByEmail(email);
+    // Always return success — never reveal whether email is registered
+    if (!candidate || !candidate.isActive) return;
+
+    const token = generateToken(64);
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+
+    await candidateAuthRepository.createPasswordReset({ candidateId: candidate.id, token, expiresAt });
+
+    const { emailService } = await import('../../services/email.service');
+    await emailService.sendCandidatePasswordResetEmail(
+      candidate.email,
+      token,
+      `${candidate.firstName} ${candidate.lastName}`
+    );
+  }
+
+  async resetPassword(token: string, password: string) {
+    const reset = await candidateAuthRepository.findPasswordReset(token);
+
+    if (!reset) throw new BadRequestError('Invalid or expired reset link');
+    if (reset.usedAt !== null) throw new BadRequestError('This reset link has already been used');
+    if (reset.expiresAt < new Date()) throw new BadRequestError('Reset link has expired. Please request a new one.');
+
+    const passwordHash = await hashPassword(password);
+    await candidateAuthRepository.updatePassword(reset.candidateId, passwordHash);
+    await candidateAuthRepository.markPasswordResetUsed(reset.id);
+    await candidateAuthRepository.revokeAllCandidateRefreshTokens(reset.candidateId);
   }
 
   async saveFcmToken(candidateId: string, token: string) {

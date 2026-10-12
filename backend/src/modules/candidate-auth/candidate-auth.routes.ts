@@ -65,6 +65,8 @@ router.post('/signup', validateBody(signupSchema), candidateAuthController.signu
 router.post('/login', validateBody(loginSchema), candidateAuthController.login);
 router.post('/refresh', validateBody(refreshTokenSchema), candidateAuthController.refresh);
 router.post('/logout', validateBody(refreshTokenSchema), candidateAuthController.logout);
+router.post('/forgot-password', candidateAuthController.forgotPassword);
+router.post('/reset-password', candidateAuthController.resetPassword);
 router.get('/me', authenticateCandidate, candidateAuthController.getMe);
 
 router.get('/profile', authenticateCandidate, candidateAuthController.getProfile);

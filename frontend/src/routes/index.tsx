@@ -51,6 +51,8 @@ import ProfilePage from '@/pages/career/ProfilePage';
 import AssessmentPage from '@/pages/career/AssessmentPage';
 import CandidateLoginPage from '@/pages/career/CandidateLoginPage';
 import CandidateSignupPage from '@/pages/career/CandidateSignupPage';
+import CandidateResetPasswordPage from '@/pages/career/CandidateResetPasswordPage';
+import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
 import { CandidateProtectedRoute } from './CandidateProtectedRoute';
 import CandidateAssessmentTakePage from '@/pages/assessments/CandidateAssessmentTakePage';
 import InterviewCallPage from '@/pages/interviews/InterviewCallPage';
@@ -73,6 +75,7 @@ export const router = createBrowserRouter([
       { path: 'jobs/:slug', element: <CareerJobDetailPage /> },
       { path: 'login', element: <CandidateLoginPage /> },
       { path: 'signup', element: <CandidateSignupPage /> },
+      { path: 'reset-password', element: <CandidateResetPasswordPage /> },
       {
         path: 'choose-login',
         loader: ({ request }) => redirect(toCareersLogin(request.url)),
@@ -96,6 +99,7 @@ export const router = createBrowserRouter([
     loader: ({ request }) => redirect(toCareersLogin(request.url)),
   },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
+  { path: '/reset-password', element: <ResetPasswordPage /> },
 
   {
     element: <ProtectedRoute />,

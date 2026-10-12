@@ -120,6 +120,14 @@ export const candidateAuthApi = {
     await careerAxios.post('/auth/logout', { refreshToken });
   },
 
+  async forgotPassword(email: string): Promise<void> {
+    await careerAxios.post('/auth/forgot-password', { email });
+  },
+
+  async resetPassword(token: string, password: string): Promise<void> {
+    await careerAxios.post('/auth/reset-password', { token, password });
+  },
+
   async getMe(): Promise<CandidateProfile> {
     const { data } = await careerAxios.get<{ data: CandidateProfile }>('/auth/me');
     return data.data;

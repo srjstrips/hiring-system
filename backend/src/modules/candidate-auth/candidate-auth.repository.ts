@@ -106,6 +106,36 @@ export class CandidateAuthRepository {
       data: { isRevoked: true },
     });
   }
+
+  async createPasswordReset(data: { candidateId: string; token: string; expiresAt: Date }) {
+    // Invalidate any existing unused tokens for this candidate
+    await prisma.candidatePasswordReset.updateMany({
+      where: { candidateId: data.candidateId, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+    return prisma.candidatePasswordReset.create({ data });
+  }
+
+  async findPasswordReset(token: string) {
+    return prisma.candidatePasswordReset.findUnique({
+      where: { token },
+      include: { candidate: true },
+    });
+  }
+
+  async markPasswordResetUsed(id: string) {
+    return prisma.candidatePasswordReset.update({
+      where: { id },
+      data: { usedAt: new Date() },
+    });
+  }
+
+  async updatePassword(candidateId: string, passwordHash: string) {
+    return prisma.candidate.update({
+      where: { id: candidateId },
+      data: { passwordHash },
+    });
+  }
 }
 
 export const candidateAuthRepository = new CandidateAuthRepository();
