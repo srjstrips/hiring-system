@@ -108,20 +108,34 @@ export default function CandidateLoginPage() {
       /* ignore */
     }
 
-    try {
-      await candidateLogin(email, password);
-      setPortalHint('candidate');
-      navigate(candidateDestination(redirect), { replace: true });
-      return;
-    } catch {
-      // not a candidate — try HR
-    }
-
-    try {
+    // Use the email domain hint to try only the likely portal first.
+    // Fall back to the other only when hint is unknown, to avoid burning
+    // rate-limit quota on every attempt.
+    const tryHR = async () => {
       await hrLogin(email, password);
       setPortalHint('hr');
       navigate(hrDestination(redirect), { replace: true });
-      return;
+    };
+
+    const tryCandidate = async () => {
+      await candidateLogin(email, password);
+      setPortalHint('candidate');
+      navigate(candidateDestination(redirect), { replace: true });
+    };
+
+    try {
+      if (portalHint === 'hr') {
+        await tryHR();
+      } else if (portalHint === 'candidate') {
+        await tryCandidate();
+      } else {
+        // Unknown domain — try candidate first, then HR
+        try {
+          await tryCandidate();
+        } catch {
+          await tryHR();
+        }
+      }
     } catch {
       setError('Invalid email or password.');
     }

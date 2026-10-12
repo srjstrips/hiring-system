@@ -42,7 +42,7 @@ const limiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 30,
   validate: { xForwardedForHeader: false },
   message: {
     success: false,
@@ -53,7 +53,9 @@ const authLimiter = rateLimit({
 
 app.use(limiter);
 app.use(`${env.API_PREFIX}/auth/login`, authLimiter);
+app.use(`${env.API_PREFIX}/career/auth/login`, authLimiter);
 app.use(`${env.API_PREFIX}/auth/forgot-password`, authLimiter);
+app.use(`${env.API_PREFIX}/career/auth/forgot-password`, authLimiter);
 
 // ─── Body Parsing ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
