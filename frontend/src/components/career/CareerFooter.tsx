@@ -1,132 +1,129 @@
 import React, { useEffect, useState } from 'react';
-import { Phone, Mail, MapPin, ArrowUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Phone, Mail, MapPin, ArrowUp, ChevronDown } from 'lucide-react';
 
 const CONTACT_INFO = [
-  {
-    icon: Phone,
-    label: 'Management Support',
-    value: '+91 70289 98080',
-    href: 'tel:+917028998080',
-  },
-  {
-    icon: Phone,
-    label: 'Stores/Purchase Enquiry',
-    value: '+91 98606 27273',
-    href: 'tel:+919860627273',
-  },
-  {
-    icon: Mail,
-    label: 'Mail',
-    value: 'info@srjsteel.in',
-    href: 'mailto:info@srjsteel.in',
-  },
+  { icon: Phone, label: 'Management Support', value: '+91 70289 98080', href: 'tel:+917028998080' },
+  { icon: Phone, label: 'Stores/Purchase Enquiry', value: '+91 98606 27273', href: 'tel:+919860627273' },
+  { icon: Mail, label: 'Mail', value: 'info@srjsteel.in', href: 'mailto:info@srjsteel.in' },
   {
     icon: MapPin,
     label: 'Address',
     value: 'D-5/1, Additional MIDC, Jalna - 431203, Maharashtra, India',
-    href: 'https://maps.google.com/?q=D-5/1 Additional MIDC Jalna 431203',
+    href: 'https://maps.google.com/?q=D-5/1+Additional+MIDC+Jalna+431203',
   },
 ];
 
 const QUICK_LINKS = [
-  { label: 'About Us', href: 'https://srjsteel.in/about/' },
-  { label: 'Products', href: 'https://srjsteel.in/products/' },
-  { label: 'Projects', href: 'https://srjsteel.in/projects/' },
-  { label: 'Blogs', href: 'https://srjsteel.in/blog/' },
+  { label: 'About Us', href: 'https://srjsteel.in/about/', external: true },
+  { label: 'Products', href: 'https://srjsteel.in/products/', external: true },
+  { label: 'Projects', href: 'https://srjsteel.in/projects/', external: true },
+  { label: 'Blogs', href: 'https://srjsteel.in/blog/', external: true },
+  { label: 'Contact Us', href: 'https://srjsteel.in/contact/', external: true },
 ];
 
 const CAREER_LINKS = [
-  { label: 'Careers', href: '/careers' },
-  { label: 'Contact Us', href: 'https://srjsteel.in/contact/' },
+  { label: 'Careers', href: '/careers', external: false },
+  { label: 'Life at SRJ', href: '/careers', external: false },
 ];
 
 const SOCIAL_LINKS = [
-  {
-    icon: 'instagram',
-    href: 'https://www.instagram.com/srjworldofsteel',
-    label: 'Instagram',
-  },
-  {
-    icon: 'facebook',
-    href: 'https://www.facebook.com/srjworldofsteel',
-    label: 'Facebook',
-  },
-  {
-    icon: 'linkedin',
-    href: 'https://www.linkedin.com/company/srjworldofsteel/',
-    label: 'LinkedIn',
-  },
-  {
-    icon: 'youtube',
-    href: 'https://youtube.com/@srjsteel1971',
-    label: 'YouTube',
-  },
+  { icon: 'linkedin', href: 'https://www.linkedin.com/company/srjworldofsteel/', label: 'LinkedIn' },
+  { icon: 'facebook', href: 'https://www.facebook.com/srjworldofsteel', label: 'Facebook' },
+  { icon: 'youtube', href: 'https://youtube.com/@srjsteel1971', label: 'YouTube' },
+  { icon: 'instagram', href: 'https://www.instagram.com/srjworldofsteel', label: 'Instagram' },
 ];
 
 function SocialIcon({ icon }: { icon: string }) {
-  const iconMap: Record<string, React.ReactNode> = {
+  const map: Record<string, React.ReactNode> = {
     instagram: (
-      <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+      <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
         <path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zm0-2.16C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.12 1.38C1.36 2.67.95 3.34.63 4.14.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.8.72 1.47 1.38 2.13.66.66 1.33 1.07 2.12 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56.8-.31 1.47-.72 2.13-1.38.66-.66 1.07-1.33 1.38-2.13.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.9 5.9 0 0 0-1.38-2.12A5.9 5.9 0 0 0 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0z" />
       </svg>
     ),
     facebook: (
-      <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+      <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
         <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
       </svg>
     ),
     linkedin: (
-      <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+      <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
         <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z" />
       </svg>
     ),
     youtube: (
-      <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+      <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
         <path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.5A3.02 3.02 0 0 0 .5 6.19C0 8.08 0 12 0 12s0 3.92.5 5.81a3.02 3.02 0 0 0 2.12 2.14c1.88.5 9.38.5 9.38.5s7.5 0 9.38-.5a3.02 3.02 0 0 0 2.12-2.14C24 15.92 24 12 24 12s0-3.92-.5-5.81zM9.55 15.57V8.43L15.82 12l-6.27 3.57z" />
       </svg>
     ),
   };
+  return <>{map[icon]}</>;
+}
 
-  return iconMap[icon];
+function MobileSection({ title, children }: { title: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-t border-[#3a3a3a]">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between py-4 text-sm font-semibold uppercase tracking-wider text-white"
+      >
+        {title}
+        <ChevronDown className={`h-4 w-4 text-[#B0B0B0] transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div className="pb-4">{children}</div>}
+    </div>
+  );
 }
 
 export default function CareerFooter() {
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300);
-    };
-
+    const handleScroll = () => setShowScrollTop(window.scrollY > 300);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   return (
     <footer className="relative bg-[#2B2B2B] text-white">
-      {/* Main Footer Content */}
-      <div className="mx-auto max-w-7xl px-5 py-12 lg:px-8">
-        {/* Logo Section */}
-        <div className="mb-12 flex justify-center">
-          <img
-            src="/career-assets/srj-white-logo.png"
-            alt="SRJ — World of Steel"
-            className="h-20 w-auto object-contain"
-          />
-        </div>
+      <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
 
-        {/* Three Column Section */}
-        <div className="mb-12 grid gap-8 md:grid-cols-3">
-          {/* Contact Info */}
+        {/* ── Desktop: 4-column grid ────────────────────────────────────────── */}
+        <div className="hidden grid-cols-4 gap-8 md:grid">
+          {/* Col 1 — Brand */}
           <div>
-            <h3 className="mb-4 border-b-2 border-[#F97316] pb-2 text-base font-semibold uppercase tracking-wider">
-              Contact Info
+            <img
+              src="/career-assets/srj-white-logo.png"
+              alt="SRJ — World of Steel"
+              className="mb-4 h-14 w-auto object-contain"
+            />
+            <p className="mb-5 text-sm leading-6 text-[#B0B0B0]">
+              Building a stronger India through quality steel, innovation, and people.
+            </p>
+            <div className="flex gap-2.5">
+              {SOCIAL_LINKS.map((s) => (
+                <a
+                  key={s.label}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={s.label}
+                  className="flex h-8 w-8 items-center justify-center rounded border border-[#F97316] text-[#F97316] transition-all hover:bg-[#F97316] hover:text-white"
+                >
+                  <SocialIcon icon={s.icon} />
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {/* Col 2 — Contact Information */}
+          <div>
+            <h3 className="mb-4 border-b border-[#F97316] pb-2 text-sm font-semibold uppercase tracking-wider">
+              Contact Information
             </h3>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {CONTACT_INFO.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -135,12 +132,12 @@ export default function CareerFooter() {
                     href={item.href}
                     target={item.label === 'Address' ? '_blank' : undefined}
                     rel={item.label === 'Address' ? 'noopener noreferrer' : undefined}
-                    className="flex gap-3 transition-colors hover:text-[#F97316]"
+                    className="flex gap-2.5 text-sm transition-colors hover:text-[#F97316]"
                   >
-                    <Icon className="h-5 w-5 shrink-0 text-[#F97316]" />
-                    <div className="flex-1">
-                      <p className="text-xs text-[#B0B0B0]">{item.label}</p>
-                      <p className="text-sm leading-relaxed">{item.value}</p>
+                    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[#F97316]" />
+                    <div>
+                      <p className="text-xs text-[#888]">{item.label}</p>
+                      <p className="leading-snug text-[#D1D5DB]">{item.value}</p>
                     </div>
                   </a>
                 );
@@ -148,19 +145,19 @@ export default function CareerFooter() {
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Col 3 — Quick Links */}
           <div>
-            <h3 className="mb-4 border-b-2 border-[#F97316] pb-2 text-base font-semibold uppercase tracking-wider">
+            <h3 className="mb-4 border-b border-[#F97316] pb-2 text-sm font-semibold uppercase tracking-wider">
               Quick Links
             </h3>
-            <ul className="space-y-3">
+            <ul className="space-y-2.5">
               {QUICK_LINKS.map((link) => (
                 <li key={link.label}>
                   <a
                     href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm transition-colors hover:text-[#F97316]"
+                    target={link.external ? '_blank' : undefined}
+                    rel={link.external ? 'noopener noreferrer' : undefined}
+                    className="text-sm text-[#D1D5DB] transition-colors hover:text-[#F97316]"
                   >
                     {link.label}
                   </a>
@@ -169,83 +166,169 @@ export default function CareerFooter() {
             </ul>
           </div>
 
-          {/* Career */}
+          {/* Col 4 — Career + Downloads */}
           <div>
-            <h3 className="mb-4 border-b-2 border-[#F97316] pb-2 text-base font-semibold uppercase tracking-wider">
+            <h3 className="mb-4 border-b border-[#F97316] pb-2 text-sm font-semibold uppercase tracking-wider">
               Career
             </h3>
-            <ul className="space-y-3">
+            <ul className="mb-5 space-y-2.5">
               {CAREER_LINKS.map((link) => (
                 <li key={link.label}>
-                  <a
-                    href={link.href}
-                    target={link.label === 'Careers' ? undefined : '_blank'}
-                    rel={link.label === 'Careers' ? undefined : 'noopener noreferrer'}
-                    className="text-sm transition-colors hover:text-[#F97316]"
+                  <Link
+                    to={link.href}
+                    className="text-sm text-[#D1D5DB] transition-colors hover:text-[#F97316]"
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
+            <div className="flex flex-col gap-2">
+              <a
+                href="#"
+                onClick={(e) => e.preventDefault()}
+                className="inline-flex items-center gap-2 rounded bg-[#F97316] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#EA580C]"
+              >
+                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                SRJ Corporate Brochure
+              </a>
+              <a
+                href="#"
+                onClick={(e) => e.preventDefault()}
+                className="inline-flex items-center gap-2 rounded bg-[#F97316] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#EA580C]"
+              >
+                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Credentials
+              </a>
+            </div>
           </div>
         </div>
 
-        {/* Social and Buttons Section */}
-        <div className="mb-12 flex flex-col items-center justify-between gap-6 border-t border-[#444444] pt-8 md:flex-row md:items-center">
-          {/* Follow Us Social Icons */}
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium">Follow Us:</span>
+        {/* ── Mobile: stacked collapsible sections ─────────────────────────── */}
+        <div className="md:hidden">
+          {/* Brand block always visible */}
+          <div className="mb-6 flex flex-col items-center text-center">
+            <img
+              src="/career-assets/srj-white-logo.png"
+              alt="SRJ — World of Steel"
+              className="mb-3 h-12 w-auto object-contain"
+            />
+            <p className="mb-4 text-sm leading-6 text-[#B0B0B0]">
+              Building a stronger India through quality steel, innovation, and people.
+            </p>
             <div className="flex gap-3">
-              {SOCIAL_LINKS.map((social) => (
+              {SOCIAL_LINKS.map((s) => (
                 <a
-                  key={social.label}
-                  href={social.href}
+                  key={s.label}
+                  href={s.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={social.label}
-                  className="flex h-10 w-10 items-center justify-center rounded border border-[#F97316] text-[#F97316] transition-all hover:bg-[#F97316] hover:text-white"
+                  aria-label={s.label}
+                  className="flex h-9 w-9 items-center justify-center rounded border border-[#F97316] text-[#F97316] transition-all hover:bg-[#F97316] hover:text-white"
                 >
-                  <SocialIcon icon={social.icon} />
+                  <SocialIcon icon={s.icon} />
                 </a>
               ))}
             </div>
           </div>
 
-          {/* Buttons */}
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <a
-              href="#"
-              onClick={(e) => e.preventDefault()}
-              className="inline-flex items-center gap-2 rounded bg-[#F97316] px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-[#EA580C]"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              SRJ Corporate Brochure
+          <MobileSection title="Contact Information">
+            <div className="space-y-3">
+              {CONTACT_INFO.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    target={item.label === 'Address' ? '_blank' : undefined}
+                    rel={item.label === 'Address' ? 'noopener noreferrer' : undefined}
+                    className="flex gap-2.5 text-sm transition-colors hover:text-[#F97316]"
+                  >
+                    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[#F97316]" />
+                    <div>
+                      <p className="text-xs text-[#888]">{item.label}</p>
+                      <p className="text-[#D1D5DB]">{item.value}</p>
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          </MobileSection>
+
+          <MobileSection title="Quick Links">
+            <ul className="space-y-2.5">
+              {QUICK_LINKS.map((link) => (
+                <li key={link.label}>
+                  <a
+                    href={link.href}
+                    target={link.external ? '_blank' : undefined}
+                    rel={link.external ? 'noopener noreferrer' : undefined}
+                    className="text-sm text-[#D1D5DB] transition-colors hover:text-[#F97316]"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </MobileSection>
+
+          <MobileSection title="Career">
+            <ul className="mb-4 space-y-2.5">
+              {CAREER_LINKS.map((link) => (
+                <li key={link.label}>
+                  <Link to={link.href} className="text-sm text-[#D1D5DB] transition-colors hover:text-[#F97316]">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <div className="flex flex-col gap-2">
+              <a
+                href="#"
+                onClick={(e) => e.preventDefault()}
+                className="inline-flex items-center justify-center gap-2 rounded bg-[#F97316] px-4 py-2.5 text-sm font-semibold text-white"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                SRJ Corporate Brochure
+              </a>
+              <a
+                href="#"
+                onClick={(e) => e.preventDefault()}
+                className="inline-flex items-center justify-center gap-2 rounded bg-[#F97316] px-4 py-2.5 text-sm font-semibold text-white"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Credentials
+              </a>
+            </div>
+          </MobileSection>
+        </div>
+
+        {/* ── Copyright bar ─────────────────────────────────────────────────── */}
+        <div className="mt-8 flex flex-col items-center justify-between gap-3 border-t border-[#3a3a3a] pt-6 sm:flex-row">
+          <p className="text-xs text-[#888]">© {new Date().getFullYear()} SRJ Steel. All rights reserved.</p>
+          <div className="flex gap-4 text-xs text-[#888]">
+            <a href="https://srjsteel.in/privacy-policy/" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-[#F97316]">
+              Privacy Policy
             </a>
-            <a
-              href="#"
-              onClick={(e) => e.preventDefault()}
-              className="inline-flex items-center gap-2 rounded bg-[#F97316] px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-[#EA580C]"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Credentials
+            <a href="https://srjsteel.in/terms-conditions/" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-[#F97316]">
+              Terms &amp; Conditions
+            </a>
+            <a href="https://srjsteel.in/sitemap.xml" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-[#F97316]">
+              Sitemap
             </a>
           </div>
         </div>
-
-        {/* Bottom Copyright Section */}
-        <div className="border-t border-[#444444] pt-6 text-center">
-          <p className="mb-2 text-xs text-[#B0B0B0]">
-            © {new Date().getFullYear()} SRJ Steel. All rights reserved.
-          </p>
-        </div>
       </div>
 
-      {/* WhatsApp Button */}
+      {/* WhatsApp button */}
       <a
         href="https://wa.me/917028998080"
         target="_blank"
@@ -258,12 +341,12 @@ export default function CareerFooter() {
         </svg>
       </a>
 
-      {/* Scroll to Top Button */}
+      {/* Scroll to top */}
       {showScrollTop && (
         <button
-          onClick={scrollToTop}
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           aria-label="Scroll to top"
-          className="fixed bottom-24 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#F97316] text-white shadow-lg transition-all hover:bg-[#EA580C] hover:scale-110"
+          className="fixed bottom-24 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#F97316] text-white shadow-lg transition-all hover:scale-110 hover:bg-[#EA580C]"
         >
           <ArrowUp className="h-5 w-5" />
         </button>
