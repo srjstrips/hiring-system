@@ -300,12 +300,12 @@ export default function CandidateLoginPage() {
             {/* Support Text */}
             <p className="mt-3 text-center text-sm text-[#6B7280]">
               Need help? Contact{' '}
-              <Link
-                to="#"
+              <a
+                href="mailto:info@srjsteel.in"
                 className="font-semibold text-[#FF6B00] transition-colors hover:text-[#e86000]"
               >
                 HR Support
-              </Link>
+              </a>
             </p>
           </div>
         </div>
