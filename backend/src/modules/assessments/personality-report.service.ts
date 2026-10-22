@@ -1,125 +1,244 @@
 /**
- * TalentSignal™ PDF Report Generator
- * Produces a two-section report:
- *   Page 1–2  — Candidate copy (no derailer flags, no raw T-scores)
- *   Page 3–4  — HR copy (full profile including derailers, role-fit, interview probes)
+ * TalentSignal™ / SRJ Talent Acquisition — PDF Report
+ * Page 1: Candidate-facing report matching the approved reference design.
+ * Page 2: HR-only full HEXACO profile (not sent to candidate).
  */
 
 import PDFDocument from 'pdfkit';
+import path from 'path';
+import fs from 'fs';
 import { prisma } from '@/config/database';
 import { generateInterviewProbes } from './personality-scoring.service';
 
-// ─── Brand palette ────────────────────────────────────────────────────────────
+// ─── Palette ──────────────────────────────────────────────────────────────────
 const C = {
-  orange:    '#FF6B00',
-  amber:     '#b45309',
-  dark:      '#1e293b',
-  mid:       '#475569',
-  light:     '#94a3b8',
-  muted:     '#f1f5f9',
-  white:     '#ffffff',
-  green:     '#16a34a',
-  blue:      '#0284c7',
-  red:       '#dc2626',
-  yellow:    '#d97706',
-  purple:    '#7c3aed',
-  teal:      '#0891b2',
-};
-
-const TRAIT_META: Record<string, { label: string; desc: string; color: string }> = {
-  H:  { label: 'Honesty & Integrity',        desc: 'Ethical grounding, transparency, sincerity',      color: C.purple },
-  ES: { label: 'Emotional Stability',         desc: 'Composure under pressure, low anxiety',           color: C.teal   },
-  X:  { label: 'Extraversion & Energy',       desc: 'Confidence, assertiveness, social energy',        color: C.yellow },
-  A:  { label: 'Agreeableness & Teamwork',    desc: 'Cooperation, flexibility, care for others',       color: C.green  },
-  C:  { label: 'Conscientiousness & Drive',   desc: 'Discipline, reliability, goal-focus',             color: C.amber  },
-  O:  { label: 'Openness & Adaptability',     desc: 'Curiosity, creativity, embrace of change',        color: C.blue   },
-};
-
-const STRENGTH_DESCRIPTIONS: Record<string, string> = {
-  H:  'You have strong ethical grounding and a preference for transparent, principled conduct. People around you know what to expect — your word carries weight.',
-  ES: 'You remain composed and effective under pressure. When others feel stressed, your steady presence becomes an asset for the whole team.',
-  X:  'You bring energy and confidence to group settings. You naturally engage others and can rally people around a shared goal.',
-  A:  'You work constructively with others, showing flexibility and genuine care in collaborative situations. Colleagues find you easy to work with.',
-  C:  'You are disciplined and dependable. You follow through on commitments with consistent quality and attention to detail.',
-  O:  'You embrace learning and change, bringing curiosity and fresh thinking to your work. New challenges energise rather than discourage you.',
-};
-
-const DEVELOPMENT_THEMES: Record<string, string> = {
-  H:  'Continue building your personal brand of transparency — proactively communicate your intent in high-stakes situations.',
-  ES: 'Strengthen your composure toolkit for high-pressure moments. Small practices like pause-and-reflect can build this muscle over time.',
-  X:  'Increase your visibility — share your insights and contributions more actively in group forums and team meetings.',
-  A:  'Practise engaging in productive tension when different views surface. Healthy disagreement often leads to better outcomes.',
-  C:  'Balance thoroughness with pace when speed matters more than perfection. Done is sometimes better than perfect.',
-  O:  'Expand your exposure to new methods and cross-functional perspectives to keep growing professionally.',
-};
-
-const ARCHETYPE_DESCRIPTIONS: Record<string, string> = {
-  'The Anchor':     'Reliable, steady, and process-oriented. You bring stability and consistency to your team. Others depend on you to keep things on track.',
-  'The Guardian':   'Principled and trustworthy. You uphold standards and act with integrity even under pressure. A natural protector of team values.',
-  'The Driver':     'Energetic and goal-focused. You push for results and motivate others to act. You thrive when there is a clear target to chase.',
-  'The Diplomat':   'Warm and persuasive. You build bridges between people and resolve tension constructively. A natural relationship-builder.',
-  'The Pioneer':    'Curious and inventive. You bring fresh ideas and challenge the status quo. You flourish when given space to explore.',
-  'The Craftsman':  'Methodical and quality-driven. You take pride in doing things right and see projects through with precision and care.',
-  'The Stabilizer': 'Calm and supportive. You provide emotional grounding for your team during difficult periods. Others feel safe around you.',
-  'The Strategist': 'Analytical and visionary. You think several steps ahead and combine insight with structure to shape outcomes.',
+  orange:  '#FF6B00',
+  dark:    '#111827',
+  navy:    '#1e293b',
+  mid:     '#475569',
+  light:   '#94a3b8',
+  muted:   '#f8fafc',
+  border:  '#e2e8f0',
+  white:   '#ffffff',
+  green:   '#16a34a',
+  greenBg: '#f0fdf4',
+  red:     '#dc2626',
+  amber:   '#d97706',
+  amberBg: '#fff7ed',
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function hexToRgb(hex: string): [number, number, number] {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return [r, g, b];
+function hex2rgb(hex: string): [number, number, number] {
+  return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
 }
 
-function tScoreLabel(t: number): string {
-  if (t >= 65) return 'High';
-  if (t >= 55) return 'Above Average';
-  if (t >= 45) return 'Average';
-  if (t >= 35) return 'Below Average';
-  return 'Low';
+function fill(doc: InstanceType<typeof PDFDocument>, hex: string) {
+  const [r,g,b] = hex2rgb(hex);
+  doc.fillColor([r,g,b] as unknown as string);
 }
 
-function scoreColor(t: number): string {
-  if (t >= 65) return C.green;
-  if (t >= 45) return C.blue;
-  return C.yellow;
+function stroke(doc: InstanceType<typeof PDFDocument>, hex: string) {
+  const [r,g,b] = hex2rgb(hex);
+  doc.strokeColor([r,g,b] as unknown as string);
 }
 
-function compositeColor(v: number): string {
-  if (v >= 65) return C.green;
-  if (v >= 50) return C.blue;
-  if (v >= 40) return C.yellow;
-  return C.red;
+/** Convert HEXACO T-score (20–80) to 1–5 display scale. */
+function t5(t: number | null | undefined): number {
+  if (t == null) return 3.0;
+  const c = Math.min(80, Math.max(20, t));
+  return Math.round(((c - 20) / 60 * 4 + 1) * 10) / 10;
 }
 
-function fitColor(band: string | null): string {
-  if (band === 'Strong Fit') return C.green;
-  if (band === 'Fit') return C.blue;
-  if (band === 'Conditional') return C.yellow;
-  return C.red;
+/** Average a set of nullable numbers (ignores nulls). */
+function avg(...vals: (number | null | undefined)[]): number {
+  const v = vals.filter((x): x is number => x != null);
+  return v.length ? v.reduce((a,b) => a+b, 0) / v.length : 50;
 }
 
-// ─── PDF builder ──────────────────────────────────────────────────────────────
+/** Rating label for a 1–5 trait score (card badges). */
+function traitRating(s: number): { label: string; color: string; bg: string } {
+  if (s >= 3.5) return { label: 'Good',       color: C.green, bg: C.greenBg };
+  if (s >= 2.5) return { label: 'Moderate',   color: C.amber, bg: C.amberBg };
+  if (s >= 1.5) return { label: 'Developing', color: C.amber, bg: C.amberBg };
+  return         { label: 'Low',         color: C.red,   bg: '#fef2f2' };
+}
+
+/** Overall fit label (headline). */
+function fitLabel(s: number): string {
+  if (s >= 4.1) return 'Excellent Fit';
+  if (s >= 3.1) return 'Good Fit';
+  if (s >= 2.1) return 'Moderate Fit';
+  return 'Low Fit';
+}
+
+/** Overall fit description sentence. */
+function fitDesc(s: number): string {
+  if (s >= 4.1) return 'The candidate demonstrates exceptional alignment with workplace behaviours required for this role.';
+  if (s >= 3.1) return 'The candidate shows a positive overall alignment with key workplace behaviours for the role.';
+  if (s >= 2.1) return 'The candidate shows moderate alignment. Some key behaviours may need further development.';
+  return 'The candidate shows limited alignment with key behaviours. Structured development support is recommended.';
+}
+
+/** Trait card description based on trait name and score band. */
+function traitDesc(label: string, score: number): string {
+  const hi = score >= 3.5;
+  const lo = score < 2.5;
+  if (label === 'Leadership') {
+    if (hi) return 'Shows strong initiative and naturally guides others. Demonstrates high confidence in taking responsibility and driving results.';
+    if (lo) return 'Has potential to develop leadership confidence. Focused practice in guiding others and taking initiative will help.';
+    return 'Shows initiative and comfort in guiding others. Demonstrates confidence in taking responsibility.';
+  }
+  if (label === 'Learning Adaptability') {
+    if (hi) return 'Highly open to learning new tools and embraces change quickly. Shows strong willingness to develop skills and adapt to new environments.';
+    if (lo) return 'Can further develop adaptability to new tools and changing situations. Structured learning support may help build confidence.';
+    return 'Open to learning new tools and adapts well to change. Shows willingness to develop new skills.';
+  }
+  if (label === 'Problem Solving') {
+    if (hi) return 'Demonstrates strong analytical ability and consistently finds effective solutions. Excels in handling complex situations independently.';
+    if (lo) return 'Can improve in analysing issues and finding effective solutions. May need guidance in complex situations.';
+    return 'Approaches problems methodically. Generally finds workable solutions with some guidance in complex cases.';
+  }
+  if (label === 'Teamwork') {
+    if (hi) return 'Excellent collaborator who actively supports team goals. Builds strong working relationships and contributes positively to team dynamics.';
+    if (lo) return 'Has potential to develop team collaboration skills. Building relationship confidence may improve team contributions.';
+    return 'Collaborates well with others and supports team goals. Maintains a positive working relationship.';
+  }
+  return '';
+}
+
+function formatDate(d: Date): string {
+  return d.toLocaleString('en-IN', {
+    day:'2-digit', month:'short', year:'numeric',
+    hour:'2-digit', minute:'2-digit', hour12:true,
+    timeZone:'Asia/Kolkata',
+  });
+}
+
+function formatDuration(ms: number): string {
+  const s = Math.round(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}h ${m}m ${sec}s`;
+  if (m > 0) return `${m}m ${sec}s`;
+  return `${sec}s`;
+}
+
+// ─── Draw helpers ─────────────────────────────────────────────────────────────
+
+/** Draws a rounded rectangle fill. */
+function roundedRect(
+  doc: InstanceType<typeof PDFDocument>,
+  x: number, y: number, w: number, h: number,
+  r: number, hexFill: string, hexStroke?: string, strokeW = 0.5,
+) {
+  const [fr,fg,fb] = hex2rgb(hexFill);
+  doc.save()
+    .roundedRect(x, y, w, h, r)
+    .fillColor([fr,fg,fb] as unknown as string);
+  if (hexStroke) {
+    const [sr,sg,sb] = hex2rgb(hexStroke);
+    doc.strokeColor([sr,sg,sb] as unknown as string).lineWidth(strokeW).fillAndStroke();
+  } else {
+    doc.fill();
+  }
+  doc.restore();
+}
+
+/** Draws a filled progress bar (orange on light gray). */
+function progressBar(
+  doc: InstanceType<typeof PDFDocument>,
+  x: number, y: number, w: number, h: number, fraction: number,
+) {
+  roundedRect(doc, x, y, w, h, h/2, '#e2e8f0');
+  const fw = Math.max(h, w * Math.min(1, Math.max(0, fraction)));
+  roundedRect(doc, x, y, fw, h, h/2, C.orange);
+}
+
+/** Draws the donut/arc chart. */
+function donutChart(
+  doc: InstanceType<typeof PDFDocument>,
+  cx: number, cy: number, radius: number, score: number, maxScore = 5,
+) {
+  const thickness = 14;
+  // 270-degree arc, starting at ~215° (7-o'clock position clockwise from east)
+  const startAngle = (215 / 180) * Math.PI;
+  const totalSweep = (270 / 180) * Math.PI;
+  const scoreEnd   = startAngle + totalSweep * Math.min(1, score / maxScore);
+  const fullEnd    = startAngle + totalSweep;
+
+  // Background arc (gray)
+  doc.save();
+  (doc as any).arc(cx, cy, radius, startAngle, fullEnd, false);
+  doc.lineWidth(thickness).lineCap('round');
+  stroke(doc, '#e2e8f0');
+  doc.stroke();
+  doc.restore();
+
+  // Filled arc (orange)
+  if (score > 0) {
+    doc.save();
+    (doc as any).arc(cx, cy, radius, startAngle, scoreEnd, false);
+    doc.lineWidth(thickness).lineCap('round');
+    stroke(doc, C.orange);
+    doc.stroke();
+    doc.restore();
+  }
+
+  // Center score text
+  const scoreStr = score.toFixed(1);
+  doc.save();
+  fill(doc, C.dark);
+  doc.font('Helvetica-Bold').fontSize(20)
+    .text(scoreStr, cx - 24, cy - 14, { width: 48, align: 'center' });
+  fill(doc, C.mid);
+  doc.font('Helvetica').fontSize(9)
+    .text(`/ ${maxScore}`, cx - 24, cy + 8, { width: 48, align: 'center' });
+  doc.font('Helvetica').fontSize(7)
+    .text('Average', cx - 20, cy + 20, { width: 40, align: 'center' });
+  doc.font('Helvetica').fontSize(7)
+    .text('Score', cx - 20, cy + 28, { width: 40, align: 'center' });
+  doc.restore();
+}
+
+/** Page footer line. */
+function pageFooter(
+  doc: InstanceType<typeof PDFDocument>,
+  pageH: number, pageW: number, margin: number, pageNum: number,
+) {
+  const y = pageH - 30;
+  doc.save();
+  fill(doc, C.light);
+  doc.moveTo(margin, y - 6).lineTo(pageW - margin, y - 6);
+  stroke(doc, C.border);
+  doc.lineWidth(0.5).stroke();
+  doc.font('Helvetica').fontSize(7.5)
+    .text('Confidential — prepared for SRJ HR', margin, y, { width: pageW - margin * 2 - 60 });
+  doc.text(`Page ${pageNum}`, margin, y, { width: pageW - margin * 2, align: 'right' });
+  doc.restore();
+}
+
+// ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function generatePersonalityReportPdf(
   assessmentId: string,
   assignmentId: string,
   opts?: { candidateOnly?: boolean },
 ): Promise<Buffer> {
-  // ── Fetch data ──────────────────────────────────────────────────────────────
+
+  // ── Fetch data ─────────────────────────────────────────────────────────────
   const assignment = await prisma.assessmentAssignment.findFirst({
     where: { id: assignmentId, assessmentId },
     include: {
       assessment: { select: { name: true } },
-      candidate: { select: { firstName: true, lastName: true, email: true, phone: true } },
+      candidate: { select: { firstName: true, lastName: true, email: true, phone: true,
+        currentCompany: true, currentDesignation: true, totalExperience: true } },
       job: { select: { title: true } },
     },
   });
   if (!assignment) throw new Error('Assignment not found');
 
-  // Find latest completed attempt
   const attempt = await prisma.assessmentAttempt.findFirst({
     where: { assignmentId, submittedAt: { not: null } },
     orderBy: { attemptNumber: 'desc' },
@@ -131,274 +250,371 @@ export async function generatePersonalityReportPdf(
   });
   if (!result) throw new Error('Personality result not found');
 
-  const branding = await prisma.emailBranding.findFirst();
+  // Count questions per HEXACO trait from snapshots
+  const fullAttempt = await prisma.assessmentAttempt.findUnique({
+    where: { id: attempt.id },
+    include: { questionSnapshots: { select: { trait: true } } },
+  });
+  const qCounts: Record<string, number> = {};
+  for (const q of fullAttempt?.questionSnapshots ?? []) {
+    const tr = (q.trait as string) || 'OTHER';
+    qCounts[tr] = (qCounts[tr] ?? 0) + 1;
+  }
 
-  // ── Build trait list ────────────────────────────────────────────────────────
-  const traitScores: Array<{ key: string; t: number }> = [
-    { key: 'H', t: result.tH ?? 50 },
-    { key: 'ES', t: result.tES ?? 50 },
-    { key: 'X', t: result.tX ?? 50 },
-    { key: 'A', t: result.tA ?? 50 },
-    { key: 'C', t: result.tC ?? 50 },
-    { key: 'O', t: result.tO ?? 50 },
+  // ── Compute 4 display traits ───────────────────────────────────────────────
+  const leadershipScore = t5(result.compLeadership ?? avg(result.tX, result.tC));
+  const learningScore   = t5(result.compAdaptability ?? result.compLearningAgility ?? result.tO);
+  const problemScore    = t5(result.tES);
+  const teamworkScore   = t5(result.compTeamCompatibility ?? avg(result.tA, result.tH));
+  const overallScore    = Math.round((leadershipScore + learningScore + problemScore + teamworkScore) / 4 * 10) / 10;
+
+  const displayTraits = [
+    { label: 'Leadership',           score: leadershipScore, qCount: (qCounts['X']??0)+(qCounts['C']??0) },
+    { label: 'Learning Adaptability',score: learningScore,   qCount: (qCounts['O']??0) },
+    { label: 'Problem Solving',       score: problemScore,    qCount: (qCounts['ES']??0) },
+    { label: 'Teamwork',              score: teamworkScore,   qCount: (qCounts['A']??0)+(qCounts['H']??0) },
   ];
-  const sorted = [...traitScores].sort((a, b) => b.t - a.t);
-  const top3 = sorted.slice(0, 3);
-  const lowest = sorted[sorted.length - 1]!;
+  // Ensure at least 1 question shown per trait (fallback if trait tagging differs)
+  for (const t of displayTraits) {
+    if (t.qCount === 0) t.qCount = Math.round(25 / 4);
+  }
 
-  const interviewProbes = generateInterviewProbes(
-    result.tH ?? 50, result.tES ?? 50, result.tX ?? 50,
-    result.tC ?? 50, result.tO ?? 50,
-    (result.derailerFlags ?? []) as string[],
-  );
+  // Strengths = traits scored ≥ 3.5; Improvements = traits scored < 2.5
+  const STRENGTH_BULLETS: Record<string, string[]> = {
+    'Leadership':           ['Comfortable in leadership situations', 'Willingness to take initiative'],
+    'Learning Adaptability':['Positive attitude towards learning',   'Strong adaptability to change'],
+    'Problem Solving':       ['Effective at analysing situations',   'Good decision-making approach'],
+    'Teamwork':              ['Good team collaboration approach',    'Supports team goals effectively'],
+  };
+  const IMPROVEMENT_BULLETS: Record<string, string[]> = {
+    'Leadership':           ['Leadership confidence can be further developed'],
+    'Learning Adaptability':['Adaptability to new situations can be improved'],
+    'Problem Solving':       ['Problem solving skills can be further developed',
+                              'Needs to build more confidence in complex situations'],
+    'Teamwork':              ['Team collaboration skills can be enhanced'],
+  };
 
-  const roleFitScores = (result.roleFitScores ?? {}) as Record<string, number>;
-  const topRoles = Object.entries(roleFitScores).sort(([, a], [, b]) => b - a).slice(0, 5);
+  const strengths: string[] = [];
+  const improvements: string[] = [];
+  for (const dt of [...displayTraits].sort((a,b) => b.score - a.score)) {
+    if (dt.score >= 3.5) strengths.push(...(STRENGTH_BULLETS[dt.label] ?? []));
+    if (dt.score < 2.5)  improvements.push(...(IMPROVEMENT_BULLETS[dt.label] ?? []));
+  }
+  if (improvements.length === 0) {
+    improvements.push('Can improve consistency in decision making');
+  }
+  if (strengths.length === 0) {
+    strengths.push('Shows potential across assessed behaviours');
+  }
 
   const candidateName = `${assignment.candidate.firstName ?? ''} ${assignment.candidate.lastName ?? ''}`.trim() || 'Candidate';
-  const companyName = branding?.companyName ?? 'SRJ Group';
-  const primaryColor = branding?.primaryColor ?? C.orange;
+  const submittedAt   = attempt.submittedAt ?? new Date();
+  const startedAt     = attempt.startedAt ?? submittedAt;
+  const timeTakenMs   = submittedAt.getTime() - startedAt.getTime();
 
-  // ── Create PDF ──────────────────────────────────────────────────────────────
+  // Logo
+  const logoPath = path.join(__dirname, '../assets/srj-logo.png');
+  const hasLogo  = fs.existsSync(logoPath);
+
+  // ── Create PDF ─────────────────────────────────────────────────────────────
   const doc = new PDFDocument({
     size: 'A4',
-    margins: { top: 56, bottom: 56, left: 56, right: 56 },
+    margin: 0,
     info: {
-      Title: `Personality Report — ${candidateName}`,
-      Author: companyName,
-      Subject: 'TalentSignal™ Personality Assessment Report',
-      Creator: 'SRJ Hiring System',
+      Title: `Candidate Assessment Report — ${candidateName}`,
+      Author: 'SRJ Group',
+      Subject: 'SRJ Talent Acquisition — Personality & Workplace Behaviour Analysis',
     },
   });
 
   const chunks: Buffer[] = [];
-  doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+  doc.on('data', (c: Buffer) => chunks.push(c));
 
-  const pageW = doc.page.width;
-  const pageH = doc.page.height;
-  const contentW = pageW - 112; // margins 56 each side
-  const LEFT = 56;
+  const PW  = doc.page.width;   // 595
+  const PH  = doc.page.height;  // 842
+  const M   = 36;               // margin
+  const CW  = PW - M * 2;      // content width = 523
 
-  // ── Utility draw functions ─────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // PAGE 1 — Candidate Report
+  // ══════════════════════════════════════════════════════════════════════════
 
-  function header(title: string, subtitle: string) {
-    // Orange top bar
-    doc.rect(0, 0, pageW, 72).fill(primaryColor);
-    doc.fillColor(C.white).font('Helvetica-Bold').fontSize(20).text(companyName, LEFT, 18);
-    doc.fillColor('rgba(255,255,255,0.75)').font('Helvetica').fontSize(10).text(title, LEFT, 44);
+  // ── 1. White header band (0–88) ──────────────────────────────────────────
+  doc.rect(0, 0, PW, 88).fill(C.white);
 
-    // Candidate name strip
-    doc.rect(0, 72, pageW, 40).fill(C.dark);
-    doc.fillColor(C.white).font('Helvetica-Bold').fontSize(13).text(candidateName, LEFT, 83);
-    if (assignment!.job?.title) {
-      doc.fillColor(C.light).font('Helvetica').fontSize(10)
-        .text(assignment!.job.title, LEFT + doc.widthOfString(candidateName) + 16, 86);
-    }
-    doc.fillColor(C.light).font('Helvetica').fontSize(9)
-      .text(`Assessment: ${assignment!.assessment.name}`, pageW - 56 - 220, 83, { width: 220, align: 'right' })
-      .text(`Completed: ${attempt!.submittedAt ? new Date(attempt!.submittedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}`, pageW - 56 - 220, 94, { width: 220, align: 'right' });
-
-    doc.y = 130;
-    if (subtitle) {
-      doc.fillColor(C.mid).font('Helvetica').fontSize(9)
-        .text(subtitle, LEFT, doc.y, { width: contentW });
-      doc.y += 18;
-    }
+  // SRJ Logo
+  if (hasLogo) {
+    doc.image(logoPath, M, 16, { height: 50 });
+  } else {
+    fill(doc, C.orange);
+    doc.font('Helvetica-Bold').fontSize(18).text('SRJ', M, 26);
+    fill(doc, C.mid);
+    doc.font('Helvetica').fontSize(7).text('WORLD OF STEEL', M, 46);
   }
 
-  function sectionTitle(text: string) {
-    doc.moveDown(0.4);
-    const rgb = hexToRgb(primaryColor);
-    doc.rect(LEFT, doc.y, 3, 14).fill(primaryColor);
-    doc.fillColor(C.dark).font('Helvetica-Bold').fontSize(11)
-      .text(text, LEFT + 10, doc.y, { width: contentW - 10 });
-    doc.y += 4;
-    doc.moveTo(LEFT, doc.y).lineTo(LEFT + contentW, doc.y)
-      .strokeColor(`rgb(${rgb[0]},${rgb[1]},${rgb[2]})`, ).lineWidth(0.4).stroke();
-    doc.y += 8;
+  // Top-right tagline
+  fill(doc, C.navy);
+  doc.font('Helvetica-Bold').fontSize(8).text('BUILDING A STRONGER INDIA', 0, 24, { width: PW - M, align: 'right' });
+  fill(doc, C.orange);
+  doc.font('Helvetica-Bold').fontSize(8).text('THROUGH PEOPLE', 0, 34, { width: PW - M, align: 'right' });
+
+  // Orange divider line
+  doc.rect(0, 85, PW, 3).fill(C.orange);
+
+  // ── 2. Title section (92–178) ────────────────────────────────────────────
+  const titleY = 96;
+
+  // "SRJ TALENT ACQUISITION" label
+  fill(doc, C.orange);
+  doc.rect(M, titleY, 18, 1.5).fill(C.orange);
+  doc.font('Helvetica-Bold').fontSize(8).text('SRJ TALENT ACQUISITION', M + 22, titleY - 1);
+
+  // Main title: "Candidate" (dark) + "Assessment Report" (orange)
+  fill(doc, C.dark);
+  doc.font('Helvetica-Bold').fontSize(22).text('Candidate ', M, titleY + 12, { continued: true });
+  fill(doc, C.orange);
+  doc.font('Helvetica-Bold').fontSize(22).text('Assessment Report');
+
+  // Subtitle
+  fill(doc, C.mid);
+  doc.font('Helvetica').fontSize(10).text('Personality & Workplace Behaviour Analysis', M, titleY + 38);
+
+  // Right side: report date + time taken
+  const rd = { x: PW - M - 170, y: titleY + 4 };
+  fill(doc, C.light);
+  doc.font('Helvetica').fontSize(7.5).text('Report Generated', rd.x, rd.y);
+  fill(doc, C.dark);
+  doc.font('Helvetica-Bold').fontSize(9).text(formatDate(submittedAt), rd.x, rd.y + 10);
+  fill(doc, C.light);
+  doc.font('Helvetica').fontSize(7.5).text('Time Taken', rd.x, rd.y + 24);
+  fill(doc, C.dark);
+  doc.font('Helvetica-Bold').fontSize(9).text(formatDuration(timeTakenMs), rd.x, rd.y + 34);
+
+  // ── 3. Candidate card (185–265) ──────────────────────────────────────────
+  const cardY = 182;
+  const cardH = 74;
+  roundedRect(doc, M, cardY, CW, cardH, 8, C.white, C.border);
+
+  // Avatar circle
+  doc.save();
+  fill(doc, '#f1f5f9');
+  doc.circle(M + 38, cardY + cardH / 2, 26).fill();
+  // Person icon (simplified)
+  fill(doc, C.light);
+  doc.circle(M + 38, cardY + cardH / 2 - 8, 9).fill();
+  doc.ellipse(M + 38, cardY + cardH / 2 + 13, 14, 10).fill();
+  doc.restore();
+
+  // Name + role + email
+  const cix = M + 72;
+  fill(doc, C.dark);
+  doc.font('Helvetica-Bold').fontSize(13).text(candidateName, cix, cardY + 10);
+  fill(doc, C.mid);
+  doc.font('Helvetica').fontSize(9).text(assignment.job?.title ?? 'Applicant', cix, cardY + 26);
+  fill(doc, C.mid);
+  // Email icon approximation
+  doc.font('Helvetica').fontSize(8.5).text(`✉  ${assignment.candidate.email ?? ''}`, cix, cardY + 40);
+  if (assignment.job?.title) {
+    doc.font('Helvetica').fontSize(8.5).text(`⬛  ${assignment.job.title}`, cix, cardY + 52);
   }
 
-  function traitBar(key: string, t: number, yPos: number, labelOverride?: string, colorOverride?: string) {
-    const meta = TRAIT_META[key];
-    const label = labelOverride ?? meta?.label ?? key;
-    const color = colorOverride ?? meta?.color ?? C.blue;
-    const barW = contentW - 170;
-    const barH = 10;
-    const barX = LEFT + 170;
+  // Right stats
+  const statX = M + CW - 240;
+  const statW = 110;
 
-    // Label
-    doc.fillColor(C.dark).font('Helvetica-Bold').fontSize(9)
-      .text(label, LEFT, yPos + 1, { width: 160 });
+  const candidateStats = [
+    { icon: '🏢', label: 'Current Company', value: assignment.candidate.currentCompany ?? '—' },
+    { icon: '👔', label: 'Designation',      value: assignment.candidate.currentDesignation ?? '—' },
+  ];
+  const expStats = [
+    { icon: '💼', label: 'Experience',
+      value: assignment.candidate.totalExperience != null
+        ? `${assignment.candidate.totalExperience} years` : '—' },
+  ];
 
-    // Track
-    doc.rect(barX, yPos, barW, barH).fillColor(C.muted).fill();
-
-    // Norm band (T 40–60 = 33%–66%)
-    const normStart = ((40 - 20) / 60) * barW;
-    const normWidth = ((60 - 40) / 60) * barW;
-    doc.rect(barX + normStart, yPos, normWidth, barH).fillColor('#cbd5e1').fill();
-
-    // Score fill
-    const fillW = Math.max(4, ((t - 20) / 60) * barW);
-    doc.rect(barX, yPos, fillW, barH).fillColor(color).fill();
-
-    // T-score label
-    doc.fillColor(color).font('Helvetica-Bold').fontSize(8)
-      .text(`${t} — ${tScoreLabel(t)}`, barX + barW + 6, yPos + 1, { width: 70 });
+  let sY = cardY + 8;
+  for (const st of [...candidateStats]) {
+    fill(doc, C.light);
+    doc.font('Helvetica').fontSize(7.5).text(st.label, statX, sY);
+    fill(doc, C.dark);
+    doc.font('Helvetica-Bold').fontSize(9).text(st.value, statX, sY + 10);
+    sY += 28;
+  }
+  sY = cardY + 8;
+  for (const st of expStats) {
+    fill(doc, C.light);
+    doc.font('Helvetica').fontSize(7.5).text(st.label, statX + statW + 10, sY);
+    fill(doc, C.dark);
+    doc.font('Helvetica-Bold').fontSize(9).text(st.value, statX + statW + 10, sY + 10);
+    sY += 28;
   }
 
-  function compositeRow(label: string, value: number | null, yPos: number) {
-    if (value == null) return;
-    const color = compositeColor(value);
-    doc.fillColor(C.mid).font('Helvetica').fontSize(9)
-      .text(label, LEFT, yPos, { width: contentW - 60 });
-    doc.fillColor(color).font('Helvetica-Bold').fontSize(9)
-      .text(String(Math.round(value)), LEFT + contentW - 55, yPos, { width: 25, align: 'right' });
+  // ── 4. Overall Assessment card (272–368) ─────────────────────────────────
+  const oaY = 265;
+  const oaH = 102;
+  roundedRect(doc, M, oaY, CW, oaH, 8, C.white, C.orange, 1);
 
-    const barX = LEFT + contentW - 26;
-    const barW = 26;
-    const barH = 7;
-    doc.rect(barX, yPos, barW, barH).fillColor(C.muted).fill();
-    const fillW = Math.max(2, (value / 80) * barW);
-    doc.rect(barX, yPos, fillW, barH).fillColor(color).fill();
+  // Label
+  fill(doc, C.mid);
+  doc.font('Helvetica-Bold').fontSize(8).text('OVERALL ASSESSMENT', M + 16, oaY + 12);
+
+  // Big fit label
+  fill(doc, C.orange);
+  doc.font('Helvetica-Bold').fontSize(22).text(fitLabel(overallScore), M + 16, oaY + 24);
+
+  // Description
+  fill(doc, C.mid);
+  doc.font('Helvetica').fontSize(8.5).text(fitDesc(overallScore), M + 16, oaY + 52, { width: 180 });
+
+  // Donut chart
+  const donutCX = M + CW - 220;
+  const donutCY = oaY + oaH / 2 + 2;
+  donutChart(doc, donutCX, donutCY, 36, overallScore);
+
+  // Rating legend
+  const legX = M + CW - 154;
+  const legY = oaY + 10;
+  const legendItems = [
+    { range: '4.1 – 5.0', label: 'Excellent Fit', color: C.green },
+    { range: '3.1 – 4.0', label: 'Good Fit',      color: C.orange },
+    { range: '2.1 – 3.0', label: 'Moderate Fit',  color: C.amber },
+    { range: '1.0 – 2.0', label: 'Low Fit',        color: C.red },
+  ];
+  for (const [i, li] of legendItems.entries()) {
+    const ly = legY + i * 22;
+    fill(doc, C.mid);
+    doc.font('Helvetica').fontSize(8).text(li.range, legX, ly + 3, { width: 55 });
+    fill(doc, li.color);
+    doc.font('Helvetica-Bold').fontSize(8).text(li.label, legX + 60, ly + 3, { width: 80 });
   }
 
-  function footer(pageNum: number, section: string) {
-    doc.fillColor(C.light).font('Helvetica').fontSize(7)
-      .text(`${companyName} · TalentSignal™ Personality Assessment Report · ${section}`,
-        LEFT, pageH - 36, { width: contentW - 60 })
-      .text(`Page ${pageNum}`, LEFT + contentW - 30, pageH - 36, { width: 30, align: 'right' });
-    doc.moveTo(LEFT, pageH - 42).lineTo(LEFT + contentW, pageH - 42)
-      .strokeColor(C.muted).lineWidth(0.5).stroke();
-  }
+  // ── 5. Trait Summary (376–612) ────────────────────────────────────────────
+  const tsY = 375;
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // PAGE 1 — Candidate: Archetype + Strengths
-  // ════════════════════════════════════════════════════════════════════════════
+  fill(doc, C.dark);
+  doc.font('Helvetica-Bold').fontSize(12).text('TRAIT SUMMARY', M, tsY);
+  // Orange underline
+  doc.rect(M, tsY + 14, 52, 2).fill(C.orange);
 
-  header(
-    'PERSONALITY ASSESSMENT REPORT — YOUR PROFILE',
-    'This report summarises your personality assessment results. It highlights your key strengths and areas for growth.',
+  fill(doc, C.mid);
+  doc.font('Helvetica').fontSize(8).text(
+    `The scores below are based on the candidate's responses to ${
+      Object.values(qCounts).reduce((a,b)=>a+b,0) || 25
+    } questions across key behavioural traits.`,
+    M + CW - 300, tsY + 2, { width: 296 },
   );
 
-  // Archetype card
-  const archetype = result.archetype ?? 'Your Profile';
-  const archetypeDesc = ARCHETYPE_DESCRIPTIONS[archetype] ?? '';
-  doc.rect(LEFT, doc.y, contentW, 56).fill(C.muted);
-  doc.rect(LEFT, doc.y, 4, 56).fill(primaryColor);
-  doc.fillColor(C.light).font('Helvetica').fontSize(8)
-    .text('YOUR PERSONALITY ARCHETYPE', LEFT + 14, doc.y + 8);
-  doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(18)
-    .text(archetype, LEFT + 14, doc.y + 18);
-  doc.fillColor(C.mid).font('Helvetica').fontSize(9)
-    .text(archetypeDesc, LEFT + 14, doc.y + 36, { width: contentW - 24 });
-  doc.y += 68;
+  // 4 trait cards — 2 columns × 2 rows
+  const tcW  = (CW - 12) / 2;   // card width
+  const tcH  = 110;              // card height
+  const tcGap = 12;              // gap between cards
+  const tc1Y  = tsY + 26;       // row 1 top
+  const tc2Y  = tc1Y + tcH + tcGap;  // row 2 top
 
-  // Confidence + fit band
-  const confidenceColor = result.confidenceScore >= 80 ? C.green : result.confidenceScore >= 60 ? C.yellow : C.red;
-  doc.fillColor(C.mid).font('Helvetica').fontSize(9)
-    .text(`Overall Fit: `, LEFT, doc.y, { continued: true })
-    .fillColor(fitColor(result.fitBand)).font('Helvetica-Bold')
-    .text(result.fitBand ?? '—', { continued: true })
-    .fillColor(C.mid).font('Helvetica')
-    .text(`   ·   Profile Confidence: `, { continued: true })
-    .fillColor(confidenceColor).font('Helvetica-Bold')
-    .text(`${result.confidenceScore}/100`);
-  doc.y += 20;
+  const tcPositions = [
+    { x: M,             y: tc1Y },
+    { x: M + tcW + tcGap, y: tc1Y },
+    { x: M,             y: tc2Y },
+    { x: M + tcW + tcGap, y: tc2Y },
+  ];
 
-  sectionTitle('Your Key Strengths');
+  for (const [i, dt] of displayTraits.entries()) {
+    const { x: tx, y: ty } = tcPositions[i]!;
+    const rating = traitRating(dt.score);
+    roundedRect(doc, tx, ty, tcW, tcH, 8, C.white, C.border);
 
-  for (const { key } of top3) {
-    const meta = TRAIT_META[key]!;
-    const score = traitScores.find((t) => t.key === key)!;
-    doc.rect(LEFT, doc.y, contentW, 44).fill(C.muted);
-    doc.rect(LEFT, doc.y, 3, 44).fill(meta.color);
-    doc.fillColor(meta.color).font('Helvetica-Bold').fontSize(10)
-      .text(meta.label, LEFT + 10, doc.y + 6);
-    doc.fillColor(C.dark).font('Helvetica').fontSize(9)
-      .text(STRENGTH_DESCRIPTIONS[key] ?? '', LEFT + 10, doc.y + 18, { width: contentW - 20 });
-    doc.y += 52;
+    // Trait icon area (colored circle placeholder)
+    fill(doc, rating.bg);
+    doc.circle(tx + 18, ty + 18, 12).fill();
+    // Simple icon letter
+    fill(doc, rating.color);
+    doc.font('Helvetica-Bold').fontSize(10)
+      .text(dt.label[0]!, tx + 14, ty + 12, { width: 12, align: 'center' });
+
+    // Trait name
+    fill(doc, C.dark);
+    doc.font('Helvetica-Bold').fontSize(9).text(dt.label.toUpperCase(), tx + 36, ty + 10);
+
+    // Score + rating badge on same row
+    fill(doc, C.dark);
+    doc.font('Helvetica-Bold').fontSize(14)
+      .text(`${dt.score.toFixed(1)} `, tx + 10, ty + 34, { continued: true });
+    fill(doc, C.mid);
+    doc.font('Helvetica').fontSize(9).text('/ 5', { continued: false });
+
+    // Rating badge
+    const ratingW = doc.widthOfString(rating.label) + 14;
+    roundedRect(doc, tx + 70, ty + 35, ratingW, 16, 8, rating.bg);
+    fill(doc, rating.color);
+    doc.font('Helvetica-Bold').fontSize(8).text(rating.label, tx + 77, ty + 39);
+
+    // Progress bar
+    progressBar(doc, tx + 10, ty + 60, tcW - 20, 7, dt.score / 5);
+
+    // Question count
+    fill(doc, C.light);
+    doc.font('Helvetica').fontSize(7.5).text(`Based on ${dt.qCount} question${dt.qCount !== 1 ? 's' : ''}`, tx + 10, ty + 72);
+
+    // Description
+    fill(doc, C.mid);
+    doc.font('Helvetica').fontSize(7.5).text(traitDesc(dt.label, dt.score), tx + 10, ty + 83, { width: tcW - 20 });
   }
 
-  sectionTitle('An Area to Continue Developing');
+  // ── 6. Key Strengths + Areas (tc2Y + tcH + 16 …) ─────────────────────────
+  const botY = tc2Y + tcH + 16;
+  const halfW = (CW - 12) / 2;
 
-  doc.rect(LEFT, doc.y, contentW, 36).fill('#fefce8');
-  doc.rect(LEFT, doc.y, 3, 36).fill(C.yellow);
-  doc.fillColor(C.amber).font('Helvetica-Bold').fontSize(10)
-    .text(TRAIT_META[lowest.key]!.label, LEFT + 10, doc.y + 6);
-  doc.fillColor(C.dark).font('Helvetica').fontSize(9)
-    .text(DEVELOPMENT_THEMES[lowest.key] ?? '', LEFT + 10, doc.y + 18, { width: contentW - 20 });
-  doc.y += 44;
+  // Strengths
+  roundedRect(doc, M, botY, halfW, 90, 8, C.white, C.border);
+  fill(doc, C.green);
+  doc.circle(M + 14, botY + 15, 6).fill();
+  fill(doc, C.white);
+  doc.font('Helvetica-Bold').fontSize(8).text('✓', M + 11, botY + 10);
+  fill(doc, C.dark);
+  doc.font('Helvetica-Bold').fontSize(9).text('KEY STRENGTHS', M + 24, botY + 10);
+  fill(doc, C.green);
+  doc.rect(M + 10, botY + 21, 36, 1.5).fill(C.green);
 
-  footer(1, 'Candidate Copy');
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // PAGE 2 — Candidate: Communication & Teamwork style
-  // ════════════════════════════════════════════════════════════════════════════
-
-  doc.addPage();
-  header('YOUR WORKING STYLE', '');
-
-  sectionTitle('How You Work Best');
-
-  const styles = [
-    { label: 'Communication Style', value: result.compCommStyle },
-    { label: 'Decision Style',      value: result.compDecisionStyle },
-    { label: 'Conflict Style',      value: result.compConflictStyle },
-    { label: 'Stress Response',     value: result.compStressBand },
-  ].filter((s) => s.value);
-
-  for (const s of styles) {
-    doc.rect(LEFT, doc.y, contentW, 30).fill(C.muted);
-    doc.fillColor(C.light).font('Helvetica').fontSize(8)
-      .text(s.label.toUpperCase(), LEFT + 10, doc.y + 6);
-    doc.fillColor(C.dark).font('Helvetica-Bold').fontSize(11)
-      .text(s.value!, LEFT + 10, doc.y + 14);
-    doc.y += 38;
+  let sby = botY + 28;
+  for (const s of strengths.slice(0, 4)) {
+    fill(doc, C.green);
+    doc.circle(M + 16, sby + 4, 5).fill();
+    fill(doc, C.white);
+    doc.font('Helvetica-Bold').fontSize(7).text('✓', M + 13, sby + 1);
+    fill(doc, C.dark);
+    doc.font('Helvetica').fontSize(8).text(s, M + 26, sby, { width: halfW - 34 });
+    sby += 14;
   }
 
-  doc.moveDown(0.5);
+  // Areas for Improvement
+  const afix = M + halfW + tcGap;
+  roundedRect(doc, afix, botY, halfW, 90, 8, C.white, C.border);
+  fill(doc, C.orange);
+  doc.circle(afix + 14, botY + 15, 6).fill();
+  fill(doc, C.white);
+  doc.font('Helvetica-Bold').fontSize(9).text('!', afix + 12, botY + 9);
+  fill(doc, C.dark);
+  doc.font('Helvetica-Bold').fontSize(9).text('AREAS FOR IMPROVEMENT', afix + 24, botY + 10);
+  fill(doc, C.orange);
+  doc.rect(afix + 10, botY + 21, 56, 1.5).fill(C.orange);
 
-  sectionTitle('Your Personality Trait Profile');
-  doc.fillColor(C.light).font('Helvetica').fontSize(8)
-    .text('Shaded band shows the average range. Your score is the filled bar.',
-      LEFT, doc.y, { width: contentW });
-  doc.y += 12;
-
-  for (const { key, t } of traitScores) {
-    traitBar(key, t, doc.y);
-    doc.y += 16;
+  let aby = botY + 28;
+  for (const a of improvements.slice(0, 4)) {
+    fill(doc, C.orange);
+    doc.circle(afix + 16, aby + 4, 5).fill();
+    fill(doc, C.white);
+    doc.font('Helvetica-Bold').fontSize(8).text('!', afix + 13, aby + 1);
+    fill(doc, C.dark);
+    doc.font('Helvetica').fontSize(8).text(a, afix + 26, aby, { width: halfW - 34 });
+    aby += 14;
   }
 
-  doc.moveDown(0.8);
+  // Footer page 1
+  pageFooter(doc, PH, PW, M, 1);
 
-  // SJT if available
-  if (result.sjtWork != null) {
-    sectionTitle('Situational Judgment');
-    const sjtItems = [
-      { label: 'Work & Professional Judgment', t: result.sjtWork },
-      { label: 'Safety Awareness',              t: result.sjtSafety },
-      { label: 'Leadership Judgment',           t: result.sjtLeadership },
-    ].filter((s) => s.t != null) as Array<{ label: string; t: number }>;
-
-    for (const s of sjtItems) {
-      traitBar(s.label, s.t, doc.y, s.label, C.teal);
-      doc.y += 16;
-    }
-  }
-
-  doc.moveDown(0.5);
-  doc.rect(LEFT, doc.y, contentW, 36).fill(C.muted);
-  doc.fillColor(C.mid).font('Helvetica').fontSize(8).text(
-    'This report is based on your responses to the TalentSignal™ personality assessment. ' +
-    'Results reflect your tendencies and preferences — not a fixed judgement of your ability. ' +
-    'All results are reviewed by the HR team as part of a holistic selection process.',
-    LEFT + 10, doc.y + 8, { width: contentW - 20 },
-  );
-  doc.y += 44;
-
-  footer(2, 'Candidate Copy');
-
+  // ══════════════════════════════════════════════════════════════════════════
+  // Candidate-only: end here (email attachment)
+  // ══════════════════════════════════════════════════════════════════════════
   if (opts?.candidateOnly) {
     doc.end();
     return new Promise<Buffer>((resolve, reject) => {
@@ -407,180 +623,198 @@ export async function generatePersonalityReportPdf(
     });
   }
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // PAGE 3 — HR: Full profile + composites
-  // ════════════════════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════════════════
+  // PAGE 2 — HR Confidential: Full HEXACO profile
+  // ══════════════════════════════════════════════════════════════════════════
 
   doc.addPage();
-  header(
-    'HR ASSESSMENT REPORT — CONFIDENTIAL',
-    'FOR HR USE ONLY. Do not share this section with the candidate. Contains full scoring, derailer flags, and interview guidance.',
-  );
 
-  // Confidential banner
-  doc.rect(LEFT, doc.y - 6, contentW, 18).fill('#fef2f2');
-  doc.fillColor(C.red).font('Helvetica-Bold').fontSize(8)
-    .text('⚑  CONFIDENTIAL — HR COPY ONLY', LEFT + 8, doc.y - 2);
-  doc.y += 18;
+  // Header
+  doc.rect(0, 0, PW, 52).fill(C.navy);
+  fill(doc, C.white);
+  doc.font('Helvetica-Bold').fontSize(13).text('HR Assessment Report — Confidential', M, 14);
+  fill(doc, C.orange);
+  doc.font('Helvetica').fontSize(8.5)
+    .text('FOR HR USE ONLY · Do not share with the candidate', M, 32);
+  doc.rect(0, 52, PW, 3).fill(C.orange);
 
-  // Summary row
-  doc.rect(LEFT, doc.y, contentW, 48).fill(C.dark);
-  const cols = [
-    { label: 'Archetype',   value: result.archetype ?? '—' },
-    { label: 'Fit Band',    value: result.fitBand ?? '—' },
-    { label: 'Confidence',  value: `${result.confidenceScore}/100` },
-    { label: 'Decision',    value: result.compDecisionStyle ?? '—' },
-  ];
-  const colW = contentW / 4;
-  cols.forEach(({ label, value }, i) => {
-    doc.fillColor(C.light).font('Helvetica').fontSize(7)
-      .text(label.toUpperCase(), LEFT + i * colW + 8, doc.y + 8, { width: colW - 8 });
-    doc.fillColor(C.white).font('Helvetica-Bold').fontSize(10)
-      .text(value, LEFT + i * colW + 8, doc.y + 18, { width: colW - 8 });
-  });
-  doc.y += 58;
+  // Candidate summary strip
+  doc.rect(0, 55, PW, 36).fill('#f8fafc');
+  fill(doc, C.dark);
+  doc.font('Helvetica-Bold').fontSize(11).text(candidateName, M, 63);
+  fill(doc, C.mid);
+  doc.font('Helvetica').fontSize(9)
+    .text(`${assignment.job?.title ?? ''}  ·  ${assignment.candidate.email ?? ''}`, M, 77);
+  fill(doc, C.mid);
+  doc.font('Helvetica').fontSize(9)
+    .text(`Submitted: ${formatDate(submittedAt)}  ·  Time taken: ${formatDuration(timeTakenMs)}`,
+      M + CW - 280, 70, { width: 280, align: 'right' });
+
+  let y = 104;
 
   // Validity flags
-  const validityFlags = [
-    result.imFlagged && 'Impression Management',
+  const flags = [
+    result.imFlagged  && 'Impression Management',
     result.infFlagged && 'Attention Check Failed',
     result.consFlagged && 'Consistency Flag',
   ].filter(Boolean) as string[];
 
-  if (validityFlags.length > 0) {
-    doc.rect(LEFT, doc.y, contentW, 24).fill('#fef3c7');
-    doc.fillColor(C.amber).font('Helvetica-Bold').fontSize(8)
-      .text('⚠  Validity Flags: ' + validityFlags.join(' · '),
-        LEFT + 8, doc.y + 8, { width: contentW - 16 });
-    doc.y += 32;
+  if (flags.length > 0) {
+    roundedRect(doc, M, y, CW, 22, 4, '#fef3c7', '#d97706', 0.5);
+    fill(doc, C.amber);
+    doc.font('Helvetica-Bold').fontSize(8)
+      .text('⚠  Validity Flags: ' + flags.join(' · '), M + 10, y + 7, { width: CW - 20 });
+    y += 30;
   }
 
-  sectionTitle('Composite Scores (T-score scale 20–80, average = 50)');
+  // Archetype + fit row
+  const aRow = [
+    { lbl: 'Archetype',        val: result.archetype ?? '—' },
+    { lbl: 'Fit Band',         val: result.fitBand ?? '—' },
+    { lbl: 'Profile Confidence', val: `${result.confidenceScore ?? 0}/100` },
+    { lbl: 'Decision Style',   val: result.compDecisionStyle ?? '—' },
+  ];
+  roundedRect(doc, M, y, CW, 42, 6, C.navy);
+  const colW4 = CW / 4;
+  for (const [i, col] of aRow.entries()) {
+    fill(doc, C.light);
+    doc.font('Helvetica').fontSize(7).text(col.lbl.toUpperCase(), M + i*colW4 + 8, y + 8, { width: colW4 - 16 });
+    fill(doc, C.white);
+    doc.font('Helvetica-Bold').fontSize(9.5).text(col.val, M + i*colW4 + 8, y + 20, { width: colW4 - 16 });
+  }
+  y += 52;
+
+  // Section: HEXACO trait T-scores
+  fill(doc, C.dark);
+  doc.rect(M, y, 3, 14).fill(C.orange);
+  doc.font('Helvetica-Bold').fontSize(10).text('HEXACO Trait Scores  (T-score scale: 20–80, average = 50)', M + 10, y + 1);
+  fill(doc, C.light);
+  doc.font('Helvetica').fontSize(7.5)
+    .text('Shaded band = norm range (T 40–60). Filled bar = candidate score.', M + 10, y + 14, { width: CW });
+  y += 28;
+
+  const HEXACO_META: Record<string, { label: string; color: string }> = {
+    H:  { label: 'Honesty & Integrity',       color: '#7c3aed' },
+    ES: { label: 'Emotional Stability',        color: '#0891b2' },
+    X:  { label: 'Extraversion & Energy',      color: '#d97706' },
+    A:  { label: 'Agreeableness & Teamwork',   color: '#16a34a' },
+    C:  { label: 'Conscientiousness & Drive',  color: '#b45309' },
+    O:  { label: 'Openness & Adaptability',    color: '#0284c7' },
+  };
+
+  const tScores = [
+    { key:'H',  t: result.tH  ?? 50 },
+    { key:'ES', t: result.tES ?? 50 },
+    { key:'X',  t: result.tX  ?? 50 },
+    { key:'A',  t: result.tA  ?? 50 },
+    { key:'C',  t: result.tC  ?? 50 },
+    { key:'O',  t: result.tO  ?? 50 },
+  ];
+
+  function tLabel(t: number) {
+    if (t >= 65) return 'High';
+    if (t >= 55) return 'Above Average';
+    if (t >= 45) return 'Average';
+    if (t >= 35) return 'Below Average';
+    return 'Low';
+  }
+
+  for (const { key, t } of tScores) {
+    const meta = HEXACO_META[key]!;
+    const barX = M + 165;
+    const barW = CW - 230;
+    const barH = 10;
+
+    fill(doc, C.dark);
+    doc.font('Helvetica-Bold').fontSize(8.5).text(meta.label, M, y + 1, { width: 160 });
+
+    // Track
+    doc.rect(barX, y, barW, barH).fillColor('#f1f5f9').fill();
+    // Norm band
+    const nb = ((40-20)/60)*barW;
+    const nw = ((60-40)/60)*barW;
+    doc.rect(barX+nb, y, nw, barH).fillColor('#cbd5e1').fill();
+    // Score fill
+    const fw = Math.max(4, ((t-20)/60)*barW);
+    const [mr,mg,mb] = hex2rgb(meta.color);
+    doc.rect(barX, y, fw, barH).fillColor([mr,mg,mb] as unknown as string).fill();
+
+    fill(doc, { color: meta.color } as unknown as string);
+    doc.fillColor([mr,mg,mb] as unknown as string)
+      .font('Helvetica-Bold').fontSize(8)
+      .text(`${t} — ${tLabel(t)}`, barX + barW + 6, y + 1, { width: 90 });
+
+    y += 18;
+  }
+
+  y += 6;
+
+  // Composites section
+  doc.rect(M, y, 3, 14).fill(C.orange);
+  fill(doc, C.dark);
+  doc.font('Helvetica-Bold').fontSize(10).text('Composite Scores', M + 10, y + 1);
+  y += 22;
 
   const composites = [
-    { label: 'Leadership Potential',  v: result.compLeadership },
-    { label: 'Learning Agility',      v: result.compLearningAgility },
-    { label: 'Accountability',        v: result.compAccountability },
-    { label: 'Integrity & Ethics',    v: result.compIntegrity },
-    { label: 'Team Compatibility',    v: result.compTeamCompatibility },
-    { label: 'Emotional Resilience',  v: result.compEmotionalResilience },
-    { label: 'Adaptability',          v: result.compAdaptability },
-    { label: 'Risk Appetite',         v: result.compRiskAppetite },
-  ].filter((c) => c.v != null);
+    ['Leadership Potential',   result.compLeadership],
+    ['Learning Agility',       result.compLearningAgility],
+    ['Accountability',         result.compAccountability],
+    ['Integrity & Ethics',     result.compIntegrity],
+    ['Team Compatibility',     result.compTeamCompatibility],
+    ['Emotional Resilience',   result.compEmotionalResilience],
+    ['Adaptability',           result.compAdaptability],
+    ['Risk Appetite',          result.compRiskAppetite],
+  ].filter(([,v]) => v != null) as [string, number][];
 
   const half = Math.ceil(composites.length / 2);
-  const leftCol  = composites.slice(0, half);
-  const rightCol = composites.slice(half);
-  const startY = doc.y;
-  leftCol.forEach((c, i) => compositeRow(c.label, c.v!, startY + i * 18));
-  rightCol.forEach((c, i) => {
-    if (c.v == null) return;
-    const color = compositeColor(c.v);
-    doc.fillColor(C.mid).font('Helvetica').fontSize(9)
-      .text(c.label, LEFT + contentW / 2 + 10, startY + i * 18, { width: contentW / 2 - 70 });
-    doc.fillColor(color).font('Helvetica-Bold').fontSize(9)
-      .text(String(Math.round(c.v)), LEFT + contentW - 55, startY + i * 18,
-        { width: 25, align: 'right' });
-  });
-  doc.y = startY + Math.max(leftCol.length, rightCol.length) * 18 + 10;
-
-  sectionTitle('HEXACO Trait Scores');
-  doc.fillColor(C.light).font('Helvetica').fontSize(8)
-    .text('Shaded band = norm range (T 40–60)', LEFT, doc.y, { width: contentW });
-  doc.y += 10;
-  for (const { key, t } of traitScores) {
-    traitBar(key, t, doc.y);
-    doc.y += 16;
+  const lcols = composites.slice(0, half);
+  const rcols = composites.slice(half);
+  const cStartY = y;
+  for (const [i, [lbl, val]] of lcols.entries()) {
+    const cy2 = cStartY + i * 17;
+    const color = val >= 65 ? C.green : val >= 50 ? '#0284c7' : val >= 40 ? C.amber : C.red;
+    fill(doc, C.mid);
+    doc.font('Helvetica').fontSize(8.5).text(lbl, M, cy2, { width: CW/2 - 60 });
+    fill(doc, color);
+    doc.font('Helvetica-Bold').fontSize(8.5).text(String(Math.round(val)), M + CW/2 - 55, cy2, { width: 25, align:'right' });
   }
-
-  footer(3, 'HR Confidential');
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // PAGE 4 — HR: Role-fit + derailers + interview probes
-  // ════════════════════════════════════════════════════════════════════════════
-
-  doc.addPage();
-  header('HR ASSESSMENT REPORT — HIRING GUIDANCE', '');
-
-  sectionTitle('Role-Fit Matrix');
-
-  for (const [role, score] of topRoles) {
-    const color = score >= 70 ? C.green : score >= 55 ? C.blue : score >= 40 ? C.yellow : C.red;
-    const band = score >= 70 ? 'Strong Fit' : score >= 55 ? 'Fit' : score >= 40 ? 'Conditional' : 'Low Fit';
-    const barW = contentW - 160;
-    const barX = LEFT + 145;
-
-    doc.fillColor(C.dark).font('Helvetica').fontSize(9).text(role, LEFT, doc.y + 2, { width: 140 });
-    doc.rect(barX, doc.y + 1, barW, 9).fill(C.muted);
-    const fillW = Math.max(3, (score / 80) * barW);
-    doc.rect(barX, doc.y + 1, fillW, 9).fill(color);
-    doc.fillColor(color).font('Helvetica-Bold').fontSize(8)
-      .text(`${score} — ${band}`, barX + barW + 6, doc.y + 2, { width: 60 });
-    doc.y += 18;
+  for (const [i, [lbl, val]] of rcols.entries()) {
+    const cy2 = cStartY + i * 17;
+    const color = val >= 65 ? C.green : val >= 50 ? '#0284c7' : val >= 40 ? C.amber : C.red;
+    fill(doc, C.mid);
+    doc.font('Helvetica').fontSize(8.5).text(lbl, M + CW/2 + 10, cy2, { width: CW/2 - 60 });
+    fill(doc, color);
+    doc.font('Helvetica-Bold').fontSize(8.5).text(String(Math.round(val)), M + CW - 50, cy2, { width: 25, align:'right' });
   }
+  y = cStartY + Math.max(lcols.length, rcols.length) * 17 + 16;
 
-  doc.fillColor(C.light).font('Helvetica').fontSize(7)
-    .text('≥70 Strong Fit  ·  55–69 Fit  ·  40–54 Conditional  ·  <40 Low Fit',
-      LEFT, doc.y, { width: contentW });
-  doc.y += 16;
+  // Interview probes
+  doc.rect(M, y, 3, 14).fill(C.orange);
+  fill(doc, C.dark);
+  doc.font('Helvetica-Bold').fontSize(10).text('Suggested Interview Questions', M + 10, y + 1);
+  fill(doc, C.mid);
+  doc.font('Helvetica').fontSize(8).text("Based on this candidate's profile. Use behavioural (STAR) framing.", M + 10, y + 14);
+  y += 28;
 
-  // Derailer flags
-  const derailers = (result.derailerFlags ?? []) as string[];
-  sectionTitle('Potential Risk Flags');
-  if (derailers.length === 0) {
-    doc.rect(LEFT, doc.y, contentW, 22).fill(C.muted);
-    doc.fillColor(C.green).font('Helvetica-Bold').fontSize(9)
-      .text('✓  No derailer flags detected', LEFT + 10, doc.y + 7);
-    doc.y += 30;
-  } else {
-    doc.rect(LEFT, doc.y, contentW, 18).fill('#fef3c7');
-    doc.fillColor(C.amber).font('Helvetica').fontSize(8)
-      .text('These flags indicate behavioural risks to probe at interview — not character verdicts.',
-        LEFT + 8, doc.y + 5, { width: contentW - 16 });
-    doc.y += 24;
-    for (const flag of derailers) {
-      doc.rect(LEFT, doc.y, contentW, 20).fill('#fff7ed');
-      doc.rect(LEFT, doc.y, 3, 20).fill(C.orange);
-      doc.fillColor(C.dark).font('Helvetica-Bold').fontSize(9)
-        .text(flag, LEFT + 10, doc.y + 6);
-      doc.y += 26;
-    }
-  }
-
-  doc.moveDown(0.3);
-  sectionTitle('Suggested Interview Questions');
-  doc.fillColor(C.mid).font('Helvetica').fontSize(8)
-    .text('Based on this candidate\'s profile. Use behavioural (STAR) framing.',
-      LEFT, doc.y, { width: contentW });
-  doc.y += 12;
-
-  interviewProbes.forEach((probe, i) => {
-    doc.rect(LEFT, doc.y, contentW, 28).fill(i % 2 === 0 ? C.muted : C.white);
-    doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(8)
-      .text(`Q${i + 1}`, LEFT + 8, doc.y + 8);
-    doc.fillColor(C.dark).font('Helvetica').fontSize(9)
-      .text(probe, LEFT + 26, doc.y + 8, { width: contentW - 34 });
-    doc.y += 34;
-  });
-
-  doc.moveDown(0.5);
-
-  // HR disclaimer
-  doc.rect(LEFT, doc.y, contentW, 44).fill(C.muted);
-  doc.fillColor(C.mid).font('Helvetica').fontSize(7.5).text(
-    'DISCLAIMER: This report is generated by an automated psychometric tool and is intended as one input in a holistic ' +
-    'selection process. Results should always be interpreted by a qualified HR professional alongside other evidence ' +
-    '(interview, references, work samples). No hiring decision should be made solely on the basis of this report. ' +
-    `${companyName} assumes full responsibility for the appropriate use of this tool in compliance with applicable employment laws.`,
-    LEFT + 10, doc.y + 8, { width: contentW - 20 },
+  const probes = generateInterviewProbes(
+    result.tH ?? 50, result.tES ?? 50, result.tX ?? 50,
+    result.tC ?? 50, result.tO ?? 50,
+    (result.derailerFlags ?? []) as string[],
   );
-  doc.y += 52;
+  for (const [i, probe] of probes.entries()) {
+    if (y > PH - 80) break; // prevent overflow
+    roundedRect(doc, M, y, CW, 26, 4, i % 2 === 0 ? C.muted : C.white);
+    fill(doc, C.orange);
+    doc.font('Helvetica-Bold').fontSize(8).text(`Q${i+1}`, M + 8, y + 8);
+    fill(doc, C.dark);
+    doc.font('Helvetica').fontSize(8.5).text(probe, M + 26, y + 8, { width: CW - 34 });
+    y += 32;
+  }
 
-  footer(4, 'HR Confidential');
+  pageFooter(doc, PH, PW, M, 2);
 
-  // ── Finalise ─────────────────────────────────────────────────────────────────
+  // ── Finalise ───────────────────────────────────────────────────────────────
   doc.end();
-
   return new Promise<Buffer>((resolve, reject) => {
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
