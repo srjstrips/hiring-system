@@ -140,8 +140,11 @@ class AssessmentsController {
     try {
       const assessment = await assessmentsService.getById(id);
       const name = (assessment as { name?: string })?.name ?? '';
+      const mode = (assessment as { mode?: string })?.mode ?? '';
       const isWorkStyle = name.includes('Work Style');
-      const isTalentSignal = name.includes('TalentSignal');
+      // Route all PERSONALITY-mode assessments (TalentSignal, SRJ Talent Acquisition, etc.)
+      // to the HEXACO personality report generator, not the phase-2 trait report.
+      const isPersonality = mode === 'PERSONALITY' || name.includes('TalentSignal');
 
       let buffer: Buffer;
       let filename: string;
@@ -150,12 +153,12 @@ class AssessmentsController {
         const { generateWorkStyleReportPdf } = await import('./work-style-report.service');
         buffer = await generateWorkStyleReportPdf(id, assignmentId);
         filename = `SRJ_Fit_Report_${assignmentId}.pdf`;
-      } else if (isTalentSignal) {
+      } else if (isPersonality) {
         const { generatePersonalityReportPdf } = await import('./personality-report.service');
         buffer = await generatePersonalityReportPdf(id, assignmentId);
         filename = `personality-report-${assignmentId}.pdf`;
       } else {
-        // Phase 2 / custom trait assessments (e.g. SRJ Talent Acquisition)
+        // Phase 2 / custom trait assessments
         const { generatePhase2ReportPdf } = await import('./phase2-report.service');
         buffer = await generatePhase2ReportPdf(id, assignmentId);
         filename = `SRJ_Assessment_Report_${assignmentId}.pdf`;
@@ -177,8 +180,9 @@ class AssessmentsController {
     try {
       const assessment = await assessmentsService.getById(id);
       const name = (assessment as { name?: string })?.name ?? '';
-      const isTalentSignal = name.includes('TalentSignal');
+      const mode = (assessment as { mode?: string })?.mode ?? '';
       const isWorkStyle = name.includes('Work Style');
+      const isPersonality = mode === 'PERSONALITY' || name.includes('TalentSignal');
 
       const { prisma } = await import('../../config/database');
       const assignment = await prisma.assessmentAssignment.findFirst({
@@ -191,7 +195,7 @@ class AssessmentsController {
       }
 
       let buffer: Buffer;
-      if (isTalentSignal) {
+      if (isPersonality) {
         const { generatePersonalityReportPdf } = await import('./personality-report.service');
         buffer = await generatePersonalityReportPdf(id, assignmentId, { candidateOnly: true });
       } else if (isWorkStyle) {

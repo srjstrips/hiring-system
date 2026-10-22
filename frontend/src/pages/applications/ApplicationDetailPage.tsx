@@ -12,7 +12,7 @@ import {
   ArrowLeft, FileText, Link2, Mail, Phone, Briefcase,
   Clock, Star, CheckCircle2, XCircle, ChevronRight, User,
   Calendar, DollarSign, Building2, Send, Search, Users,
-  ShieldCheck, Gift, UserCheck, PauseCircle, Video, Lock, Trash2, Copy, ExternalLink, Download, SendHorizonal,
+  ShieldCheck, Gift, UserCheck, PauseCircle, Video, Lock, Trash2, Download, SendHorizonal,
 } from 'lucide-react';
 import {
   isStageLocked,
@@ -80,8 +80,6 @@ export default function ApplicationDetailPage() {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showResendAssessmentDialog, setShowResendAssessmentDialog] = useState(false);
-  const [showReassignPanel, setShowReassignPanel] = useState(false);
-  const [reassignAssessmentId, setReassignAssessmentId] = useState('');
   const [newStatus, setNewStatus] = useState('');
   const [selectedAssessmentId, setSelectedAssessmentId] = useState('');
   const [stageNotes, setStageNotes] = useState('');
@@ -112,12 +110,6 @@ export default function ApplicationDetailPage() {
     staleTime: 60_000,
   });
 
-  const { data: assessmentLinkData } = useQuery({
-    queryKey: ['assessment-link', id],
-    queryFn: () => applicationsApi.getAssessmentLink(id!).then((r) => r.data.data),
-    enabled: !!id,
-    staleTime: 30_000,
-  });
 
   const { data: assignmentIds } = useQuery({
     queryKey: ['assignment-ids', id],
@@ -185,21 +177,6 @@ export default function ApplicationDetailPage() {
       invalidateApplication();
       toast({ title: 'Interview scheduled', variant: 'success' });
       resetStageForm();
-    },
-    onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
-  });
-
-  const queryClient2 = queryClient;
-  const reassignMutation = useMutation({
-    mutationFn: (assessmentId?: string) => applicationsApi.reassignAssessment(id!, assessmentId),
-    onSuccess: (res) => {
-      queryClient2.invalidateQueries({ queryKey: ['assessment-link', id] });
-      queryClient2.invalidateQueries({ queryKey: ['application', id] });
-      setShowReassignPanel(false);
-      setReassignAssessmentId('');
-      const url = res.data.data?.url;
-      if (url) { navigator.clipboard.writeText(url); }
-      toast({ title: `Assessment reassigned & link copied!`, variant: 'success' });
     },
     onError: (e: any) => toast({ title: 'Error', description: e.response?.data?.message, variant: 'destructive' }),
   });
@@ -571,105 +548,6 @@ export default function ApplicationDetailPage() {
                 <p className="text-sm text-[#64748B]">No assessment result for this application yet.</p>
               )}
 
-              {assessmentLinkData && (
-                <div className="mt-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-[#64748B]">Assessment Link — {assessmentLinkData.assessmentName}</p>
-                    <button
-                      type="button"
-                      onClick={() => setShowReassignPanel(!showReassignPanel)}
-                      className="text-[11px] text-[#FF6B00] hover:underline"
-                    >
-                      Change / Reassign
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      readOnly
-                      value={assessmentLinkData.url}
-                      className="min-w-0 flex-1 rounded-lg border border-[#E2E8F0] bg-white px-2 py-1.5 text-xs text-[#111827] font-mono"
-                    />
-                    <button
-                      type="button"
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#FF6B00] transition-colors"
-                      onClick={() => { navigator.clipboard.writeText(assessmentLinkData.url); toast({ title: 'Link copied!', variant: 'success' }); }}
-                      title="Copy link"
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </button>
-                    <a
-                      href={assessmentLinkData.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#FFF7ED] hover:text-[#FF6B00] transition-colors"
-                      title="Open link"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  </div>
-                  {assessmentLinkData.expiresAt && (
-                    <p className="text-[11px] text-[#94A3B8]">
-                      Expires {new Date(assessmentLinkData.expiresAt).toLocaleString()}
-                    </p>
-                  )}
-                  {showReassignPanel && (
-                    <div className="border-t border-[#E2E8F0] pt-2 space-y-2">
-                      <p className="text-xs text-[#64748B]">Select a different assessment and issue a new link (old link will be invalidated):</p>
-                      <select
-                        className={fieldClass}
-                        value={reassignAssessmentId}
-                        onChange={(e) => setReassignAssessmentId(e.target.value)}
-                      >
-                        <option value="">— Same assessment, new link —</option>
-                        {personalityAssessments.map((a) => (
-                          <option key={a.id} value={a.id}>{a.name} ({a.durationMins} min)</option>
-                        ))}
-                      </select>
-                      <Button
-                        className="h-9 w-full rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000] text-sm"
-                        disabled={reassignMutation.isPending}
-                        onClick={() => reassignMutation.mutate(reassignAssessmentId || undefined)}
-                      >
-                        {reassignMutation.isPending ? 'Reassigning…' : 'Reassign & Copy New Link'}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {!assessmentLinkData && (
-                <div className="mt-4">
-                  {showReassignPanel ? (
-                    <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3 space-y-2">
-                      <p className="text-xs font-medium text-[#64748B]">Assign an assessment to this candidate:</p>
-                      <select
-                        className={fieldClass}
-                        value={reassignAssessmentId}
-                        onChange={(e) => setReassignAssessmentId(e.target.value)}
-                      >
-                        <option value="">— Default (TalentSignal) —</option>
-                        {personalityAssessments.map((a) => (
-                          <option key={a.id} value={a.id}>{a.name} ({a.durationMins} min)</option>
-                        ))}
-                      </select>
-                      <div className="flex gap-2">
-                        <Button variant="outline" className="flex-1 h-9 rounded-xl border-[#E2E8F0] text-sm" onClick={() => setShowReassignPanel(false)}>Cancel</Button>
-                        <Button
-                          className="flex-1 h-9 rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000] text-sm"
-                          disabled={reassignMutation.isPending}
-                          onClick={() => reassignMutation.mutate(reassignAssessmentId || undefined)}
-                        >
-                          {reassignMutation.isPending ? 'Assigning…' : 'Assign & Copy Link'}
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <Button variant="outline" size="sm" className="w-full rounded-xl border-[#E2E8F0] text-sm" onClick={() => setShowReassignPanel(true)}>
-                      Assign Assessment
-                    </Button>
-                  )}
-                </div>
-              )}
             </CardContent>
           </Card>
 
