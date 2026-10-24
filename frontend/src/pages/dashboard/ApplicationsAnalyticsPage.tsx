@@ -120,11 +120,13 @@ export default function ApplicationsAnalyticsPage() {
           />
 
           {groups.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-3">
               {groups.map((g: any) => (
-                <div key={g.key} className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">{g.label ?? g.key}</p>
-                  <p className="text-xl font-bold">{g.count}</p>
+                <div key={g.key} className="flex flex-col gap-1 rounded-lg border bg-white p-3 min-h-[64px]">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground leading-tight break-words">
+                    {(g.label ?? g.key ?? '').toString().replace(/_/g, ' ')}
+                  </p>
+                  <p className="text-2xl font-bold text-[#111827] leading-none">{g.count}</p>
                 </div>
               ))}
             </div>

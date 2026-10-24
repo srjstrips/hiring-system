@@ -29,18 +29,18 @@ export function SummaryCards({ items, columns = 'sm:grid-cols-2 lg:grid-cols-3' 
           )}
           onClick={card.onClick}
         >
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-[#64748B]">{card.label}</p>
-                <p className="mt-2 text-3xl font-bold tracking-tight text-[#111827]">{card.value}</p>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-medium uppercase tracking-wide text-[#64748B]">{card.label}</p>
+                <p className="mt-1 text-2xl font-bold tracking-tight text-[#111827] leading-none">{card.value}</p>
                 {card.trend && (
-                  <p className="mt-2 text-sm font-medium text-[#FF6B00]">{card.trend}</p>
+                  <p className="mt-1.5 text-xs font-medium text-[#FF6B00]">{card.trend}</p>
                 )}
               </div>
               {card.icon && (
-                <div className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl', card.bg ?? 'bg-slate-50')}>
-                  <card.icon className={cn('h-5 w-5', card.color ?? 'text-slate-600')} />
+                <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', card.bg ?? 'bg-slate-50')}>
+                  <card.icon className={cn('h-4 w-4', card.color ?? 'text-slate-600')} />
                 </div>
               )}
             </div>
