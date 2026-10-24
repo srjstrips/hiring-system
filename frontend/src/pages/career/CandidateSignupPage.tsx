@@ -86,7 +86,7 @@ export default function CandidateSignupPage() {
             {/* Form */}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               {/* First and Last Name */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName" className="block text-sm font-semibold text-[#111827]">
                     First Name

@@ -19,7 +19,7 @@ export default function CareerJobDetailPage() {
   if (!data) return <div className="max-w-4xl mx-auto px-4 py-12 text-muted-foreground">Job not found</div>;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 lg:py-12 overflow-x-hidden">
+    <div className="max-w-5xl mx-auto px-4 py-8 lg:py-12 overflow-x-hidden pb-24 lg:pb-12">
       {/* Breadcrumb */}
       <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-6 lg:mb-8 flex-wrap min-w-0">
         <Link to="/careers" className="hover:text-foreground shrink-0">Home</Link>
@@ -27,6 +27,13 @@ export default function CareerJobDetailPage() {
         <Link to="/careers/jobs" className="hover:text-foreground shrink-0">Jobs</Link>
         <ChevronRight className="h-4 w-4 shrink-0" />
         <span className="text-foreground truncate">{data.title}</span>
+      </div>
+
+      {/* Sticky Apply Now bar — mobile only */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white border-t px-4 py-3 shadow-lg">
+        <Button className="w-full min-h-[48px] text-base" size="lg" asChild>
+          <Link to={`/careers/jobs/${slug}/apply`}>Apply Now</Link>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
@@ -74,7 +81,7 @@ export default function CareerJobDetailPage() {
         <div className="space-y-4">
           <Card className="lg:sticky lg:top-24">
             <CardContent className="pt-6 space-y-4">
-              <Button className="w-full min-h-[48px] text-base" size="lg" asChild>
+              <Button className="hidden lg:flex w-full min-h-[48px] text-base" size="lg" asChild>
                 <Link to={`/careers/jobs/${slug}/apply`}>Apply Now</Link>
               </Button>
 

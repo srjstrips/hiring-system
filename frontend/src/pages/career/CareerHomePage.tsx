@@ -59,7 +59,7 @@ export default function CareerHomePage() {
   };
 
   return (
-    <div className="overflow-hidden bg-white">
+    <div className="overflow-x-hidden bg-white">
       {/* ── 1. HERO ─────────────────────────────────────────────────────────── */}
       <section
         className="relative min-h-[600px] bg-cover bg-[70%_center] px-5 py-20 lg:bg-center lg:px-8 lg:py-28"
@@ -73,7 +73,7 @@ export default function CareerHomePage() {
               <span className="h-px w-8 bg-[#f97316]" />
               Build your future with SRJ
             </p>
-            <h1 className="text-5xl font-extrabold leading-[1.03] tracking-tight text-[#111827] sm:text-6xl lg:text-7xl">
+            <h1 className="text-3xl font-extrabold leading-[1.03] tracking-tight text-[#111827] sm:text-5xl lg:text-7xl">
               Shape Steel.<br />
               Shape Your{' '}
               <span className="text-[#f97316]">Career.</span>
