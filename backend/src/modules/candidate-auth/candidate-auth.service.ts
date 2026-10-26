@@ -7,6 +7,7 @@ import {
   verifyCandidateRefreshToken,
 } from '../../utils/jwt';
 import { UnauthorizedError, NotFoundError, ConflictError, BadRequestError } from '../../utils/errors';
+import { checkLoginAllowed, recordFailedAttempt, resetEmailAttempts } from '../../utils/loginRateLimiter';
 import { env } from '../../config/env';
 import type { LoginDto, SignupDto } from './candidate-auth.validators';
 
@@ -79,19 +80,26 @@ export class CandidateAuthService {
   }
 
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
-    const candidate = await candidateAuthRepository.findByEmail(dto.email);
+    const ip = ipAddress ?? 'unknown';
+    const email = dto.email.toLowerCase();
 
-    if (!candidate || !candidate.passwordHash) {
-      throw new UnauthorizedError('Invalid email or password');
-    }
+    // Throws TooManyRequestsError (429) if locked out — checked before any DB query
+    checkLoginAllowed(email, ip);
 
-    if (!(await comparePassword(dto.password, candidate.passwordHash))) {
+    const candidate = await candidateAuthRepository.findByEmail(email);
+    const passwordOk =
+      candidate?.passwordHash ? await comparePassword(dto.password, candidate.passwordHash) : false;
+
+    if (!candidate || !candidate.passwordHash || !passwordOk) {
+      recordFailedAttempt(email, ip);
       throw new UnauthorizedError('Invalid email or password');
     }
 
     if (!candidate.isActive) {
       throw new UnauthorizedError('Your account has been suspended. Contact support.');
     }
+
+    resetEmailAttempts(email);
 
     const { accessToken, refreshToken } = this.buildAuthPayload(candidate);
 

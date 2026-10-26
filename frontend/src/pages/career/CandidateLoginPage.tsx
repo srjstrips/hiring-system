@@ -129,15 +129,18 @@ export default function CandidateLoginPage() {
       } else if (portalHint === 'candidate') {
         await tryCandidate();
       } else {
-        // Unknown domain — try candidate first, then HR
+        // Unknown domain — try candidate first, then HR.
+        // Rate-limit errors (429) are not retried against the other portal.
         try {
           await tryCandidate();
-        } catch {
+        } catch (innerErr: any) {
+          if (innerErr?.response?.status === 429) throw innerErr;
           await tryHR();
         }
       }
-    } catch {
-      setError('Invalid email or password.');
+    } catch (err: any) {
+      const msg: string | undefined = err?.response?.data?.message;
+      setError(msg ?? 'Invalid email or password.');
     }
 
     setLoading(false);

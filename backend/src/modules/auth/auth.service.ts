@@ -9,6 +9,7 @@ import {
   NotFoundError,
   BadRequestError,
 } from '../../utils/errors';
+import { checkLoginAllowed, recordFailedAttempt, resetEmailAttempts } from '../../utils/loginRateLimiter';
 import type { LoginDto, ForgotPasswordDto, ResetPasswordDto } from './auth.validators';
 
 export class AuthService {
@@ -33,15 +34,25 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
-    const user = await authRepository.findUserByEmail(dto.email);
+    const ip = ipAddress ?? 'unknown';
+    const email = dto.email.toLowerCase();
 
-    if (!user || !(await comparePassword(dto.password, user.passwordHash))) {
+    // Throws TooManyRequestsError (429) if locked out — checked before any DB query
+    checkLoginAllowed(email, ip);
+
+    const user = await authRepository.findUserByEmail(email);
+    const passwordOk = user ? await comparePassword(dto.password, user.passwordHash) : false;
+
+    if (!user || !passwordOk) {
+      recordFailedAttempt(email, ip);
       throw new UnauthorizedError('Invalid email or password');
     }
 
     if (user.status !== 'ACTIVE') {
       throw new UnauthorizedError('Your account has been suspended. Contact support.');
     }
+
+    resetEmailAttempts(email);
 
     const permissions = this.extractPermissions(user);
     const departmentIds = this.extractDepartmentIds(user);
