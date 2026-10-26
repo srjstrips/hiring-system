@@ -62,7 +62,7 @@ export default function CareerHomePage() {
     <div className="overflow-x-hidden bg-white">
       {/* ── 1. HERO ─────────────────────────────────────────────────────────── */}
       <section
-        className="relative min-h-[600px] bg-cover bg-[70%_center] px-5 py-20 lg:bg-center lg:px-8 lg:py-28"
+        className="relative min-h-[400px] bg-cover bg-[70%_center] px-5 py-10 sm:py-16 lg:min-h-[600px] lg:bg-center lg:px-8 lg:py-28"
         style={{ backgroundImage: "url('/career-assets/steel-rods-hero.png')" }}
       >
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.97)_0%,rgba(255,255,255,0.9)_38%,rgba(255,255,255,0.35)_72%,rgba(255,255,255,0.55)_100%)]" />

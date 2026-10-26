@@ -125,9 +125,62 @@ export default function CareerLayout() {
             )}
           </nav>
 
-          {/* Mobile: notification + hamburger */}
-          <div className="flex items-center gap-2 md:hidden">
+          {/* Mobile: notification + profile dropdown + hamburger */}
+          <div className="flex items-center gap-1 md:hidden">
             {isAuthenticated && <NotificationBell />}
+
+            {/* Quick auth / profile dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Account options"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg text-[#374151] transition-colors hover:bg-[#F3F4F6]"
+                >
+                  {isAuthenticated && candidate?.firstName ? (
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F97316] text-xs font-bold text-white">
+                      {candidate.firstName[0].toUpperCase()}
+                    </span>
+                  ) : (
+                    <User className="h-5 w-5" />
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 rounded-xl border-[#E5E7EB] p-1.5 shadow-lg">
+                {isAuthenticated ? (
+                  <>
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <Link to="/careers/profile" className="flex items-center gap-2 px-2 py-2 text-[14px] text-[#111827]">
+                        <User className="h-4 w-4 shrink-0" />
+                        {candidate?.firstName ?? 'My Profile'}
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="flex cursor-pointer items-center gap-2 px-2 py-2 text-[14px] text-red-600"
+                    >
+                      <LogOut className="h-4 w-4 shrink-0" />
+                      Log out
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <Link to="/careers/login" className="px-2 py-2 text-[14px] font-medium text-[#111827]">
+                        Sign In
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <Link to="/careers/signup" className="px-2 py-2 text-[14px] font-semibold text-[#F97316]">
+                        Create Account
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Navigation drawer trigger */}
             <button
               type="button"
               aria-label="Open navigation menu"
@@ -250,14 +303,14 @@ export default function CareerLayout() {
                     onClick={closeMobile}
                     className="flex items-center justify-center rounded-lg border border-[#E5E7EB] py-3 text-[15px] font-medium text-[#374151] transition-colors hover:border-[#F97316] hover:text-[#F97316]"
                   >
-                    Log In
+                    Sign In
                   </Link>
                   <Link
                     to="/careers/signup"
                     onClick={closeMobile}
                     className="flex items-center justify-center rounded-lg bg-[#F97316] py-3 text-[15px] font-semibold text-white transition-colors hover:bg-[#EA580C]"
                   >
-                    Join Us
+                    Create Account
                   </Link>
                 </div>
               )}
