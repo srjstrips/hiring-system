@@ -157,22 +157,22 @@ export default function CandidateLoginPage() {
       <div className="relative z-10 flex min-h-screen items-center justify-end px-4 sm:px-6 lg:px-12">
         <div className="w-full max-w-md lg:max-w-sm">
           {/* White Login Card */}
-          <div className="rounded-lg bg-white p-8 sm:p-10 shadow-2xl">
+          <div className="rounded-lg bg-white p-5 sm:p-8 lg:p-10 shadow-2xl">
             {/* Card Header */}
-            <div className="mb-8 text-center">
+            <div className="mb-4 sm:mb-8 text-center">
               <p className="text-sm font-semibold tracking-wide text-[#FF6B00]">
                 Welcome Back!
               </p>
-              <h1 className="mt-2 text-3xl font-bold text-[#1a1a2e] transition-all duration-300">
+              <h1 className="mt-1 text-2xl sm:text-3xl font-bold text-[#1a1a2e] transition-all duration-300">
                 {portalTitle}
               </h1>
-              <p className="mt-2 text-sm text-[#6B7280] whitespace-pre-line transition-all duration-300">
+              <p className="mt-1 text-sm text-[#6B7280] whitespace-pre-line transition-all duration-300">
                 {portalSubtitle}
               </p>
             </div>
 
             {/* Orange Divider */}
-            <div className="mb-8 flex justify-center">
+            <div className="mb-4 sm:mb-8 flex justify-center">
               <div className="h-1 w-12 bg-[#FF6B00]" />
             </div>
 
@@ -184,7 +184,7 @@ export default function CandidateLoginPage() {
             )}
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               {/* Email Field */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="block text-sm font-semibold text-[#111827]">
@@ -280,7 +280,7 @@ export default function CandidateLoginPage() {
             </form>
 
             {/* Divider */}
-            <div className="my-6 flex items-center gap-3">
+            <div className="my-4 sm:my-6 flex items-center gap-3">
               <div className="h-px flex-1 bg-[#E5E7EB]" />
               <span className="text-sm text-[#9CA3AF]">or</span>
               <div className="h-px flex-1 bg-[#E5E7EB]" />
