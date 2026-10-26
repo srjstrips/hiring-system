@@ -226,7 +226,7 @@ export default function CareerHomePage() {
       </section>
 
       {/* ── 4. WHY JOIN SRJ ─────────────────────────────────────────────────── */}
-      <section className="bg-white py-20">
+      <section className="bg-white py-10 lg:py-20">
         <div className="mx-auto max-w-7xl px-5 lg:px-8">
           <div className="mb-12 text-center">
             <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#f97316]">Grow with the best</p>
@@ -272,7 +272,7 @@ export default function CareerHomePage() {
       </section>
 
       {/* ── 5. LIFE AT SRJ ──────────────────────────────────────────────────── */}
-      <section className="bg-[#F8FAFC] py-20">
+      <section className="bg-[#F8FAFC] py-10 lg:py-20">
         <div className="mx-auto max-w-7xl px-5 lg:px-8">
           <div className="grid items-center gap-10 lg:grid-cols-2">
             {/* Text */}
@@ -326,7 +326,7 @@ export default function CareerHomePage() {
       </section>
 
       {/* ── 6. JOB ALERTS ───────────────────────────────────────────────────── */}
-      <section className="border-y border-[#E5E7EB] bg-white py-14">
+      <section className="border-y border-[#E5E7EB] bg-white py-8 lg:py-14">
         <div className="mx-auto max-w-7xl px-5 lg:px-8">
           <div className="flex flex-col items-start justify-between gap-6 rounded-2xl border border-[#f97316]/25 bg-[#FFF7ED] p-7 sm:flex-row sm:items-center">
             <div className="flex items-start gap-4">
