@@ -169,7 +169,9 @@ class AssessmentsController {
       res.setHeader('Content-Length', buffer.length);
       res.send(buffer);
     } catch (e: any) {
-      res.status(500).json({ success: false, message: e?.message ?? 'Failed to generate report' });
+      const msg: string = e?.message ?? 'Failed to generate report';
+      const status = msg.includes('not found') || msg.includes('No completed') ? 404 : 500;
+      res.status(status).json({ success: false, message: msg });
     }
   }
 

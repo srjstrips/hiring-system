@@ -245,10 +245,20 @@ export async function generatePersonalityReportPdf(
   });
   if (!attempt) throw new Error('No completed attempt found');
 
-  const result = await prisma.assessmentPersonalityResult.findUnique({
+  let result = await prisma.assessmentPersonalityResult.findUnique({
     where: { attemptId: attempt.id },
   });
-  if (!result) throw new Error('Personality result not found');
+  if (!result) {
+    // Scoring may have failed asynchronously after submission — retry it now.
+    try {
+      const { scorePersonalityAttempt } = await import('./personality-scoring.service');
+      await scorePersonalityAttempt(attempt.id);
+      result = await prisma.assessmentPersonalityResult.findUnique({ where: { attemptId: attempt.id } });
+    } catch (err) {
+      console.error('[PDF] Re-scoring failed for attempt', attempt.id, err);
+    }
+    if (!result) throw new Error('Assessment result is not yet available. Please wait a moment and try again.');
+  }
 
   // Count questions per HEXACO trait from snapshots
   const fullAttempt = await prisma.assessmentAttempt.findUnique({
