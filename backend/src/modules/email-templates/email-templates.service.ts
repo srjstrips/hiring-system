@@ -230,6 +230,25 @@ class EmailTemplatesService {
     try {
       const template = await this.findActiveByStage(stage);
       if (!template) {
+        // Fallback: send a default acknowledgement email for SCREENING if no custom template exists
+        if (stage === 'SCREENING') {
+          const app = await prisma.application.findUnique({
+            where: { id: applicationId },
+            include: {
+              candidate: { select: { firstName: true, lastName: true, email: true } },
+              job: { select: { title: true } },
+            },
+          });
+          if (app?.candidate?.email) {
+            const { emailService } = await import('../../services/email.service');
+            await emailService.sendScreeningAcknowledgementEmail({
+              email: app.candidate.email,
+              candidateName: `${app.candidate.firstName} ${app.candidate.lastName}`.trim(),
+              jobTitle: app.job.title,
+            });
+            return { sent: true, reason: 'fallback_screening' as const };
+          }
+        }
         return { skipped: true, reason: 'no_template' as const };
       }
 

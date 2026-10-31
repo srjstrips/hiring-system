@@ -177,8 +177,8 @@ export const assessmentsApi = {
 
   getEligibleCandidates: (id: string, params?: { search?: string }) =>
     api.get<{ success: boolean; data: EligibleApplication[] }>(`/assessments/${id}/eligible-candidates`, { params }),
-  assignCandidates: (id: string, applicationIds: string[]) =>
-    api.post<{ success: boolean; data: AssessmentAssignment[] }>(`/assessments/${id}/assign`, { applicationIds }),
+  assignCandidates: (id: string, applicationIds: string[], availableFrom?: string | null, expiresAt?: string | null) =>
+    api.post<{ success: boolean; data: AssessmentAssignment[] }>(`/assessments/${id}/assign`, { applicationIds, availableFrom: availableFrom || null, expiresAt: expiresAt || null }),
   getAssignments: (id: string) =>
     api.get<{ success: boolean; data: AssessmentAssignment[] }>(`/assessments/${id}/assignments`),
 

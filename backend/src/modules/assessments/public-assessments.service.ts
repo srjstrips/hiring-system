@@ -89,6 +89,13 @@ class PublicAssessmentsService {
     if (assignment.status === 'EXPIRED' || (assignment.expiresAt && assignment.expiresAt < current)) {
       throw new AssessmentGateError('EXPIRED', 'Assessment link is invalid or has expired.', 403);
     }
+    if ((assignment as any).availableFrom && (assignment as any).availableFrom > current) {
+      const openDate = new Intl.DateTimeFormat('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata',
+      }).format((assignment as any).availableFrom);
+      throw new AssessmentGateError('UNAVAILABLE', `Assessment not yet open. It will be available from ${openDate} IST.`, 403);
+    }
     if (assessment.status !== 'ACTIVE') {
       throw new AssessmentGateError('UNAVAILABLE', 'Assessment is currently unavailable.', 403);
     }
@@ -130,6 +137,7 @@ class PublicAssessmentsService {
       attemptsRemaining: Math.max(0, assignment.maxAttempts - completedAttempts),
       status: assignment.status,
       hasOpenAttempt: !!openAttempt,
+      availableFrom: (assignment as any).availableFrom ?? null,
       expiresAt: assignment.expiresAt,
       assessmentWindow: {
         startAt: assessment.startAt,

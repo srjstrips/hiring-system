@@ -38,7 +38,7 @@ function toDateOrNull(value?: string | null) {
 }
 
 function defaultExpiresAt(): Date {
-  return new Date(Date.now() + 48 * 60 * 60 * 1000);
+  return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 }
 
 function mapQuestionForClient(q: any, includeCorrect = true) {
@@ -366,13 +366,14 @@ export class AssessmentsRepository {
     if (!assessment) return null;
 
     const assigned = await prisma.assessmentAssignment.findMany({
-      where: { assessmentId, status: { not: 'CANCELLED' } },
+      where: { assessmentId, status: { in: ['COMPLETED', 'STARTED'] } },
       select: { applicationId: true },
     });
     const assignedIds = assigned.map((a) => a.applicationId);
 
     const where: any = {
       jobId: assessment.jobId,
+      status: 'PERSONALITY_ASSESSMENT',
       id: { notIn: assignedIds.length ? assignedIds : ['00000000-0000-0000-0000-000000000000'] },
     };
     if (search) {
@@ -400,7 +401,7 @@ export class AssessmentsRepository {
     });
   }
 
-  async assignCandidates(assessmentId: string, applicationIds: string[], assignedById: string, expiresAt?: string | null) {
+  async assignCandidates(assessmentId: string, applicationIds: string[], assignedById: string, expiresAt?: string | null, availableFrom?: string | null) {
     const assessment = await prisma.assessment.findFirst({ where: { id: assessmentId, deletedAt: null } });
     if (!assessment) throw new Error('NOT_FOUND');
 
@@ -411,6 +412,7 @@ export class AssessmentsRepository {
     if (applications.length === 0) throw new Error('NO_ELIGIBLE');
 
     const newExpiry = toDateOrNull(expiresAt) ?? defaultExpiresAt();
+    const newAvailableFrom = toDateOrNull(availableFrom);
 
     const created = await prisma.$transaction(
       applications.map((app) =>
@@ -426,6 +428,7 @@ export class AssessmentsRepository {
             assignedById,
             maxAttempts: assessment.maxAttempts,
             secureToken: generateSecureToken(),
+            availableFrom: newAvailableFrom,
             expiresAt: newExpiry,
             status: 'ASSIGNED',
           },
@@ -434,6 +437,7 @@ export class AssessmentsRepository {
             assignedById,
             assignedAt: new Date(),
             maxAttempts: assessment.maxAttempts,
+            availableFrom: newAvailableFrom,
             expiresAt: newExpiry,
           },
           include: {

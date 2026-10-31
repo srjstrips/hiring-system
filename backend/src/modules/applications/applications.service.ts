@@ -52,7 +52,7 @@ async function issueAssessmentLink(
       where: { assessmentId_applicationId: { assessmentId, applicationId } },
       update: {
         secureToken: crypto.randomBytes(32).toString('hex'),
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         status: 'ASSIGNED',
         assignedById: issuedById,
       },
@@ -63,7 +63,7 @@ async function issueAssessmentLink(
         jobId: app.jobId,
         assignedById: issuedById,
         secureToken: crypto.randomBytes(32).toString('hex'),
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         maxAttempts: assessment?.maxAttempts ?? 1,
         status: 'ASSIGNED',
       },

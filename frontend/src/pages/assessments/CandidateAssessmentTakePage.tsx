@@ -758,14 +758,14 @@ export default function CandidateAssessmentTakePage() {
 
   if (phase === 'intro' && intro) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6">
-        <div className="max-w-2xl mx-auto space-y-6">
-          <div className="text-center pt-6">
-            <p className="text-sm text-muted-foreground uppercase tracking-wide">HireFlow Assessment</p>
-            <h1 className="text-3xl font-bold mt-2">{intro.assessmentName}</h1>
-            {intro.description && <p className="text-muted-foreground mt-3 whitespace-pre-wrap">{intro.description}</p>}
+      <div className="min-h-screen bg-slate-50 p-3 sm:p-6">
+        <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
+          <div className="text-center pt-4 sm:pt-6">
+            <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wide">SRJ Steel Assessment</p>
+            <h1 className="text-2xl sm:text-3xl font-bold mt-2">{intro.assessmentName}</h1>
+            {intro.description && <p className="text-muted-foreground mt-3 text-sm whitespace-pre-wrap">{intro.description}</p>}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             {[
               { label: 'Duration', value: `${intro.durationMins} Minutes` },
               { label: 'Questions', value: `${intro.questionCount} Questions` },
@@ -794,8 +794,8 @@ export default function CandidateAssessmentTakePage() {
               </ul>
             </CardContent>
           </Card>
-          <div className="flex justify-center pb-10">
-            <Button size="lg" onClick={() => setPhase('device')}>
+          <div className="flex justify-center pb-6 sm:pb-10">
+            <Button size="lg" className="w-full sm:w-auto" onClick={() => setPhase('device')}>
               {intro.hasOpenAttempt ? 'Resume Assessment' : 'START ASSESSMENT'}
             </Button>
           </div>
@@ -839,7 +839,7 @@ export default function CandidateAssessmentTakePage() {
     );
 
     return (
-      <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 p-3 sm:p-6 flex items-center justify-center">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Ready to Begin</CardTitle>
@@ -884,7 +884,7 @@ export default function CandidateAssessmentTakePage() {
 
   if (phase === 'consent') {
     return (
-      <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 p-3 sm:p-6 flex items-center justify-center">
         <Card className="w-full max-w-lg">
           <CardHeader>
             <CardTitle>Recording & Privacy Notice</CardTitle>
@@ -920,37 +920,68 @@ export default function CandidateAssessmentTakePage() {
   // Test phase
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
-      <header className="bg-white border-b px-4 py-3 flex items-center justify-between gap-4 sticky top-0 z-10">
-        <div>
-          <h1 className="font-semibold">{attempt?.assessmentName}</h1>
+      <header className="bg-white border-b px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-10">
+        <div className="min-w-0">
+          <h1 className="font-semibold text-sm sm:text-base truncate">{attempt?.assessmentName}</h1>
           <p className="text-xs text-muted-foreground">
-            Question {currentQ + 1} of {questions.length} · Answered {answeredCount}
+            Q {currentQ + 1}/{questions.length} · {answeredCount} answered
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           <div className="hidden sm:block text-[11px] text-muted-foreground leading-tight">
-            <p>Recording active</p>
-            <p>Camera: {cameraRecStatus === 'recording' ? '● Recording' : '⚠ Not recording'}</p>
-            {!isMobile && <p>Screen: {screenRecStatus === 'recording' ? '● Recording' : '⚠ Not recording'}</p>}
+            <p>Camera: {cameraRecStatus === 'recording' ? '● Rec' : '⚠ Off'}</p>
+            {!isMobile && <p>Screen: {screenRecStatus === 'recording' ? '● Rec' : '⚠ Off'}</p>}
           </div>
-          <div className={`font-mono text-lg font-bold ${remaining <= 60 ? 'text-red-600' : 'text-slate-800'}`}>
+          <div className={`font-mono text-base sm:text-lg font-bold ${remaining <= 60 ? 'text-red-600' : 'text-slate-800'}`}>
             {formatTime(remaining)}
           </div>
         </div>
       </header>
 
       {(offline || syncWarning || mediaWarning || uploadWarning) && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-sm text-amber-800 flex items-center gap-2">
-          {offline && <WifiOff className="h-4 w-4" />}
+        <div className="bg-amber-50 border-b border-amber-200 px-3 sm:px-4 py-2 text-sm text-amber-800 flex items-center gap-2">
+          {offline && <WifiOff className="h-4 w-4 shrink-0" />}
           {offline
             ? 'You are offline. Answers are saved locally.'
             : mediaWarning || uploadWarning || syncWarning}
         </div>
       )}
 
-      <div className="flex-1 max-w-5xl w-full mx-auto p-4 grid grid-cols-1 md:grid-cols-[1fr_220px] gap-4">
-        <Card>
-          <CardContent className="pt-6 pb-6 space-y-6">
+      <div className="flex-1 max-w-5xl w-full mx-auto p-2 sm:p-4 grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3 sm:gap-4 items-start">
+        {/* Question navigator — shown above question card on mobile */}
+        <Card className="h-fit order-first md:order-last">
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Questions</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-5 sm:grid-cols-5 gap-1.5 sm:gap-2">
+              {questions.map((qq, i) => {
+                const answered = isAnswered(qq);
+                const current = i === currentQ;
+                return (
+                  <button
+                    key={qq.id}
+                    type="button"
+                    onClick={() => setCurrentQ(i)}
+                    className={`h-8 sm:h-9 rounded text-xs font-medium border ${
+                      current
+                        ? 'bg-[#FF6B00] text-white border-[#FF6B00]'
+                        : answered
+                          ? 'bg-[#FFEDD5] text-[#C2410C] border-[#FED7AA]'
+                          : 'bg-white text-slate-600'
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                );
+              })}
+            </div>
+            <Button className="w-full mt-3" variant="outline" onClick={() => setShowConfirm(true)}>
+              Submit
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="order-last md:order-first">
+          <CardContent className="pt-4 pb-4 sm:pt-6 sm:pb-6 space-y-4 sm:space-y-6">
             {q && (
               <>
                 <div>
@@ -973,7 +1004,7 @@ export default function CandidateAssessmentTakePage() {
                         const isMost  = fc.mostId  === opt.id;
                         const isLeast = fc.leastId === opt.id;
                         return (
-                          <div key={opt.id} className={`flex items-center gap-3 border rounded-md p-3 ${isMost ? 'border-[#FF6B00] bg-[#FFF7ED]' : isLeast ? 'border-slate-400 bg-slate-50' : ''}`}>
+                          <div key={opt.id} className={`flex items-center gap-2 sm:gap-3 border rounded-md p-2 sm:p-3 ${isMost ? 'border-[#FF6B00] bg-[#FFF7ED]' : isLeast ? 'border-slate-400 bg-slate-50' : ''}`}>
                             <input
                               type="radio"
                               name={`${q.id}-most`}
@@ -1045,42 +1076,11 @@ export default function CandidateAssessmentTakePage() {
             </div>
           </CardContent>
         </Card>
-
-        <Card className="h-fit">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Questions</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-5 gap-2">
-              {questions.map((qq, i) => {
-                const answered = isAnswered(qq);
-                const current = i === currentQ;
-                return (
-                  <button
-                    key={qq.id}
-                    type="button"
-                    onClick={() => setCurrentQ(i)}
-                    className={`h-9 rounded text-xs font-medium border ${
-                      current
-                        ? 'bg-[#FF6B00] text-white border-[#FF6B00]'
-                        : answered
-                          ? 'bg-[#FFEDD5] text-[#C2410C] border-[#FED7AA]'
-                          : 'bg-white text-slate-600'
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                );
-              })}
-            </div>
-            <Button className="w-full mt-4" variant="outline" onClick={() => setShowConfirm(true)}>
-              Submit Assessment
-            </Button>
-          </CardContent>
-        </Card>
       </div>
 
       {showConfirm && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <Card className="w-full sm:max-w-md rounded-b-none sm:rounded-b-lg">
             <CardHeader>
               <CardTitle className="text-base">Submit Assessment?</CardTitle>
             </CardHeader>

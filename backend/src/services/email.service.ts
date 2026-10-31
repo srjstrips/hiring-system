@@ -147,6 +147,30 @@ class EmailService {
     });
   }
 
+  async sendScreeningAcknowledgementEmail(params: {
+    email: string;
+    candidateName: string;
+    jobTitle: string;
+  }): Promise<void> {
+    const { email, candidateName, jobTitle } = params;
+    const body = `
+      <h2 style="margin:0 0 8px;color:#111827;font-size:22px;">Your Application is Moving Forward 🎉</h2>
+      <p>Hello <strong>${candidateName}</strong>,</p>
+      <p>Great news! Your application for <strong>${jobTitle}</strong> at SRJ Group has been selected for the screening stage.</p>
+      <p>Our HR team will be in touch with you shortly to schedule a screening call or share further details.</p>
+      <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:14px 18px;border-radius:0 8px 8px 0;margin:20px 0;">
+        <p style="margin:0;font-size:14px;color:#166534;"><strong>What to expect:</strong></p>
+        <p style="margin:8px 0 0;font-size:13px;color:#166534;">A member of our team will contact you via email or phone. Please keep an eye on your inbox and ensure your phone is reachable.</p>
+      </div>
+      <p>Thank you for your interest in joining SRJ Group. We look forward to speaking with you!</p>
+    `;
+    await this.send({
+      to: email,
+      subject: `Screening Update — ${jobTitle} | SRJ Group`,
+      html: await wrapEmail(body),
+    });
+  }
+
   async sendInterviewInviteEmail(params: {
     email: string;
     candidateName: string;

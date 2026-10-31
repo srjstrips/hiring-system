@@ -1276,6 +1276,7 @@ model AssessmentAssignment {
   status        AssignmentStatus @default(ASSIGNED)
   maxAttempts   Int              @default(1)
   secureToken   String           @unique
+  availableFrom DateTime?
   expiresAt     DateTime?
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt

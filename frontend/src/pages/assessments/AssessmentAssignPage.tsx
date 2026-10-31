@@ -6,14 +6,46 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/useToast';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft, Calendar, Search } from 'lucide-react';
+
+function toIsoLocal(localDatetime: string): string | null {
+  if (!localDatetime) return null;
+  // localDatetime is "YYYY-MM-DDTHH:mm" in Asia/Kolkata — treat as IST by adjusting to UTC
+  // IST = UTC+5:30
+  const date = new Date(localDatetime);
+  if (isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
+function toLocalInput(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  // Format as YYYY-MM-DDTHH:mm in local time
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function defaultAvailableFrom(): string {
+  // Now
+  return toLocalInput(new Date().toISOString());
+}
+
+function defaultExpiresAt(): string {
+  // 7 days from now
+  const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  return toLocalInput(d.toISOString());
+}
 
 export default function AssessmentAssignPage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [availableFrom, setAvailableFrom] = useState(defaultAvailableFrom());
+  const [expiresAt, setExpiresAt] = useState(defaultExpiresAt());
 
   const { data: assessment } = useQuery({
     queryKey: ['assessment', id],
@@ -35,7 +67,13 @@ export default function AssessmentAssignPage() {
   });
 
   const assignMutation = useMutation({
-    mutationFn: () => assessmentsApi.assignCandidates(id!, Array.from(selected)),
+    mutationFn: () =>
+      assessmentsApi.assignCandidates(
+        id!,
+        Array.from(selected),
+        toIsoLocal(availableFrom),
+        toIsoLocal(expiresAt)
+      ),
     onSuccess: () => {
       toast({ title: 'Candidates assigned', variant: 'success' });
       setSelected(new Set());
@@ -65,7 +103,9 @@ export default function AssessmentAssignPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Assign Assessment</h1>
-          <p className="text-sm text-muted-foreground">Select applicants for this job-linked assessment</p>
+          <p className="text-sm text-muted-foreground">
+            Select candidates at the Personality Assessment stage
+          </p>
         </div>
       </div>
 
@@ -76,9 +116,41 @@ export default function AssessmentAssignPage() {
         </CardContent>
       </Card>
 
+      {/* Scheduling */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Calendar className="h-4 w-4" /> Assessment Window (IST)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">Opens at</Label>
+            <Input
+              type="datetime-local"
+              value={availableFrom}
+              onChange={(e) => setAvailableFrom(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">Candidates can't start before this time</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">Expires at</Label>
+            <Input
+              type="datetime-local"
+              value={expiresAt}
+              onChange={(e) => setExpiresAt(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">Link becomes invalid after this time</p>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Eligible Candidates</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Showing candidates currently at the Personality Assessment stage who have not yet completed this assessment.
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="relative max-w-sm">
@@ -95,7 +167,7 @@ export default function AssessmentAssignPage() {
             <div className="py-8 text-center text-muted-foreground">Loading...</div>
           ) : eligible.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">
-              No eligible candidates found for this job (or all have already been assigned).
+              No eligible candidates found. Move candidates to the Personality Assessment stage first, or all have already completed the assessment.
             </div>
           ) : (
             <div className="space-y-2">
@@ -133,7 +205,7 @@ export default function AssessmentAssignPage() {
               disabled={selected.size === 0 || assignMutation.isPending}
               onClick={() => assignMutation.mutate()}
             >
-              {assignMutation.isPending ? 'Assigning...' : `Assign Selected (${selected.size})`}
+              {assignMutation.isPending ? 'Assigning...' : `Assign & Send Invite (${selected.size})`}
             </Button>
           </div>
         </CardContent>
@@ -150,7 +222,10 @@ export default function AssessmentAssignPage() {
                 <div className="min-w-0">
                   <p className="font-medium">{a.candidate.firstName} {a.candidate.lastName}</p>
                   <p className="text-xs text-muted-foreground">
-                    Assigned {new Date(a.assignedAt).toLocaleString()}
+                    Assigned {new Date(a.assignedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                    {(a as any).expiresAt && (
+                      <> · Expires {new Date((a as any).expiresAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</>
+                    )}
                   </p>
                   {a.secureToken && (
                     <p className="text-xs text-[#FF6B00] break-all mt-1">

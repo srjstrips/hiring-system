@@ -138,6 +138,7 @@ export const ReorderQuestionsSchema = z.object({
 
 export const AssignCandidatesSchema = z.object({
   applicationIds: z.array(z.string().uuid()).min(1, 'Select at least one candidate'),
+  availableFrom: z.string().optional().nullable(),
   expiresAt: z.string().optional().nullable(),
 });
 

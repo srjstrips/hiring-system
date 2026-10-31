@@ -182,7 +182,8 @@ class AssessmentsService {
         assessmentId,
         data.applicationIds,
         assignedById,
-        data.expiresAt
+        data.expiresAt,
+        (data as any).availableFrom
       );
 
       const { emailService } = await import('@/services/email.service');
