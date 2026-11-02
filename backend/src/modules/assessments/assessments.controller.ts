@@ -141,10 +141,15 @@ class AssessmentsController {
       const assessment = await assessmentsService.getById(id);
       const name = (assessment as { name?: string })?.name ?? '';
       const mode = (assessment as { mode?: string })?.mode ?? '';
+      const assessmentType = (assessment as { assessmentType?: string })?.assessmentType ?? '';
       const isWorkStyle = name.includes('Work Style');
-      // Route all PERSONALITY-mode assessments (TalentSignal, SRJ Talent Acquisition, etc.)
-      // to the HEXACO personality report generator, not the phase-2 trait report.
-      const isPersonality = mode === 'PERSONALITY' || name.includes('TalentSignal');
+      // Route PERSONALITY-mode assessments, any assessment with PERSONALITY type,
+      // and name-matched ones (TalentSignal, SRJ Talent) to the HEXACO report generator.
+      const isPersonality =
+        mode === 'PERSONALITY' ||
+        assessmentType === 'PERSONALITY' ||
+        name.includes('TalentSignal') ||
+        name.toLowerCase().includes('srj talent');
 
       let buffer: Buffer;
       let filename: string;
@@ -183,8 +188,13 @@ class AssessmentsController {
       const assessment = await assessmentsService.getById(id);
       const name = (assessment as { name?: string })?.name ?? '';
       const mode = (assessment as { mode?: string })?.mode ?? '';
+      const assessmentType2 = (assessment as { assessmentType?: string })?.assessmentType ?? '';
       const isWorkStyle = name.includes('Work Style');
-      const isPersonality = mode === 'PERSONALITY' || name.includes('TalentSignal');
+      const isPersonality =
+        mode === 'PERSONALITY' ||
+        assessmentType2 === 'PERSONALITY' ||
+        name.includes('TalentSignal') ||
+        name.toLowerCase().includes('srj talent');
 
       const { prisma } = await import('../../config/database');
       const assignment = await prisma.assessmentAssignment.findFirst({

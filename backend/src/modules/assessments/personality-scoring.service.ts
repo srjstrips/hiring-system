@@ -271,7 +271,13 @@ export async function scorePersonalityAttempt(attemptId: string): Promise<void> 
   });
 
   if (!attempt) throw new Error('Attempt not found');
-  if (attempt.assessment.mode !== 'PERSONALITY') return;
+  const a = attempt.assessment as { mode?: string; assessmentType?: string; name?: string };
+  const isPersonalityAssessment =
+    a.mode === 'PERSONALITY' ||
+    a.assessmentType === 'PERSONALITY' ||
+    (a.name ?? '').toLowerCase().includes('srj talent') ||
+    (a.name ?? '').includes('TalentSignal');
+  if (!isPersonalityAssessment) return;
 
   // ── 1. Gather raw scores ──────────────────────────────────────────────────
 
