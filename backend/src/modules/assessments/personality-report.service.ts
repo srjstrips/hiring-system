@@ -749,7 +749,6 @@ export async function generatePersonalityReportPdf(
     const [mr,mg,mb] = hex2rgb(meta.color);
     doc.rect(barX, y, fw, barH).fillColor([mr,mg,mb] as unknown as string).fill();
 
-    fill(doc, { color: meta.color } as unknown as string);
     doc.fillColor([mr,mg,mb] as unknown as string)
       .font('Helvetica-Bold').fontSize(8)
       .text(`${t} — ${tLabel(t)}`, barX + barW + 6, y + 1, { width: 90 });
