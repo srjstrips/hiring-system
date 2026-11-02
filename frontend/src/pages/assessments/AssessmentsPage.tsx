@@ -273,31 +273,16 @@ export default function AssessmentsPage() {
         loading={archiveMutation.isPending}
       />
 
-      {/* Delete dialog */}
-      {deleteTarget && (() => {
-        const assignCount = deleteTarget.candidatesAssigned ?? deleteTarget._count?.assignments ?? 0;
-        const completedCount = deleteTarget.candidatesCompleted ?? 0;
-        const hasAssignments = assignCount > 0;
-        return (
-          <ConfirmDialog
-            open
-            onClose={() => { if (!deleteMutation.isPending) setDeleteTarget(null); }}
-            title={`Delete "${deleteTarget.name}"?`}
-            description={
-              hasAssignments
-                ? `This assessment has ${assignCount} candidate assignment(s)${completedCount > 0 ? ` and ${completedCount} completed submission(s)` : ''}.\n\n${completedCount > 0 ? 'Assessments with completed submissions cannot be deleted. Use "Close" to deactivate it instead.' : 'Assignments with no completed submissions will be removed. This action cannot be undone.'}`
-                : 'This will permanently delete the assessment, all its questions, and options. This action cannot be undone.'
-            }
-            confirmLabel={completedCount > 0 ? 'OK' : 'Delete permanently'}
-            variant={completedCount > 0 ? 'default' : 'destructive'}
-            onConfirm={() => {
-              if (completedCount > 0) { setDeleteTarget(null); return; }
-              deleteMutation.mutate(deleteTarget.id);
-            }}
-            loading={deleteMutation.isPending}
-          />
-        );
-      })()}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => { if (!deleteMutation.isPending) setDeleteTarget(null); }}
+        title="Delete assessment?"
+        description={`Are you sure you want to permanently delete "${deleteTarget?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+        loading={deleteMutation.isPending}
+      />
     </div>
   );
 }
