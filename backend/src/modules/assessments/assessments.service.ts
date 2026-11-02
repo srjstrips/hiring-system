@@ -69,13 +69,7 @@ class AssessmentsService {
     } catch (e: any) {
       if (e?.message === 'HAS_ATTEMPTS') {
         throw new AppError(
-          'This assessment has candidate attempts and cannot be permanently deleted. Use "Close" to deactivate it instead.',
-          409
-        );
-      }
-      if (e?.message === 'HAS_ASSIGNMENTS') {
-        throw new AppError(
-          'This assessment has candidates assigned and cannot be permanently deleted. Use "Close" to deactivate it instead.',
+          'This assessment has completed candidate submissions and cannot be permanently deleted. Use "Close" to deactivate it instead.',
           409
         );
       }

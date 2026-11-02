@@ -273,24 +273,25 @@ export default function AssessmentsPage() {
         loading={archiveMutation.isPending}
       />
 
-      {/* Delete dialog — shows warning when candidates exist */}
+      {/* Delete dialog */}
       {deleteTarget && (() => {
-        const hasRecords = (deleteTarget.candidatesAssigned ?? deleteTarget._count?.assignments ?? 0) > 0
-          || (deleteTarget.candidatesCompleted ?? 0) > 0;
+        const assignCount = deleteTarget.candidatesAssigned ?? deleteTarget._count?.assignments ?? 0;
+        const completedCount = deleteTarget.candidatesCompleted ?? 0;
+        const hasAssignments = assignCount > 0;
         return (
           <ConfirmDialog
             open
             onClose={() => { if (!deleteMutation.isPending) setDeleteTarget(null); }}
-            title={hasRecords ? 'Cannot permanently delete' : `Delete "${deleteTarget.name}"?`}
+            title={`Delete "${deleteTarget.name}"?`}
             description={
-              hasRecords
-                ? `"${deleteTarget.name}" has ${deleteTarget.candidatesAssigned ?? deleteTarget._count?.assignments ?? 0} candidate assignment(s) and cannot be permanently deleted.\n\nUse "Close" to deactivate it, or "Deactivate" to set it back to Draft.`
+              hasAssignments
+                ? `This assessment has ${assignCount} candidate assignment(s)${completedCount > 0 ? ` and ${completedCount} completed submission(s)` : ''}.\n\n${completedCount > 0 ? 'Assessments with completed submissions cannot be deleted. Use "Close" to deactivate it instead.' : 'Assignments with no completed submissions will be removed. This action cannot be undone.'}`
                 : 'This will permanently delete the assessment, all its questions, and options. This action cannot be undone.'
             }
-            confirmLabel={hasRecords ? 'OK' : 'Delete permanently'}
-            variant={hasRecords ? 'default' : 'destructive'}
+            confirmLabel={completedCount > 0 ? 'OK' : 'Delete permanently'}
+            variant={completedCount > 0 ? 'default' : 'destructive'}
             onConfirm={() => {
-              if (hasRecords) { setDeleteTarget(null); return; }
+              if (completedCount > 0) { setDeleteTarget(null); return; }
               deleteMutation.mutate(deleteTarget.id);
             }}
             loading={deleteMutation.isPending}

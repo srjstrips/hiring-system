@@ -243,16 +243,15 @@ export class AssessmentsRepository {
   }
 
   async hardDelete(id: string) {
-    const attemptCount = await prisma.assessmentAttempt.count({ where: { assessmentId: id } });
-    if (attemptCount > 0) {
+    const submittedAttemptCount = await prisma.assessmentAttempt.count({
+      where: { assessmentId: id, submittedAt: { not: null } },
+    });
+    if (submittedAttemptCount > 0) {
       throw new Error('HAS_ATTEMPTS');
     }
-    const assignmentCount = await prisma.assessmentAssignment.count({ where: { assessmentId: id } });
-    if (assignmentCount > 0) {
-      throw new Error('HAS_ASSIGNMENTS');
-    }
-    // Prisma cascades: AssessmentQuestion, AssessmentOption, AssessmentTrait, AssessmentTraitScore
-    // AssessmentAttempt has no DB cascade from Assessment, but count=0 so safe to delete
+    // Delete unsubmitted attempts and assignments (no completed data to protect)
+    await prisma.assessmentAttempt.deleteMany({ where: { assessmentId: id } });
+    await prisma.assessmentAssignment.deleteMany({ where: { assessmentId: id } });
     await prisma.assessment.delete({ where: { id } });
   }
 
