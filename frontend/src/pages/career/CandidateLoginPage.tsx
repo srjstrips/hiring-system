@@ -42,7 +42,7 @@ export default function CandidateLoginPage() {
   const [searchParams] = useSearchParams();
   const redirect = searchParams.get('redirect');
 
-  const { login: hrLogin, isAuthenticated: hrAuthenticated, isLoading: hrLoading } = useAuth();
+  const { login: hrLogin } = useAuth();
   const {
     login: candidateLogin,
     isAuthenticated: candidateAuthenticated,
