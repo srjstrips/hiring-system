@@ -81,16 +81,15 @@ export default function CandidateLoginPage() {
     ? 'Sign in to track your applications\nand explore opportunities'
     : 'Sign in to your account';
 
+  // On the careers login page, only auto-redirect when the CANDIDATE is already
+  // authenticated. An HR user may also be logged in (separate auth context) but
+  // that should NOT bypass the careers login form — the two sessions are independent.
   useEffect(() => {
-    if (candidateLoading || hrLoading) return;
+    if (candidateLoading) return;
     if (candidateAuthenticated) {
       navigate(candidateDestination(redirect), { replace: true });
-      return;
     }
-    if (hrAuthenticated) {
-      navigate(hrDestination(redirect), { replace: true });
-    }
-  }, [candidateAuthenticated, candidateLoading, hrAuthenticated, hrLoading, navigate, redirect]);
+  }, [candidateAuthenticated, candidateLoading, navigate, redirect]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
