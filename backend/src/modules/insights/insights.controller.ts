@@ -497,7 +497,7 @@ export async function backedOut(req: AuthRequest, res: Response, next: NextFunct
 
     const beforeInterview = ['APPLIED', 'SCREENING', 'PERSONALITY_ASSESSMENT', 'DEPT_WORKING_TEST', 'SHORTLISTED'];
     const afterInterview = ['HOD_HR_INTERVIEW', 'DIRECTOR_INTERVIEW', 'DOCUMENT_VERIFICATION', 'OFFER_LETTER', 'OFFER_ACCEPTED', 'INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2', 'HR_ROUND', 'SELECTED'];
-    const afterOffer = ['OFFER_SENT', 'OFFER_ACCEPTED'];
+    const afterOffer = ['OFFER_LETTER', 'OFFER_ACCEPTED', 'OFFER_SENT'];
 
     const summary = {
       totalBackedOut: rows.length,
@@ -545,9 +545,9 @@ export async function rejected(req: AuthRequest, res: Response, next: NextFuncti
       : [];
     const creatorMap = new Map(creators.map((u) => [u.id, `${u.firstName} ${u.lastName}`]));
 
-    const screening = ['APPLIED', 'SCREENING'];
-    const interview = ['SHORTLISTED', 'INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2'];
-    const hrRound = ['HR_ROUND', 'SELECTED'];
+    const screening = ['APPLIED', 'SCREENING', 'PERSONALITY_ASSESSMENT', 'DEPT_WORKING_TEST'];
+    const interview = ['HOD_HR_INTERVIEW', 'DIRECTOR_INTERVIEW', 'SHORTLISTED', 'INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2'];
+    const hrRound = ['DOCUMENT_VERIFICATION', 'HR_ROUND', 'SELECTED'];
 
     const rows = apps
       .map((a) => {
