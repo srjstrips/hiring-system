@@ -494,14 +494,12 @@ export default function ApplicationDetailPage() {
                   </div>
                   {assignmentIds && (
                     <div className="flex gap-2">
-                      <a
-                        href={`/assessments/${assignmentIds.assessmentId}/results/${assignmentIds.assignmentId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <Link
+                        to={`/assessments/${assignmentIds.assessmentId}/results/${assignmentIds.assignmentId}`}
                         className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#E2E8F0] bg-white py-2 text-sm font-medium text-[#111827] hover:bg-[#FFF7ED] hover:text-[#FF6B00] transition-colors"
                       >
                         <FileText className="h-4 w-4" /> View Result
-                      </a>
+                      </Link>
                       <button
                         type="button"
                         className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#FF6B00] py-2 text-sm font-medium text-white hover:bg-[#e86000] transition-colors"
