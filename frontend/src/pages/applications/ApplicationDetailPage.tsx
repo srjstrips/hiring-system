@@ -30,6 +30,7 @@ function defaultInterviewDateTime() {
 }
 
 function interviewRoundFromStatus(status: string) {
+  if (status === 'DIRECTOR_INTERVIEW') return 2;
   if (status === 'INTERVIEW_ROUND_2') return 2;
   if (status === 'HR_ROUND') return 3;
   return 1;
