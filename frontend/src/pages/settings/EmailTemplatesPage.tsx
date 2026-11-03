@@ -15,20 +15,33 @@ const PLACEHOLDERS = [
 
 /** Category = pipeline stage → email auto-sends when candidate is moved to that stage. */
 const STAGE_CATEGORIES = [
-  { value: 'APPLIED', label: 'Applied' },
-  { value: 'SCREENING', label: 'Screening (use {{assessment_link}})' },
+  // ── Main pipeline ──────────────────────────────────────────────────────────
+  { value: 'APPLIED',                label: 'Applied' },
+  { value: 'SCREENING',              label: 'Screening' },
   { value: 'PERSONALITY_ASSESSMENT', label: 'Personality Assessment (use {{assessment_link}})' },
-  { value: 'SHORTLISTED', label: 'Shortlisted' },
-  { value: 'INTERVIEW_ROUND_1', label: 'Interview Round 1' },
-  { value: 'INTERVIEW_ROUND_2', label: 'Interview Round 2' },
-  { value: 'HR_ROUND', label: 'HR Round' },
-  { value: 'SELECTED', label: 'Selected' },
-  { value: 'OFFER_SENT', label: 'Offer Sent' },
-  { value: 'OFFER_ACCEPTED', label: 'Offer Accepted' },
-  { value: 'JOINED', label: 'Joined' },
-  { value: 'REJECTED', label: 'Rejected' },
-  { value: 'ON_HOLD', label: 'On Hold' },
-  { value: 'GENERAL', label: 'General (manual send only)' },
+  { value: 'DEPT_WORKING_TEST',      label: 'Department Working Test (use {{assessment_link}})' },
+  { value: 'HOD_HR_INTERVIEW',       label: 'HOD + HR Interview (use {{meeting_link}}, {{interview_date}})' },
+  { value: 'DIRECTOR_INTERVIEW',     label: 'Director Interview (use {{meeting_link}}, {{interview_date}})' },
+  { value: 'SHORTLISTED',            label: 'Shortlisted' },
+  { value: 'DOCUMENT_VERIFICATION',  label: 'Document Verification' },
+  { value: 'OFFER_LETTER',           label: 'Offer Letter' },
+  { value: 'OFFER_ACCEPTED',         label: 'Offer Accepted' },
+  { value: 'VERIFICATION_COMPLETED', label: 'Verification Completed' },
+  { value: 'JOINING',                label: 'Joining' },
+  // ── Side-exit / terminal stages ────────────────────────────────────────────
+  { value: 'OFFER_DECLINED',         label: 'Offer Declined' },
+  { value: 'VERIFICATION_FAILED',    label: 'Verification Failed' },
+  { value: 'DID_NOT_JOIN',           label: 'Did Not Join' },
+  { value: 'POSITION_CLOSED',        label: 'Position Closed' },
+  { value: 'CANDIDATE_UNRESPONSIVE', label: 'Candidate Unresponsive' },
+  { value: 'ON_HOLD',                label: 'On Hold' },
+  { value: 'REJECTED',               label: 'Rejected' },
+  { value: 'WITHDRAWN',              label: 'Withdrawn' },
+  // ── Legacy / manual ────────────────────────────────────────────────────────
+  { value: 'INTERVIEW_ROUND_1',      label: 'Interview Round 1 (legacy)' },
+  { value: 'INTERVIEW_ROUND_2',      label: 'Interview Round 2 (legacy)' },
+  { value: 'HR_ROUND',               label: 'HR Round (legacy)' },
+  { value: 'GENERAL',                label: 'General (manual send only)' },
 ];
 
 const emptyForm = { name: '', subject: '', body: '', category: '', description: '' };
