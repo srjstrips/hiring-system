@@ -129,8 +129,14 @@ class AssessmentsController {
   async getAssignmentResultDetail(req: AuthRequest, res: Response) {
     const id = req.params['id'] as string;
     const assignmentId = req.params['assignmentId'] as string;
-    const data = await assessmentsService.getAssignmentResultDetail(id, assignmentId);
-    res.json({ success: true, data });
+    try {
+      const data = await assessmentsService.getAssignmentResultDetail(id, assignmentId);
+      res.json({ success: true, data });
+    } catch (e: any) {
+      console.error('[result] getAssignmentResultDetail error:', e?.message, e?.stack);
+      const status = e?.statusCode ?? 500;
+      res.status(status).json({ success: false, message: e?.message ?? 'Failed to load result' });
+    }
   }
 
   async downloadReport(req: AuthRequest, res: Response) {
