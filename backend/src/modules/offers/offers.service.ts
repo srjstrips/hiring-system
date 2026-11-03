@@ -68,7 +68,8 @@ class OffersService {
   async create(dto: any, createdById: string) {
     const app = await prisma.application.findUnique({ where: { id: dto.applicationId } });
     if (!app) throw new AppError('Application not found', 404);
-    if (app.status !== 'SELECTED') throw new AppError('Candidate must be in SELECTED stage to create an offer', 400);
+    const OFFER_ELIGIBLE = ['SHORTLISTED', 'DOCUMENT_VERIFICATION', 'SELECTED'];
+    if (!OFFER_ELIGIBLE.includes(app.status)) throw new AppError('Candidate must be Shortlisted or in Document Verification to create an offer', 400);
 
     const existing = await prisma.offer.findUnique({ where: { applicationId: dto.applicationId } });
     if (existing) throw new AppError('An offer already exists for this application', 409);
@@ -143,7 +144,7 @@ class OffersService {
       where: { id: offer.applicationId },
       include: { timeline: { orderBy: { createdAt: 'asc' }, select: { toStatus: true } } },
     });
-    assertForwardTransition(app.status, targetStatus, app.timeline);
+    await assertForwardTransition(app.status, targetStatus, app.timeline);
 
     const status = action === 'accept' ? 'ACCEPTED' : 'REJECTED';
     const updated = await prisma.offer.update({

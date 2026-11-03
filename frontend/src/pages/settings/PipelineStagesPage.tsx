@@ -361,7 +361,7 @@ export default function PipelineStagesPage() {
 
       <p className="text-xs text-[#94A3B8]">
         <Lock className="mr-1 inline h-3 w-3" />
-        Core stages (APPLIED, SELECTED, OFFER_SENT, OFFER_ACCEPTED, JOINED, REJECTED, WITHDRAWN, ON_HOLD) cannot be deleted.
+        Fixed core stages (APPLIED, OFFER_LETTER, OFFER_ACCEPTED, JOINING, REJECTED, WITHDRAWN, ON_HOLD, etc.) cannot be deleted.
         You can rename them or change their color.
       </p>
     </div>

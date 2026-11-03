@@ -25,7 +25,7 @@ export async function getSummary(req: AuthRequest, res: Response, next: NextFunc
     const reqWhere = applyRequisitionScope({ deletedAt: null, approvalStatus: 'PENDING' }, scope);
 
     const joinedApps = await prisma.application.findMany({
-      where: applyApplicationScope({ status: 'JOINED' }, scope),
+      where: applyApplicationScope({ status: { in: ['JOINING', 'JOINED'] } }, scope),
       select: { appliedAt: true, updatedAt: true },
       take: 200,
     });

@@ -42,16 +42,24 @@ function inDateRange(d: Date | null | undefined, from?: Date, to?: Date) {
 const IN_PROGRESS_STATUSES = [
   'APPLIED',
   'SCREENING',
+  'PERSONALITY_ASSESSMENT',
+  'DEPT_WORKING_TEST',
+  'HOD_HR_INTERVIEW',
+  'DIRECTOR_INTERVIEW',
   'SHORTLISTED',
+  'DOCUMENT_VERIFICATION',
+  'OFFER_LETTER',
+  'OFFER_ACCEPTED',
+  'VERIFICATION_COMPLETED',
+  // Legacy keys kept for old data
   'INTERVIEW_ROUND_1',
   'INTERVIEW_ROUND_2',
   'HR_ROUND',
   'SELECTED',
   'OFFER_SENT',
-  'OFFER_ACCEPTED',
 ] as const;
 
-const INTERVIEW_STATUSES = ['INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2', 'HR_ROUND'] as const;
+const INTERVIEW_STATUSES = ['HOD_HR_INTERVIEW', 'DIRECTOR_INTERVIEW', 'INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2', 'HR_ROUND'] as const;
 
 const applicationInsightInclude = {
   candidate: { select: { id: true, firstName: true, lastName: true, email: true } },
@@ -106,7 +114,7 @@ export async function hiringOverview(req: AuthRequest, res: Response, next: Next
 
     for (const a of apps) {
       bump(monthKey(a.appliedAt), 'applications');
-      if (a.status === 'JOINED') bump(monthKey(a.appliedAt), 'joining');
+      if (a.status === 'JOINING' || a.status === 'JOINED') bump(monthKey(a.appliedAt), 'joining');
     }
     for (const i of interviews) bump(monthKey(i.scheduledAt), 'interviews');
     for (const o of offers) bump(monthKey(o.createdAt), 'offers');
@@ -121,7 +129,7 @@ export async function byDepartment(req: AuthRequest, res: Response, next: NextFu
   try {
     const scope = await getUserScope(req.user!.id, req.user!.roleName);
     const apps = await prisma.application.findMany({
-      where: applyApplicationScope({ status: { in: ['JOINED', 'OFFER_ACCEPTED', 'SELECTED'] } }, scope),
+      where: applyApplicationScope({ status: { in: ['JOINING', 'JOINED', 'OFFER_ACCEPTED', 'SHORTLISTED', 'SELECTED'] } }, scope),
       include: { job: { include: { department: true } } },
     });
     const map = new Map<string, { name: string; count: number }>();
@@ -140,7 +148,7 @@ export async function byPosition(req: AuthRequest, res: Response, next: NextFunc
   try {
     const scope = await getUserScope(req.user!.id, req.user!.roleName);
     const apps = await prisma.application.findMany({
-      where: applyApplicationScope({ status: { in: ['JOINED', 'OFFER_ACCEPTED', 'SELECTED'] } }, scope),
+      where: applyApplicationScope({ status: { in: ['JOINING', 'JOINED', 'OFFER_ACCEPTED', 'SHORTLISTED', 'SELECTED'] } }, scope),
       include: { job: true },
     });
     const map = new Map<string, { name: string; count: number }>();
@@ -305,7 +313,7 @@ export async function timeToHire(req: AuthRequest, res: Response, next: NextFunc
   try {
     const scope = await getUserScope(req.user!.id, req.user!.roleName);
     const apps = await prisma.application.findMany({
-      where: applyApplicationScope({ status: { in: ['JOINED', 'OFFER_ACCEPTED', 'SELECTED'] } }, scope),
+      where: applyApplicationScope({ status: { in: ['JOINING', 'JOINED', 'OFFER_ACCEPTED', 'OFFER_LETTER', 'SHORTLISTED', 'SELECTED'] } }, scope),
       include: {
         job: { include: { department: true } },
         ownedBy: { select: { id: true, firstName: true, lastName: true } },
@@ -340,7 +348,7 @@ export async function timeToHire(req: AuthRequest, res: Response, next: NextFunc
       if (app.offer?.sentAt && app.offer.acceptedAt) {
         offerAcceptDays.push(daysBetween(app.offer.sentAt, app.offer.acceptedAt));
       }
-      if (app.offer?.acceptedAt && app.status === 'JOINED') {
+      if (app.offer?.acceptedAt && (app.status === 'JOINING' || app.status === 'JOINED')) {
         joiningDays.push(daysBetween(app.offer.acceptedAt, end));
       }
 
@@ -428,8 +436,8 @@ export async function inProgress(req: AuthRequest, res: Response, next: NextFunc
       screening: apps.filter((a) => a.status === 'SCREENING').length,
       shortlisted: apps.filter((a) => a.status === 'SHORTLISTED').length,
       interview: apps.filter((a) => (INTERVIEW_STATUSES as readonly string[]).includes(a.status)).length,
-      selected: apps.filter((a) => a.status === 'SELECTED').length,
-      offerSent: apps.filter((a) => a.status === 'OFFER_SENT' || a.status === 'OFFER_ACCEPTED').length,
+      selected: apps.filter((a) => ['SHORTLISTED', 'DOCUMENT_VERIFICATION', 'SELECTED'].includes(a.status)).length,
+      offerSent: apps.filter((a) => ['OFFER_LETTER', 'OFFER_ACCEPTED', 'OFFER_SENT'].includes(a.status)).length,
     };
 
     const data = apps.map((a) => ({
@@ -487,8 +495,8 @@ export async function backedOut(req: AuthRequest, res: Response, next: NextFunct
       })
       .filter((r) => inDateRange(r.backedOutDate, dateFrom, dateTo));
 
-    const beforeInterview = ['APPLIED', 'SCREENING', 'SHORTLISTED'];
-    const afterInterview = ['INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2', 'HR_ROUND', 'SELECTED'];
+    const beforeInterview = ['APPLIED', 'SCREENING', 'PERSONALITY_ASSESSMENT', 'DEPT_WORKING_TEST', 'SHORTLISTED'];
+    const afterInterview = ['HOD_HR_INTERVIEW', 'DIRECTOR_INTERVIEW', 'DOCUMENT_VERIFICATION', 'OFFER_LETTER', 'OFFER_ACCEPTED', 'INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2', 'HR_ROUND', 'SELECTED'];
     const afterOffer = ['OFFER_SENT', 'OFFER_ACCEPTED'];
 
     const summary = {

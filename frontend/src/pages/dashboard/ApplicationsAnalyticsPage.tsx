@@ -14,9 +14,12 @@ import { exportToCsv } from '@/utils/exportCsv';
 import { format } from 'date-fns';
 
 const STATUS_OPTIONS = [
-  'APPLIED', 'SCREENING', 'SHORTLISTED', 'INTERVIEW_ROUND_1', 'INTERVIEW_ROUND_2',
-  'HR_ROUND', 'SELECTED', 'OFFER_SENT', 'OFFER_ACCEPTED', 'JOINED', 'REJECTED', 'WITHDRAWN', 'ON_HOLD',
-].map((s) => ({ value: s, label: s.replace(/_/g, ' ') }));
+  'APPLIED', 'SCREENING', 'PERSONALITY_ASSESSMENT', 'DEPT_WORKING_TEST',
+  'HOD_HR_INTERVIEW', 'DIRECTOR_INTERVIEW', 'SHORTLISTED', 'DOCUMENT_VERIFICATION',
+  'OFFER_LETTER', 'OFFER_ACCEPTED', 'VERIFICATION_COMPLETED', 'JOINING',
+  'ON_HOLD', 'REJECTED', 'WITHDRAWN', 'OFFER_DECLINED', 'DID_NOT_JOIN',
+  'VERIFICATION_FAILED', 'POSITION_CLOSED', 'CANDIDATE_UNRESPONSIVE',
+].map((s) => ({ value: s, label: s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) }));
 
 export default function ApplicationsAnalyticsPage() {
   const [page, setPage] = useState(1);
@@ -74,7 +77,7 @@ export default function ApplicationsAnalyticsPage() {
           { label: 'Screening', value: summary.SCREENING ?? 0, icon: Filter, color: 'text-[#F97316]', bg: 'bg-[#FFF7ED]' },
           { label: 'Shortlisted', value: summary.SHORTLISTED ?? 0, icon: Eye, color: 'text-violet-600', bg: 'bg-violet-50' },
           { label: 'Interviewed', value: summary.interviewed ?? 0, icon: Users, color: 'text-orange-600', bg: 'bg-orange-50' },
-          { label: 'Selected', value: summary.SELECTED ?? 0, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
+          { label: 'Shortlisted', value: summary.SHORTLISTED ?? 0, icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
           { label: 'Rejected', value: summary.REJECTED ?? 0, icon: XCircle, color: 'text-red-600', bg: 'bg-red-50' },
         ]}
       />

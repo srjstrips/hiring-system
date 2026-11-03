@@ -146,7 +146,7 @@ class JobsService {
         applications: job.applications.length,
         shortlisted: job.applications.filter((a) => a.status === 'SHORTLISTED').length,
         selected: job.applications.filter((a) =>
-          ['SELECTED', 'OFFER_SENT', 'OFFER_ACCEPTED', 'JOINED'].includes(a.status)
+          ['SHORTLISTED', 'DOCUMENT_VERIFICATION', 'OFFER_LETTER', 'OFFER_ACCEPTED', 'VERIFICATION_COMPLETED', 'JOINING', 'SELECTED', 'OFFER_SENT', 'JOINED'].includes(a.status)
         ).length,
         rejected: job.applications.filter((a) => a.status === 'REJECTED').length,
       };

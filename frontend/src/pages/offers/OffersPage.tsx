@@ -48,7 +48,7 @@ export default function OffersPage() {
 
   const { data: appsData } = useQuery({
     queryKey: ['applications-selected'],
-    queryFn: () => applicationsApi.getAll({ status: 'SELECTED', limit: 100 }).then((r) => r.data.data),
+    queryFn: () => applicationsApi.getAll({ status: 'SHORTLISTED', limit: 100 }).then((r) => r.data.data),
     enabled: showCreate,
   });
 
@@ -142,7 +142,7 @@ export default function OffersPage() {
           <CardContent>
             <form onSubmit={handleCreate} className="space-y-5">
               <div>
-                <label className={labelClass}>Select Candidate (SELECTED stage only) *</label>
+                <label className={labelClass}>Select Candidate (Shortlisted stage) *</label>
                 <select className={selectClass} value={form.applicationId} onChange={set('applicationId')} required>
                   <option value="">Choose application...</option>
                   {appsData?.map((a) => (
@@ -153,7 +153,7 @@ export default function OffersPage() {
                 </select>
                 {appsData?.length === 0 && (
                   <p className="mt-1.5 text-xs text-[#64748B]">
-                    No candidates in SELECTED stage. Move a candidate to SELECTED first.
+                    No candidates in Shortlisted stage. Move a candidate to Shortlisted first.
                   </p>
                 )}
               </div>
@@ -287,7 +287,7 @@ export default function OffersPage() {
               <Gift className="h-6 w-6 text-[#FF6B00]" />
             </div>
             <p className="font-semibold text-[#111827]">No offers yet</p>
-            <p className="mt-1 text-sm text-[#64748B]">Create an offer for a candidate in SELECTED stage.</p>
+            <p className="mt-1 text-sm text-[#64748B]">Create an offer for a shortlisted candidate.</p>
             <Button
               className="mt-5 h-10 rounded-xl bg-[#FF6B00] text-white hover:bg-[#e86000]"
               onClick={() => setShowCreate(true)}

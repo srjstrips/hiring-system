@@ -377,6 +377,9 @@ class ApplicationsService {
     }
     summary.new = summary.APPLIED ?? 0;
     summary.interviewed =
+      (summary.HOD_HR_INTERVIEW ?? 0) +
+      (summary.DIRECTOR_INTERVIEW ?? 0) +
+      // Legacy stage keys kept for backwards compat
       (summary.INTERVIEW_ROUND_1 ?? 0) +
       (summary.INTERVIEW_ROUND_2 ?? 0) +
       (summary.HR_ROUND ?? 0);
