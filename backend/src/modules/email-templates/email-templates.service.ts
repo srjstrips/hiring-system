@@ -171,10 +171,10 @@ class EmailTemplatesService {
   async sendForApplication(applicationId: string, dto: SendEmailDto, sentByName: string) {
     const template = await this.getById(dto.templateId);
 
-    // For assessment-stage templates, ensure an assignment exists so
+    // For the Personality Assessment stage, ensure an assignment exists so
     // {{assessment_link}} resolves to a real URL instead of empty string.
-    const ASSESSMENT_STAGES = new Set(['PERSONALITY_ASSESSMENT', 'DEPT_WORKING_TEST', 'SCREENING']);
-    if (ASSESSMENT_STAGES.has(template.category ?? '')) {
+    // DEPT_WORKING_TEST is excluded: its assessment is assigned separately by HR.
+    if (template.category === 'PERSONALITY_ASSESSMENT') {
       try {
         const { issueAssessmentLinkForApplication } = await import('../applications/applications.service');
         await issueAssessmentLinkForApplication(applicationId, dto.issuedById ?? '');

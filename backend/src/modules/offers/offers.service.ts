@@ -104,26 +104,33 @@ class OffersService {
       where: { id: offer.applicationId },
       include: { timeline: { orderBy: { createdAt: 'asc' }, select: { toStatus: true } } },
     });
-    assertForwardTransition(app.status, 'OFFER_SENT', app.timeline);
+    await assertForwardTransition(app.status, 'OFFER_LETTER', app.timeline);
 
     const updated = await prisma.offer.update({
       where: { id },
       data: { status: 'SENT', sentAt: new Date() },
       include: offerInclude,
     });
-    // Also move application to OFFER_SENT
+    // Move application to OFFER_LETTER stage
     await prisma.$transaction([
-      prisma.application.update({ where: { id: offer.applicationId }, data: { status: 'OFFER_SENT' } }),
+      prisma.application.update({ where: { id: offer.applicationId }, data: { status: 'OFFER_LETTER' } }),
       prisma.applicationTimeline.create({
         data: {
           applicationId: offer.applicationId,
           fromStatus: app.status,
-          toStatus: 'OFFER_SENT',
+          toStatus: 'OFFER_LETTER',
           notes: 'Offer sent to candidate',
           createdById: sentById,
         },
       }),
     ]);
+    // Auto-email candidate using OFFER_LETTER template if configured
+    const hrName = sentById
+      ? await prisma.user.findUnique({ where: { id: sentById }, select: { firstName: true, lastName: true } })
+          .then((u) => (u ? `${u.firstName} ${u.lastName}`.trim() : 'HR Team'))
+      : 'HR Team';
+    const emailTemplatesService = (await import('../email-templates/email-templates.service')).default;
+    void emailTemplatesService.sendForStageChange(offer.applicationId, 'OFFER_LETTER', hrName);
     return updated;
   }
 
@@ -131,7 +138,7 @@ class OffersService {
     const offer = await this.getById(id);
     if (offer.status !== 'SENT') throw new AppError('Offer must be SENT to accept/reject', 400);
 
-    const targetStatus = action === 'accept' ? 'OFFER_ACCEPTED' : 'REJECTED';
+    const targetStatus = action === 'accept' ? 'OFFER_ACCEPTED' : 'OFFER_DECLINED';
     const app = await prisma.application.findUniqueOrThrow({
       where: { id: offer.applicationId },
       include: { timeline: { orderBy: { createdAt: 'asc' }, select: { toStatus: true } } },
@@ -164,6 +171,16 @@ class OffersService {
         },
       }),
     ]);
+
+    // Auto-email candidate using stage-mapped template (OFFER_ACCEPTED or OFFER_DECLINED)
+    {
+      const hrName = respondedById
+        ? await prisma.user.findUnique({ where: { id: respondedById }, select: { firstName: true, lastName: true } })
+            .then((u) => (u ? `${u.firstName} ${u.lastName}`.trim() : 'HR Team'))
+        : 'HR Team';
+      const emailTemplatesService = (await import('../email-templates/email-templates.service')).default;
+      void emailTemplatesService.sendForStageChange(offer.applicationId, targetStatus, hrName);
+    }
 
     if (action === 'accept') {
       const acceptedApp = await prisma.application.findUnique({

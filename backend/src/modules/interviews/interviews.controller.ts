@@ -16,10 +16,12 @@ function buildInterviewCallUrl(token: string) {
   return `${env.FRONTEND_URL.replace(/\/$/, '')}/interview/call/${token}`;
 }
 
-const ROUND_TO_STATUS: Record<number, 'INTERVIEW_ROUND_1' | 'INTERVIEW_ROUND_2' | 'HR_ROUND'> = {
-  1: 'INTERVIEW_ROUND_1',
-  2: 'INTERVIEW_ROUND_2',
-  3: 'HR_ROUND',
+// Maps interview round number to the matching SRJ pipeline stage key.
+// Round 1 = HOD + HR Interview, Round 2+ = Director Interview.
+const ROUND_TO_STATUS: Record<number, string> = {
+  1: 'HOD_HR_INTERVIEW',
+  2: 'DIRECTOR_INTERVIEW',
+  3: 'DIRECTOR_INTERVIEW',
 };
 
 const interviewInclude = {

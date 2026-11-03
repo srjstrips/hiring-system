@@ -105,13 +105,29 @@ class CareerService {
       },
     });
 
-    await emailService.sendApplicationReceivedEmail({
-      email: candidate.email,
-      candidateName: `${candidate.firstName} ${candidate.lastName}`.trim(),
-      jobTitle: job.title,
-      department: job.department?.name,
-      location: [job.location?.city, job.location?.state].filter(Boolean).join(', ') || undefined,
-    });
+    // Try APPLIED stage template first; fall back to the branded hardcoded email.
+    try {
+      const emailTemplatesService = (await import('../email-templates/email-templates.service')).default;
+      const result = await emailTemplatesService.sendForStageChange(application.id, 'APPLIED', 'SRJ Careers');
+      if ((result as any).skipped) {
+        // No active APPLIED template — use hardcoded branded email
+        await emailService.sendApplicationReceivedEmail({
+          email: candidate.email,
+          candidateName: `${candidate.firstName} ${candidate.lastName}`.trim(),
+          jobTitle: job.title,
+          department: job.department?.name,
+          location: [job.location?.city, job.location?.state].filter(Boolean).join(', ') || undefined,
+        });
+      }
+    } catch {
+      await emailService.sendApplicationReceivedEmail({
+        email: candidate.email,
+        candidateName: `${candidate.firstName} ${candidate.lastName}`.trim(),
+        jobTitle: job.title,
+        department: job.department?.name,
+        location: [job.location?.city, job.location?.state].filter(Boolean).join(', ') || undefined,
+      });
+    }
     void candidateNotificationsService.notifyApplicationReceived(
       application.id,
       `${candidate.firstName} ${candidate.lastName}`.trim(),
