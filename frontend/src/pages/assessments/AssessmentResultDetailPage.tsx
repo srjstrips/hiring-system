@@ -96,7 +96,7 @@ function PersonalityProfileCard({ result }: { result: PersonalityResult }) {
     { label: 'Risk Appetite',         v: result.compRiskAppetite },
   ].filter((c) => c.v != null);
 
-  const topRoles = Object.entries(result.roleFitScores)
+  const topRoles = Object.entries(result.roleFitScores ?? {})
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5);
 
@@ -384,7 +384,7 @@ function GrowthAreasCard({ result }: { result: PersonalityResult }) {
 function HiringVerdictCard({ result, candidateName }: { result: PersonalityResult; candidateName: string }) {
   const { verdict, headline, reason, color, bgColor, borderColor } = deriveVerdict(result);
 
-  const topRole = Object.entries(result.roleFitScores).sort(([, a], [, b]) => b - a)[0];
+  const topRole = Object.entries(result.roleFitScores ?? {}).sort(([, a], [, b]) => b - a)[0];
   const bestRoleScore = topRole?.[1] ?? 0;
   const bestRoleName = topRole?.[0] ?? '—';
 

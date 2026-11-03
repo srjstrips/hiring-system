@@ -741,35 +741,40 @@ export class AssessmentsRepository {
     let phase2TraitScores: Array<{ traitName: string; averageScore: number; level: number; questionCount: number }> | null = null;
 
     if (latestCompleted) {
-      // Check Phase 2 trait scores first — if present, this is a custom trait assessment
-      const rows = await prisma.assessmentTraitScore.findMany({
-        where: { attemptId: latestCompleted.id },
-        orderBy: { traitName: 'asc' },
-      });
-      if (rows.length > 0) {
-        phase2TraitScores = rows.map((r) => ({
-          traitName: r.traitName,
-          averageScore: r.averageScore,
-          level: r.level,
-          questionCount: r.questionCount,
-        }));
-      } else {
-        // HEXACO / TalentSignal™ / Work Style
-        const raw = await prisma.assessmentPersonalityResult.findUnique({
+      try {
+        // Check Phase 2 trait scores first — if present, this is a custom trait assessment
+        const rows = await prisma.assessmentTraitScore.findMany({
           where: { attemptId: latestCompleted.id },
+          orderBy: { traitName: 'asc' },
         });
-        if (raw) {
-          const { generateInterviewProbes } = await import('./personality-scoring.service');
-          const probes = generateInterviewProbes(
-            raw.tH ?? 50,
-            raw.tES ?? 50,
-            raw.tX ?? 50,
-            raw.tC ?? 50,
-            raw.tO ?? 50,
-            (raw.derailerFlags as string[]) ?? [],
-          );
-          personalityResult = { ...raw, interviewProbes: probes };
+        if (rows.length > 0) {
+          phase2TraitScores = rows.map((r) => ({
+            traitName: r.traitName,
+            averageScore: r.averageScore,
+            level: r.level,
+            questionCount: r.questionCount,
+          }));
+        } else {
+          // HEXACO / TalentSignal™ / Work Style
+          const raw = await prisma.assessmentPersonalityResult.findUnique({
+            where: { attemptId: latestCompleted.id },
+          });
+          if (raw) {
+            const { generateInterviewProbes } = await import('./personality-scoring.service');
+            const probes = generateInterviewProbes(
+              raw.tH ?? 50,
+              raw.tES ?? 50,
+              raw.tX ?? 50,
+              raw.tC ?? 50,
+              raw.tO ?? 50,
+              (raw.derailerFlags as string[]) ?? [],
+            );
+            personalityResult = { ...raw, interviewProbes: probes };
+          }
         }
+      } catch (err) {
+        console.error('[result] Failed to load personality/trait scores for attempt', latestCompleted.id, err);
+        // Keep personalityResult and phase2TraitScores as null — page renders without score cards
       }
     }
 
