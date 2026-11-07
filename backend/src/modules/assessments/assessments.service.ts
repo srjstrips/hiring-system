@@ -64,17 +64,7 @@ class AssessmentsService {
 
   async permanentDelete(id: string) {
     await this.getById(id);
-    try {
-      await assessmentsRepository.hardDelete(id);
-    } catch (e: any) {
-      if (e?.message === 'HAS_ATTEMPTS') {
-        throw new AppError(
-          'This assessment has completed candidate submissions and cannot be permanently deleted. Use "Close" to deactivate it instead.',
-          409
-        );
-      }
-      throw e;
-    }
+    await assessmentsRepository.hardDelete(id);
   }
 
   async listQuestions(assessmentId: string) {

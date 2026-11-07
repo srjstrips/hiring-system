@@ -243,13 +243,7 @@ export class AssessmentsRepository {
   }
 
   async hardDelete(id: string) {
-    const submittedAttemptCount = await prisma.assessmentAttempt.count({
-      where: { assessmentId: id, submittedAt: { not: null } },
-    });
-    if (submittedAttemptCount > 0) {
-      throw new Error('HAS_ATTEMPTS');
-    }
-    // Delete unsubmitted attempts and assignments (no completed data to protect)
+    // Delete all related data before removing the assessment
     await prisma.assessmentAttempt.deleteMany({ where: { assessmentId: id } });
     await prisma.assessmentAssignment.deleteMany({ where: { assessmentId: id } });
     await prisma.assessment.delete({ where: { id } });
