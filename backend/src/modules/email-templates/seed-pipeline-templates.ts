@@ -18,25 +18,45 @@ const PORTAL   = 'https://careers.srjsteel.in';
 
 function css() {
   return `
-    body { margin:0; padding:0; background-color:#f4f5f7; font-family:Arial,Helvetica,sans-serif; color:#222; line-height:1.55; }
-    .ew  { width:100%; padding:25px 10px; box-sizing:border-box; }
-    .ec  { width:100%; max-width:680px; margin:0 auto; background:#fff; box-sizing:border-box; }
-    .lh  { background:#fff; text-align:center; padding:25px 20px; border-bottom:1px solid #eee; }
+    :root { color-scheme: light; }
+    body { margin:0; padding:0; background-color:#f4f5f7 !important; font-family:Arial,Helvetica,sans-serif; color:#222222; line-height:1.55; }
+    img  { border:0; outline:none; text-decoration:none; }
+    a    { color:${ORANGE}; }
+    .ew  { width:100%; padding:25px 10px; box-sizing:border-box; background-color:#f4f5f7 !important; }
+    .ec  { width:100%; max-width:680px; margin:0 auto; background-color:#ffffff !important; box-sizing:border-box; }
+    .lh  { background-color:#ffffff !important; text-align:center; padding:25px 20px; border-bottom:1px solid #eeeeee; }
     .logo{ display:block; width:190px; max-width:80%; height:auto; margin:0 auto; }
-    .cnt { padding:35px 40px; font-size:14px; }
-    .cnt p{ margin:0 0 18px 0; }
-    .box { background:#fff8f1; border-left:4px solid ${ORANGE}; padding:16px 20px; margin:20px 0; font-size:14px; }
+    .cnt { padding:35px 40px; font-size:14px; background-color:#ffffff !important; color:#222222 !important; }
+    .cnt p{ margin:0 0 18px 0; color:#222222 !important; }
+    .cnt li { color:#222222 !important; }
+    .cnt strong { color:#111111 !important; }
+    .box { background-color:#fff8f1 !important; border-left:4px solid ${ORANGE}; padding:16px 20px; margin:20px 0; font-size:14px; }
     .box p{ margin:0 0 8px 0; }
     .box p:last-child{ margin:0; }
     .bw  { text-align:center; margin:28px 0; }
-    .btn { display:inline-block; background-color:${ORANGE}; color:#fff !important; text-decoration:none; font-size:15px; font-weight:bold; padding:14px 36px; border-radius:4px; letter-spacing:0.3px; }
-    .lf  { font-size:12px; color:#666; text-align:center; margin-bottom:20px; word-break:break-all; }
+    .btn { display:inline-block; background-color:${ORANGE} !important; color:#ffffff !important; text-decoration:none; font-size:15px; font-weight:bold; padding:14px 36px; border-radius:4px; letter-spacing:0.3px; }
+    .lf  { font-size:12px; color:#666666; text-align:center; margin-bottom:20px; word-break:break-all; }
     .lf a{ color:${ORANGE}; }
     a.web{ color:${ORANGE}; text-decoration:underline; }
+    /* Gmail dark mode overrides */
+    u + #body .ew  { background-color:#f4f5f7 !important; }
+    u + #body .ec  { background-color:#ffffff !important; }
+    u + #body .lh  { background-color:#ffffff !important; }
+    u + #body .cnt { background-color:#ffffff !important; color:#222222 !important; }
+    u + #body .box { background-color:#fff8f1 !important; }
+    u + #body .btn { background-color:${ORANGE} !important; color:#ffffff !important; }
+    [data-ogsc] .ew  { background-color:#f4f5f7 !important; }
+    [data-ogsc] .ec  { background-color:#ffffff !important; }
+    [data-ogsc] .lh  { background-color:#ffffff !important; }
+    [data-ogsc] .cnt { background-color:#ffffff !important; color:#222222 !important; }
+    [data-ogsc] .cnt p, [data-ogsc] .cnt li { color:#222222 !important; }
+    [data-ogsc] .cnt strong { color:#111111 !important; }
+    [data-ogsc] .box { background-color:#fff8f1 !important; }
+    [data-ogsc] .btn { background-color:${ORANGE} !important; color:#ffffff !important; }
     @media only screen and (max-width:600px){
-      .ew { padding:10px 5px; }
-      .lh { padding:20px 15px; }
-      .cnt{ padding:25px 20px; }
+      .ew  { padding:10px 5px; }
+      .lh  { padding:20px 15px; }
+      .cnt { padding:25px 20px; }
     }
   `.trim();
 }
@@ -47,18 +67,20 @@ function wrap(title: string, content: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
   <title>${title}</title>
   <style>${css()}</style>
 </head>
-<body>
-<div class="ew">
-  <div class="ec">
-    <div class="lh">
-      <a href="${PORTAL}" target="_blank" style="text-decoration:none;">
+<body id="body" bgcolor="#f4f5f7" style="margin:0;padding:0;background-color:#f4f5f7;">
+<div class="ew" style="background-color:#f4f5f7;">
+  <div class="ec" style="background-color:#ffffff;">
+    <div class="lh" style="background-color:#ffffff;">
+      <a href="${PORTAL}" target="_blank" style="text-decoration:none;display:block;">
         <img src="${LOGO_URL}" alt="SRJ Group" class="logo">
       </a>
     </div>
-    <div class="cnt">
+    <div class="cnt" style="background-color:#ffffff;">
 ${content}
       <p><strong>Warm Regards,</strong></p>
       <p>

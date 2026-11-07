@@ -32,62 +32,94 @@ export function clearBrandingCache() {
 
 export async function wrapEmail(bodyHtml: string): Promise<string> {
   const b = await getBranding();
-  const primary = b.primaryColor || '#b45309';
-  const logoHtml = b.logoUrl
-    ? `<img src="${b.logoUrl}" alt="${b.companyName}" style="max-height:56px;max-width:200px;object-fit:contain;" />`
-    : `<span style="font-size:22px;font-weight:700;color:#ffffff;letter-spacing:0.5px;">${b.companyName}</span>`;
-  const footerLine = b.footerText || `© ${new Date().getFullYear()} ${b.companyName}. All rights reserved.`;
-  const websiteLink = b.websiteUrl
-    ? `<a href="${b.websiteUrl}" style="color:${primary};text-decoration:none;">${b.websiteUrl.replace(/^https?:\/\//, '')}</a>`
-    : '';
+  const primary = b.primaryColor || '#e36c09';
+  const logoUrl = b.logoUrl || 'https://careers.srjsteel.in/career-assets/srj-logo-dark.png';
+  const companyName = b.companyName || 'SRJ Group';
+  const websiteUrl = (b.websiteUrl || 'https://careers.srjsteel.in').replace(/\/$/, '');
+  const websiteDisplay = websiteUrl.replace(/^https?:\/\//, '');
+  const footerLine = b.footerText || `&copy; ${new Date().getFullYear()} ${companyName}. All rights reserved.`;
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="color-scheme" content="light"/>
+  <meta name="supported-color-schemes" content="light"/>
   <title>Email</title>
+  <style>
+    :root { color-scheme: light; }
+    body { margin:0; padding:0; background-color:#f4f5f7 !important; font-family:Arial,Helvetica,sans-serif; color:#222222; line-height:1.55; }
+    img { border:0; outline:none; text-decoration:none; }
+    a { color:${primary}; }
+    /* Gmail dark mode — u+#body targets Gmail's injected element before the email */
+    u + #body .ew  { background-color:#f4f5f7 !important; }
+    u + #body .ec  { background-color:#ffffff !important; }
+    u + #body .lh  { background-color:#ffffff !important; border-color:#eeeeee !important; }
+    u + #body .cnt { background-color:#ffffff !important; color:#222222 !important; }
+    u + #body .ft  { background-color:#f9f9f9 !important; color:#888888 !important; }
+    /* Apple Mail / other clients that honour [data-ogsc] */
+    [data-ogsc] .ew  { background-color:#f4f5f7 !important; }
+    [data-ogsc] .ec  { background-color:#ffffff !important; }
+    [data-ogsc] .lh  { background-color:#ffffff !important; border-color:#eeeeee !important; }
+    [data-ogsc] .cnt { background-color:#ffffff !important; color:#222222 !important; }
+    [data-ogsc] .cnt p, [data-ogsc] .cnt li { color:#222222 !important; }
+    [data-ogsc] .cnt strong { color:#111111 !important; }
+    [data-ogsc] .ft  { background-color:#f9f9f9 !important; color:#888888 !important; }
+    @media only screen and (max-width:620px) {
+      .cnt { padding:25px 20px !important; }
+      .ft  { padding:16px 20px !important; }
+    }
+  </style>
 </head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:'Segoe UI',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 0;">
+<body id="body" bgcolor="#f4f5f7" style="margin:0;padding:0;background-color:#f4f5f7;">
+  <table class="ew" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f4f5f7"
+         style="background-color:#f4f5f7;padding:25px 10px;" role="presentation">
     <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
 
-        <!-- HEADER -->
+      <table class="ec" width="680" cellpadding="0" cellspacing="0" bgcolor="#ffffff"
+             style="max-width:680px;width:100%;background-color:#ffffff;" role="presentation">
+
+        <!-- Logo header -->
         <tr>
-          <td style="background:linear-gradient(135deg,${primary} 0%,${darken(primary)} 100%);padding:28px 36px;text-align:center;">
-            ${logoHtml}
-            <div style="margin-top:8px;">
-              <span style="font-size:12px;color:rgba(255,255,255,0.75);letter-spacing:1.5px;text-transform:uppercase;">Hiring &amp; Recruitment</span>
-            </div>
+          <td class="lh" align="center" bgcolor="#ffffff"
+              style="background-color:#ffffff;padding:25px 20px;border-bottom:1px solid #eeeeee;">
+            <a href="${websiteUrl}" target="_blank" style="text-decoration:none;display:block;">
+              <img src="${logoUrl}" alt="${companyName}" width="190"
+                   style="display:block;width:190px;max-width:80%;height:auto;margin:0 auto;" />
+            </a>
           </td>
         </tr>
 
-        <!-- DECORATIVE STRIP -->
+        <!-- Body -->
         <tr>
-          <td style="height:4px;background:linear-gradient(90deg,${primary},#f59e0b,${primary});"></td>
-        </tr>
-
-        <!-- BODY -->
-        <tr>
-          <td style="background:#ffffff;padding:36px 40px;color:#1f2937;font-size:15px;line-height:1.7;">
+          <td class="cnt" bgcolor="#ffffff"
+              style="background-color:#ffffff;padding:35px 40px;font-size:14px;color:#222222;
+                     font-family:Arial,Helvetica,sans-serif;line-height:1.6;">
             ${bodyHtml}
+            <p style="margin:28px 0 0;"><strong>Warm Regards,</strong></p>
+            <p style="margin:4px 0 0;">
+              <strong>Human Resources Department</strong><br/>
+              <strong>${companyName}</strong><br/>
+              Website:&nbsp;<a href="${websiteUrl}" target="_blank"
+                style="color:${primary};text-decoration:underline;">${websiteDisplay}</a>
+            </p>
           </td>
         </tr>
 
-        <!-- DIVIDER -->
+        <!-- Footer -->
         <tr>
-          <td style="background:#ffffff;padding:0 40px;">
-            <div style="border-top:1px solid #e5e7eb;"></div>
-          </td>
-        </tr>
-
-        <!-- FOOTER -->
-        <tr>
-          <td style="background:#f9fafb;padding:20px 40px;text-align:center;">
-            <p style="margin:0 0 4px;color:#6b7280;font-size:12px;">${footerLine}</p>
-            ${websiteLink ? `<p style="margin:4px 0 0;font-size:12px;">${websiteLink}</p>` : ''}
-            <p style="margin:8px 0 0;color:#9ca3af;font-size:11px;">Please do not reply to this email. This is an automated message.</p>
+          <td class="ft" align="center" bgcolor="#f9f9f9"
+              style="background-color:#f9f9f9;padding:16px 30px;border-top:1px solid #eeeeee;
+                     font-size:11px;color:#888888;font-family:Arial,Helvetica,sans-serif;">
+            <p style="margin:0 0 4px 0;">${footerLine}</p>
+            <p style="margin:4px 0 0;">
+              <a href="${websiteUrl}" target="_blank"
+                 style="color:${primary};text-decoration:none;">${websiteDisplay}</a>
+            </p>
+            <p style="margin:6px 0 0;color:#aaaaaa;font-size:10px;">
+              Please do not reply to this email. This is an automated message.
+            </p>
           </td>
         </tr>
 
@@ -96,17 +128,4 @@ export async function wrapEmail(bodyHtml: string): Promise<string> {
   </table>
 </body>
 </html>`;
-}
-
-/** Simple hex darkening for gradient — shifts each channel down by ~20% */
-function darken(hex: string): string {
-  try {
-    const h = hex.replace('#', '');
-    const r = Math.max(0, parseInt(h.slice(0, 2), 16) - 40);
-    const g = Math.max(0, parseInt(h.slice(2, 4), 16) - 30);
-    const b = Math.max(0, parseInt(h.slice(4, 6), 16) - 20);
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-  } catch {
-    return hex;
-  }
 }

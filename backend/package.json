@@ -12,6 +12,7 @@
     "db:migrate:prod": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "seed:email-templates": "tsx src/modules/email-templates/seed-pipeline-templates.ts",
+    "fix:email-dark-mode": "tsx src/modules/email-templates/fix-email-dark-mode.ts",
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
     "lint": "tsc --noEmit",
