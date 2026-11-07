@@ -965,7 +965,7 @@ model Interview {
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
-  application   Application    @relation(fields: [applicationId], references: [id])
+  application   Application    @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   interviewType InterviewType? @relation(fields: [interviewTypeId], references: [id])
   scheduledBy   User           @relation("InterviewScheduledBy", fields: [scheduledById], references: [id])
 
@@ -1036,7 +1036,7 @@ model Offer {
   updatedAt       DateTime    @updatedAt
   createdById     String
 
-  application Application @relation(fields: [applicationId], references: [id])
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   createdBy   User        @relation("OfferCreatedBy", fields: [createdById], references: [id])
   approvedBy  User?       @relation("OfferApprovedBy", fields: [approvedById], references: [id])
 
@@ -1082,7 +1082,7 @@ model Employee {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  application Application @relation(fields: [applicationId], references: [id])
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   candidate   Candidate   @relation(fields: [candidateId], references: [id])
   department  Department  @relation(fields: [departmentId], references: [id])
   designation Designation @relation(fields: [designationId], references: [id])
@@ -1283,7 +1283,7 @@ model AssessmentAssignment {
 
   assessment  Assessment          @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   candidate   Candidate           @relation(fields: [candidateId], references: [id])
-  application Application         @relation(fields: [applicationId], references: [id])
+  application Application         @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   job         Job                 @relation(fields: [jobId], references: [id])
   assignedBy  User                @relation("AssessmentAssignedBy", fields: [assignedById], references: [id])
   attempts    AssessmentAttempt[]
@@ -1316,7 +1316,7 @@ model AssessmentAttempt {
   assessment        Assessment                 @relation(fields: [assessmentId], references: [id])
   assignment        AssessmentAssignment?      @relation(fields: [assignmentId], references: [id])
   candidate         Candidate                  @relation(fields: [candidateId], references: [id])
-  application       Application                @relation(fields: [applicationId], references: [id])
+  application       Application                @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   answers            AssessmentAnswer[]
   questionSnapshots  AssessmentAttemptQuestion[]
   recordings         AssessmentRecording[]
